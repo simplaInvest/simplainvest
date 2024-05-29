@@ -81,6 +81,12 @@ st.set_page_config(
     page_icon="💎"
 )
 
+# Adicione links para navegação manualmente (opcional)
+st.sidebar.title("Navegação")
+st.sidebar.markdown("[Página 1](Pages/1_🏠_Início.py)")
+st.sidebar.markdown("[Página 2](Pages/2_📊_Análise desempenho Lançamento.py)")
+st.sidebar.markdown("[Página 3](Pages/3_🔠_Análise Pesquisa de Copy.py)")
+
 # Interface do Streamlit
 st.markdown("<h1 style='text-align: center; font-size: 48px;'>Central de Ferramentas Simpla Invest 💎</h1>", unsafe_allow_html=True)
 st.markdown("<h2 style='text-align: center;'>Seja bem vindo, Simpler!</h2>", unsafe_allow_html=True)
