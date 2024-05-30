@@ -83,7 +83,7 @@ st.set_page_config(
 
 # Adicione links para navegação manualmente (opcional)
 st.sidebar.title("Navegação")
-st.sidebar.button
+
 
 
 # Interface do Streamlit
