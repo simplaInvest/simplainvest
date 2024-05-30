@@ -312,7 +312,7 @@ if st.button("Continuar para Análise"):
                 col1, col2 = st.columns([3, 2])
 
                 with col1:
-                    st.table(df.style.set_properties(**{'display': 'none'}, subset=pd.IndexSlice[df.index]))
+                    st.table(top_20_percurso.style.set_properties(**{'display': 'none'}, subset=pd.IndexSlice[df.index]))
 
                 # Preparar dados para o gráfico de barras
                 top_5_percurso = top_20_percurso.head(5).sort_values(by='COUNT', ascending=True)
