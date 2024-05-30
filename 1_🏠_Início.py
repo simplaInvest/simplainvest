@@ -81,11 +81,6 @@ st.set_page_config(
     page_icon="💎"
 )
 
-# Adicione links para navegação manualmente (opcional)
-st.sidebar.title("Navegação")
-
-
-
 # Interface do Streamlit
 st.markdown("<h1 style='text-align: center; font-size: 48px;'>Central de Ferramentas Simpla Invest 💎</h1>", unsafe_allow_html=True)
 st.markdown("<h2 style='text-align: center;'>Seja bem vindo, Simpler!</h2>", unsafe_allow_html=True)
