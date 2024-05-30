@@ -6,7 +6,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import matplotlib.pyplot as plt
 from urllib.parse import unquote_plus
 import nltk
-
+nltk.download('rslp')
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import RSLPStemmer
