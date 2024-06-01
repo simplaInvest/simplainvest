@@ -169,3 +169,32 @@ with col5:
 with col6:
     figpatrimonio = styled_bar_chart(df_patrimonio, "Distribuição por Patrimônio Total", ['#1E90FF', '#FF6347', '#A9A9A9', '#FFD700', '#32CD32', '#8A2BE2', '#FF4500'])
     st.pyplot(figpatrimonio)
+
+
+# Contar as respostas na coluna 'FINAN - RENDA MENSAL FAMILIAR'
+renda_counts = df_ALUNOS['FINAN - RENDA MENSAL FAMILIAR'].value_counts(dropna=False)
+
+# Criar DataFrame com as contagens
+df_renda = pd.DataFrame(renda_counts).reset_index()
+df_renda.columns = ['Renda Mensal', 'Contagem']
+
+# Ordenar os dados conforme o patrimônio especificado
+renda_order = ['NÃO INFORMADO', 'Até R$1.500', 'Entre R$1.500 e R$2.500', 'Entre R$2.500 e R$5.000', 'Entre R$5.000 e R$10.000', 'Entre R$10.000 e R$20.000', 'Acima de R$20.000', 'OUTROS']
+df_renda['Renda Mensal'] = pd.Categorical(df_renda['Renda Mensal'], categories=renda_order, ordered=True)
+df_renda = df_renda.sort_values('Renda Mensal').reset_index(drop=True)
+
+# Garantir que todos os valores na coluna 'Renda Mensal' sejam strings
+df_renda['Renda Mensal'] = df_renda['Renda Mensal'].astype(str)
+
+# Seção para Renda Mensal
+st.subheader("Renda Mensal")
+col7, col8 = st.columns([1, 1])
+
+with col7:
+    st.dataframe(df_renda)
+
+with col8:
+    figrenda = styled_bar_chart(df_renda, "Distribuição por Renda", ['#1E90FF', '#FF6347', '#A9A9A9', '#FFD700', '#32CD32', '#8A2BE2', '#FF4500'])
+    st.pyplot(figrenda)
+
+

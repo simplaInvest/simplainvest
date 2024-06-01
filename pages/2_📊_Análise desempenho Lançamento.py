@@ -47,6 +47,7 @@ def load_first_four_sheets(sheet_name):
         df_name = f"df_{worksheet.title.replace(' ', '_')}"
         df = pd.DataFrame(data)
         df.replace('', pd.NA, inplace=True)
+        df.replace('#N/D', pd.NA, inplace=True)
         df.fillna('não informado', inplace=True)
         data_frames[df_name] = df
     return data_frames
@@ -99,11 +100,11 @@ if st.button("Continuar para Análise"):
     # Formatar os inputs do usuário
     lancamento1 = f"{produto}.{str(versao).zfill(2)}"
     spreadsheet_central = lancamento1 + ' - CENTRAL DO UTM'
-    spreadsheet_pesquisa_copy = lancamento1 + ' - PESQUISA COPY'
+    #spreadsheet_pesquisa_copy = lancamento1 + ' - PESQUISA COPY'
 
     st.write(f"Lançamento selecionado: {lancamento1}")
     st.write(f"Planilha Central: {spreadsheet_central}")
-    st.write(f"Planilha Pesquisa Copy: {spreadsheet_pesquisa_copy}")
+    #st.write(f"Planilha Pesquisa Copy: {spreadsheet_pesquisa_copy}")
 
     spreadsheet_captura = lancamento1 + ' - CENTRAL DO UTM'
     spreadsheet_pesquisa = lancamento1 + ' - PESQUISA TRAFEGO'
@@ -230,60 +231,88 @@ if st.button("Continuar para Análise"):
                 tabela_combined = tabela_combined.sort_values(by=['PATRIMÔNIO', 'RENDA MENSAL']).reset_index(drop=True)
 
                 # Exibindo a nova tabela combinada e os gráficos lado a lado
-                st.subheader("CONVERSÃO LEADS X ALUNOS POR FAIXA PATRIMONIAL")
-                col1, col2 = st.columns([3, 2])
-                with col1:
-                    # Função para aplicar estilos
-                    def color_rows(row):
-                        colors = {
-                            'Menos de R$5 mil': 'background-color: #660000',  # Dark Red (darker)
-                            'Entre R$5 mil e R$20 mil': 'background-color: #8B1A1A',  # Dark Brown (darker)
-                            'Entre R$20 mil e R$100 mil': 'background-color: #8F6500',  # Dark Goldenrod (darker)
-                            'Entre R$100 mil e R$250 mil': 'background-color: #445522',  # Dark Olive Green (darker)
-                            'Entre R$250 mil e R$500 mil': 'background-color: #556B22',  # Olive Drab (darker)
-                            'Entre R$500 mil e R$1 milhão': 'background-color: #000070',  # Dark Blue (darker)
-                            'Acima de R$1 milhão': 'background-color: #2F4F4F'  # Dark Slate Gray
-                        }
-                        return [colors.get(row['PATRIMÔNIO'], '')] * len(row)
+                st.subheader("CONVERSÃO PATRIMÔNIO X RENDA")              
+                # Função para aplicar estilos
+                def color_rows(row):
+                    colors = {
+                        'Menos de R$5 mil': 'background-color: #660000',  # Dark Red (darker)
+                        'Entre R$5 mil e R$20 mil': 'background-color: #8B1A1A',  # Dark Brown (darker)
+                        'Entre R$20 mil e R$100 mil': 'background-color: #8F6500',  # Dark Goldenrod (darker)
+                        'Entre R$100 mil e R$250 mil': 'background-color: #445522',  # Dark Olive Green (darker)
+                        'Entre R$250 mil e R$500 mil': 'background-color: #556B22',  # Olive Drab (darker)
+                        'Entre R$500 mil e R$1 milhão': 'background-color: #000070',  # Dark Blue (darker)
+                        'Acima de R$1 milhão': 'background-color: #2F4F4F'  # Dark Slate Gray
+                    }
+                    return [colors.get(row['PATRIMÔNIO'], '')] * len(row)
 
-                    # Aplicar estilo
-                    styled_df = tabela_combined.style.apply(color_rows, axis=1)
-                    st.dataframe(styled_df)                                                                        
+                # Aplicar estilo                               
+                styled_df = tabela_combined.style.apply(color_rows, axis=1)                
+                st.dataframe(styled_df)                                                                        
 
-                with col2:
-                    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+                
 
-                    # Gráfico de barras para Conversão por Faixa de Patrimônio
-                    tabela_combined['CONVERSÃO_NUM'] = tabela_combined['CONVERSÃO'].str.rstrip('%').astype('float')
-                    ax1.bar(tabela_combined['PATRIMÔNIO'], tabela_combined['CONVERSÃO_NUM'])
-                    ax1.set_title('Conversão por Faixa de Patrimônio', color='#FFFFFF')
-                    ax1.set_ylabel('Conversão (%)', color='#FFFFFF')
-                    ax1.set_xticklabels(tabela_combined['PATRIMÔNIO'], rotation=45, ha='right', color='#FFFFFF')
-                    ax1.set_facecolor('none')  # Fundo do gráfico transparente
-                    fig.patch.set_facecolor('none')  # Fundo da figura transparente
-                    ax1.spines['bottom'].set_color('#FFFFFF')
-                    ax1.spines['top'].set_color('#FFFFFF')
-                    ax1.spines['right'].set_color('#FFFFFF')
-                    ax1.spines['left'].set_color('#FFFFFF')
-                    ax1.tick_params(axis='x', colors='#FFFFFF')
-                    ax1.tick_params(axis='y', colors='#FFFFFF')
+                # Sessão para Conversão por Faixa de Patrimônio
+                st.subheader("CONVERSÃO POR FAIXA DE PATRIMÔNIO")
+                col3, col4 = st.columns([3, 2])
+                with col3:
+                    # Tabela de Conversão por Faixa de Patrimônio
+                    tabela_patrimonio = tabela_combined.groupby('PATRIMÔNIO').agg({
+                        'LEADS': 'sum',
+                        'ALUNOS': 'sum'
+                    }).reset_index()
+                    tabela_patrimonio['CONVERSÃO'] = (tabela_patrimonio['ALUNOS'] / tabela_patrimonio['LEADS']) * 100
+                    tabela_patrimonio['CONVERSÃO'] = tabela_patrimonio['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
+                    st.dataframe(tabela_patrimonio)
 
-                    # Gráfico de barras para Número Bruto de Alunos por Faixa de Patrimônio
-                    ax2.bar(tabela_combined['PATRIMÔNIO'], tabela_combined['ALUNOS'])
-                    ax2.set_title('Número Bruto de Alunos por Faixa de Patrimônio', color='#FFFFFF')
-                    ax2.set_ylabel('Número de Alunos', color='#FFFFFF')
-                    ax2.set_xticklabels(tabela_combined['PATRIMÔNIO'], rotation=45, ha='right', color='#FFFFFF')
-                    ax2.set_facecolor('none')  # Fundo do gráfico transparente
-                    fig.patch.set_facecolor('none')  # Fundo da figura transparente
-                    ax2.spines['bottom'].set_color('#FFFFFF')
-                    ax2.spines['top'].set_color('#FFFFFF')
-                    ax2.spines['right'].set_color('#FFFFFF')
-                    ax2.spines['left'].set_color('#FFFFFF')
-                    ax2.tick_params(axis='x', colors='#FFFFFF')
-                    ax2.tick_params(axis='y', colors='#FFFFFF')
+                with col4:
+                    # Gráfico de Conversão por Faixa de Patrimônio
+                    fig_patrimonio, ax_patrimonio = plt.subplots()
+                    tabela_patrimonio['CONVERSÃO_NUM'] = tabela_patrimonio['CONVERSÃO'].str.rstrip('%').astype('float')
+                    ax_patrimonio.bar(tabela_patrimonio['PATRIMÔNIO'], tabela_patrimonio['CONVERSÃO_NUM'])
+                    ax_patrimonio.set_title('Conversão por Faixa de Patrimônio', color='#FFFFFF')
+                    ax_patrimonio.set_ylabel('Conversão (%)', color='#FFFFFF')
+                    ax_patrimonio.set_xticklabels(tabela_patrimonio['PATRIMÔNIO'], rotation=45, ha='right', color='#FFFFFF')
+                    ax_patrimonio.set_facecolor('none')  # Fundo do gráfico transparente
+                    fig_patrimonio.patch.set_facecolor('none')  # Fundo da figura transparente
+                    ax_patrimonio.spines['bottom'].set_color('#FFFFFF')
+                    ax_patrimonio.spines['top'].set_color('#FFFFFF')
+                    ax_patrimonio.spines['right'].set_color('#FFFFFF')
+                    ax_patrimonio.spines['left'].set_color('#FFFFFF')
+                    ax_patrimonio.tick_params(axis='x', colors='#FFFFFF')
+                    ax_patrimonio.tick_params(axis='y', colors='#FFFFFF')
+                    st.pyplot(fig_patrimonio)
 
-                    plt.tight_layout()
-                    st.pyplot(fig)
+                # Sessão para Conversão por Faixa de Renda
+                st.subheader("CONVERSÃO POR FAIXA DE RENDA")
+                col5, col6 = st.columns([3, 2])
+                with col5:
+                    # Tabela de Conversão por Faixa de Renda
+                    tabela_renda = tabela_combined.groupby('RENDA MENSAL').agg({
+                        'LEADS': 'sum',
+                        'ALUNOS': 'sum'
+                    }).reset_index()
+                    tabela_renda['CONVERSÃO'] = (tabela_renda['ALUNOS'] / tabela_renda['LEADS']) * 100
+                    tabela_renda['CONVERSÃO'] = tabela_renda['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
+                    st.dataframe(tabela_renda)
+
+                with col6:
+                    # Gráfico de Conversão por Faixa de Renda
+                    fig_renda, ax_renda = plt.subplots()
+                    tabela_renda['CONVERSÃO_NUM'] = tabela_renda['CONVERSÃO'].str.rstrip('%').astype('float')
+                    ax_renda.bar(tabela_renda['RENDA MENSAL'], tabela_renda['CONVERSÃO_NUM'])
+                    ax_renda.set_title('Conversão por Faixa de Renda', color='#FFFFFF')
+                    ax_renda.set_ylabel('Conversão (%)', color='#FFFFFF')
+                    ax_renda.set_xticklabels(tabela_renda['RENDA MENSAL'], rotation=45, ha='right', color='#FFFFFF')
+                    ax_renda.set_facecolor('none')  # Fundo do gráfico transparente
+                    fig_renda.patch.set_facecolor('none')  # Fundo da figura transparente
+                    ax_renda.spines['bottom'].set_color('#FFFFFF')
+                    ax_renda.spines['top'].set_color('#FFFFFF')
+                    ax_renda.spines['right'].set_color('#FFFFFF')
+                    ax_renda.spines['left'].set_color('#FFFFFF')
+                    ax_renda.tick_params(axis='x', colors='#FFFFFF')
+                    ax_renda.tick_params(axis='y', colors='#FFFFFF')
+                    st.pyplot(fig_renda)
+
             
             with tabs[2]:
                 # Criar a coluna 'PERCURSO' no DataFrame df_VENDAS sem alterar o original
