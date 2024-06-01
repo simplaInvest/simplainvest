@@ -14,7 +14,6 @@ st.set_page_config(
     page_icon="💎"
 )
 
-
 # Estilização das abas
 st.markdown(
     """
@@ -50,6 +49,8 @@ def load_first_four_sheets(sheet_name):
         df.replace('#N/D', pd.NA, inplace=True)
         df.fillna('não informado', inplace=True)
         data_frames[df_name] = df
+        st.write(f"Carregado: {df_name}")  # Adicionado para depuração
+        st.write(df.head())  # Adicionado para depuração
     return data_frames
 
 # Função para carregar uma aba específica de uma planilha
@@ -204,7 +205,7 @@ if st.button("Continuar para Análise"):
 
                 # Criando uma nova coluna que combina 'PATRIMÔNIO' e 'RENDA MENSAL' em uma única string
                 tabela_empilhada['FAIXA PATRIMÔNIO x RENDA MENSAL'] = tabela_empilhada['PATRIMÔNIO'].astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
-                tabela_empilhada_vendas['FAIXA PATRIMÔNIO x RENDA MENSAL'] = tabela_empilhada_vendas['PATRIMÔNIO'].astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
+                tabela_empilhada_vendas['FAIXA PATRIMÔNIO x RENDA MENSAL'] = tabela_empilhada_vendas['PATRIMÔNIO'].astype(str) + ' x ' + tabela_empilhada_vendas['RENDA MENSAL'].astype(str)
 
                 # Selecionando apenas as colunas de interesse para o novo DataFrame
                 tabela_final = tabela_empilhada[['FAIXA PATRIMÔNIO x RENDA MENSAL', 'LEADS']]
@@ -248,8 +249,6 @@ if st.button("Continuar para Análise"):
                 # Aplicar estilo                               
                 styled_df = tabela_combined.style.apply(color_rows, axis=1)                
                 st.dataframe(styled_df)                                                                        
-
-                
 
                 # Sessão para Conversão por Faixa de Patrimônio
                 st.subheader("CONVERSÃO POR FAIXA DE PATRIMÔNIO")
@@ -313,7 +312,6 @@ if st.button("Continuar para Análise"):
                     ax_renda.tick_params(axis='y', colors='#FFFFFF')
                     st.pyplot(fig_renda)
 
-            
             with tabs[2]:
                 # Criar a coluna 'PERCURSO' no DataFrame df_VENDAS sem alterar o original
                 df_vendas_copy = df_VENDAS.copy()
