@@ -46,8 +46,8 @@ def load_first_four_sheets(sheet_name):
         data = worksheet.get_all_records()
         df_name = f"df_{worksheet.title.replace(' ', '_')}"
         df = pd.DataFrame(data)
-        #df.replace('', pd.NA, inplace=True)
-        #df.replace('#N/D', pd.NA, inplace=True)
+        df.replace('', 'não informado', inplace=True)
+        df.replace('#N/D', 'não informado', inplace=True)
         df.fillna('não informado', inplace=True)
         data_frames[df_name] = df
     return data_frames
@@ -188,34 +188,47 @@ if st.button("Continuar para Análise"):
                 tabela_cruzada1_ordenada = pd.crosstab(df_PESQUISA['PATRIMÔNIO'], df_PESQUISA['RENDA MENSAL'])
 
                 # Definindo variável total para a aba de vendas
-                df_VENDAS = captura_data_frames['df_VENDAS']
-                df_VENDAS['PATRIMÔNIO'] = pd.Categorical(df_VENDAS['PATRIMÔNIO'], categories=categorias_patrimonio, ordered=True)
-                df_VENDAS['RENDA MENSAL'] = pd.Categorical(df_VENDAS['RENDA MENSAL'], categories=categorias_renda, ordered=True)
-                tabela_cruzada1_vendas = pd.crosstab(df_VENDAS['PATRIMÔNIO'], df_VENDAS['RENDA MENSAL'])
-                
-                # Empilhando a tabela cruzada para transformar em um DataFrame com uma coluna para as combinações
-                # e outra para os resultados (contagens)
-                tabela_empilhada = tabela_cruzada1_ordenada.stack().reset_index()
-                tabela_empilhada_vendas = tabela_cruzada1_vendas.stack().reset_index()
+                df_VENDAS = captura_data_frames.get('df_VENDAS', pd.DataFrame(columns=['PATRIMÔNIO', 'RENDA MENSAL']))
 
-                # Renomeando as colunas do novo DataFrame para refletir o conteúdo
-                tabela_empilhada.columns = ['PATRIMÔNIO', 'RENDA MENSAL', 'LEADS']
-                tabela_empilhada_vendas.columns = ['PATRIMÔNIO', 'RENDA MENSAL', 'ALUNOS']
+                if not df_VENDAS.empty:
+                    df_VENDAS['PATRIMÔNIO'] = pd.Categorical(df_VENDAS['PATRIMÔNIO'], categories=categorias_patrimonio, ordered=True)
+                    df_VENDAS['RENDA MENSAL'] = pd.Categorical(df_VENDAS['RENDA MENSAL'], categories=categorias_renda, ordered=True)
+                    tabela_cruzada1_vendas = pd.crosstab(df_VENDAS['PATRIMÔNIO'], df_VENDAS['RENDA MENSAL'])
 
-                # Criando uma nova coluna que combina 'PATRIMÔNIO' e 'RENDA MENSAL' em uma única string
-                tabela_empilhada['FAIXA PATRIMÔNIO x RENDA MENSAL'] = tabela_empilhada['PATRIMÔNIO'].astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
-                tabela_empilhada_vendas['FAIXA PATRIMÔNIO x RENDA MENSAL'] = tabela_empilhada_vendas['PATRIMÔNIO'].astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
+                    # Empilhando a tabela cruzada para transformar em um DataFrame com uma coluna para as combinações
+                    # e outra para os resultados (contagens)
+                    tabela_empilhada = tabela_cruzada1_ordenada.stack().reset_index()
+                    tabela_empilhada_vendas = tabela_cruzada1_vendas.stack().reset_index()
 
-                # Selecionando apenas as colunas de interesse para o novo DataFrame
-                tabela_final = tabela_empilhada[['FAIXA PATRIMÔNIO x RENDA MENSAL', 'LEADS']]
-                tabela_final_vendas = tabela_empilhada_vendas[['FAIXA PATRIMÔNIO x RENDA MENSAL', 'ALUNOS']]
+                    # Renomeando as colunas do novo DataFrame para refletir o conteúdo
+                    tabela_empilhada.columns = ['PATRIMÔNIO', 'RENDA MENSAL', 'LEADS']
+                    tabela_empilhada_vendas.columns = ['PATRIMÔNIO', 'RENDA MENSAL', 'ALUNOS']
 
-                # Combinando as duas tabelas finais em uma única tabela
-                tabela_combined = pd.merge(tabela_final, tabela_final_vendas, on='FAIXA PATRIMÔNIO x RENDA MENSAL', how='outer').fillna(0)
+                    # Criando uma nova coluna que combina 'PATRIMÔNIO' e 'RENDA MENSAL' em uma única string
+                    tabela_empilhada['FAIXA PATRIMÔNIO x RENDA MENSAL'] = tabela_empilhada['PATRIMÔNIO'].astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
+                    tabela_empilhada_vendas['FAIXA PATRIMÔNIO x RENDA MENSAL'] = tabela_empilhada_vendas['PATRIMÔNIO'].astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
 
-                # Adicionando a coluna de conversão
-                tabela_combined['CONVERSÃO'] = (tabela_combined['ALUNOS'] / tabela_combined['LEADS']) * 100
-                tabela_combined['CONVERSÃO'] = tabela_combined['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
+                    # Selecionando apenas as colunas de interesse para o novo DataFrame
+                    tabela_final = tabela_empilhada[['FAIXA PATRIMÔNIO x RENDA MENSAL', 'LEADS']]
+                    tabela_final_vendas = tabela_empilhada_vendas[['FAIXA PATRIMÔNIO x RENDA MENSAL', 'ALUNOS']]
+
+                    # Combinando as duas tabelas finais em uma única tabela
+                    tabela_combined = pd.merge(tabela_final, tabela_final_vendas, on='FAIXA PATRIMÔNIO x RENDA MENSAL', how='outer').fillna(0)
+
+                    # Adicionando a coluna de conversão
+                    tabela_combined['CONVERSÃO'] = (tabela_combined['ALUNOS'] / tabela_combined['LEADS']) * 100
+                    tabela_combined['CONVERSÃO'] = tabela_combined['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
+                else:
+                    # Caso df_VENDAS esteja vazio, apenas exibir dados de captação (LEADS)
+                    tabela_empilhada = tabela_cruzada1_ordenada.stack().reset_index()
+                    tabela_empilhada.columns = ['PATRIMÔNIO', 'RENDA MENSAL', 'LEADS']
+                    tabela_empilhada['FAIXA PATRIMÔNIO x RENDA MENSAL'] = tabela_empilhada['PATRIMÔNIO'].astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
+                    tabela_combined = tabela_empilhada[['FAIXA PATRIMÔNIO x RENDA MENSAL', 'LEADS']]
+
+                    # Adicionando a coluna de porcentagem de LEADS
+                    total_leads = tabela_combined['LEADS'].sum()
+                    tabela_combined['% DO TOTAL DE LEADS'] = (tabela_combined['LEADS'] / total_leads) * 100
+                    tabela_combined['% DO TOTAL DE LEADS'] = tabela_combined['% DO TOTAL DE LEADS'].apply(lambda x: f"{x:.2f}%")
 
                 # Ordenando a tabela_combined pela ordem das categorias originais
                 tabela_combined['PATRIMÔNIO'] = pd.Categorical(
@@ -249,69 +262,124 @@ if st.button("Continuar para Análise"):
                 styled_df = tabela_combined.style.apply(color_rows, axis=1)                
                 st.dataframe(styled_df)                                                                        
 
-                
-
                 # Sessão para Conversão por Faixa de Patrimônio
                 st.subheader("CONVERSÃO POR FAIXA DE PATRIMÔNIO")
                 col3, col4 = st.columns([3, 2])
                 with col3:
-                    # Tabela de Conversão por Faixa de Patrimônio
-                    tabela_patrimonio = tabela_combined.groupby('PATRIMÔNIO').agg({
-                        'LEADS': 'sum',
-                        'ALUNOS': 'sum'
-                    }).reset_index()
-                    tabela_patrimonio['CONVERSÃO'] = (tabela_patrimonio['ALUNOS'] / tabela_patrimonio['LEADS']) * 100
-                    tabela_patrimonio['CONVERSÃO'] = tabela_patrimonio['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
-                    st.dataframe(tabela_patrimonio)
+                    if not df_VENDAS.empty:
+                        # Tabela de Conversão por Faixa de Patrimônio
+                        tabela_patrimonio = tabela_combined.groupby('PATRIMÔNIO').agg({
+                            'LEADS': 'sum',
+                            'ALUNOS': 'sum'
+                        }).reset_index()
+                        tabela_patrimonio['CONVERSÃO'] = (tabela_patrimonio['ALUNOS'] / tabela_patrimonio['LEADS']) * 100
+                        tabela_patrimonio['CONVERSÃO'] = tabela_patrimonio['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
+                        st.dataframe(tabela_patrimonio)
+                    else:
+                        # Tabela de Percentual de LEADS por Faixa de Patrimônio
+                        tabela_patrimonio = tabela_combined.groupby('PATRIMÔNIO').agg({
+                            'LEADS': 'sum'
+                        }).reset_index()
+                        total_leads = tabela_patrimonio['LEADS'].sum()
+                        tabela_patrimonio['% DO TOTAL DE LEADS'] = (tabela_patrimonio['LEADS'] / total_leads) * 100
+                        tabela_patrimonio['% DO TOTAL DE LEADS'] = tabela_patrimonio['% DO TOTAL DE LEADS'].apply(lambda x: f"{x:.2f}%")
+                        st.dataframe(tabela_patrimonio)
 
                 with col4:
-                    # Gráfico de Conversão por Faixa de Patrimônio
-                    fig_patrimonio, ax_patrimonio = plt.subplots()
-                    tabela_patrimonio['CONVERSÃO_NUM'] = tabela_patrimonio['CONVERSÃO'].str.rstrip('%').astype('float')
-                    ax_patrimonio.bar(tabela_patrimonio['PATRIMÔNIO'], tabela_patrimonio['CONVERSÃO_NUM'])
-                    ax_patrimonio.set_title('Conversão por Faixa de Patrimônio', color='#FFFFFF')
-                    ax_patrimonio.set_ylabel('Conversão (%)', color='#FFFFFF')
-                    ax_patrimonio.set_xticklabels(tabela_patrimonio['PATRIMÔNIO'], rotation=45, ha='right', color='#FFFFFF')
-                    ax_patrimonio.set_facecolor('none')  # Fundo do gráfico transparente
-                    fig_patrimonio.patch.set_facecolor('none')  # Fundo da figura transparente
-                    ax_patrimonio.spines['bottom'].set_color('#FFFFFF')
-                    ax_patrimonio.spines['top'].set_color('#FFFFFF')
-                    ax_patrimonio.spines['right'].set_color('#FFFFFF')
-                    ax_patrimonio.spines['left'].set_color('#FFFFFF')
-                    ax_patrimonio.tick_params(axis='x', colors='#FFFFFF')
-                    ax_patrimonio.tick_params(axis='y', colors='#FFFFFF')
-                    st.pyplot(fig_patrimonio)
+                    if not df_VENDAS.empty:
+                        # Gráfico de Conversão por Faixa de Patrimônio
+                        fig_patrimonio, ax_patrimonio = plt.subplots()
+                        tabela_patrimonio['CONVERSÃO_NUM'] = tabela_patrimonio['CONVERSÃO'].str.rstrip('%').astype('float')
+                        ax_patrimonio.bar(tabela_patrimonio['PATRIMÔNIO'], tabela_patrimonio['CONVERSÃO_NUM'])
+                        ax_patrimonio.set_title('Conversão por Faixa de Patrimônio', color='#FFFFFF')
+                        ax_patrimonio.set_ylabel('Conversão (%)', color='#FFFFFF')
+                        ax_patrimonio.set_xticklabels(tabela_patrimonio['PATRIMÔNIO'], rotation=45, ha='right', color='#FFFFFF')
+                        ax_patrimonio.set_facecolor('none')  # Fundo do gráfico transparente
+                        fig_patrimonio.patch.set_facecolor('none')  # Fundo da figura transparente
+                        ax_patrimonio.spines['bottom'].set_color('#FFFFFF')
+                        ax_patrimonio.spines['top'].set_color('#FFFFFF')
+                        ax_patrimonio.spines['right'].set_color('#FFFFFF')
+                        ax_patrimonio.spines['left'].set_color('#FFFFFF')
+                        ax_patrimonio.tick_params(axis='x', colors='#FFFFFF')
+                        ax_patrimonio.tick_params(axis='y', colors='#FFFFFF')
+                        st.pyplot(fig_patrimonio)
+                    else:
+                        # Gráfico de Percentual de LEADS por Faixa de Patrimônio
+                        fig_patrimonio, ax_patrimonio = plt.subplots()
+                        tabela_patrimonio['PERCENTUAL_NUM'] = tabela_patrimonio['% DO TOTAL DE LEADS'].str.rstrip('%').astype('float')
+                        ax_patrimonio.bar(tabela_patrimonio['PATRIMÔNIO'], tabela_patrimonio['PERCENTUAL_NUM'])
+                        ax_patrimonio.set_title('Percentual de LEADS por Faixa de Patrimônio', color='#FFFFFF')
+                        ax_patrimonio.set_ylabel('Percentual (%)', color='#FFFFFF')
+                        ax_patrimonio.set_xticklabels(tabela_patrimonio['PATRIMÔNIO'], rotation=45, ha='right', color='#FFFFFF')
+                        ax_patrimonio.set_facecolor('none')  # Fundo do gráfico transparente
+                        fig_patrimonio.patch.set_facecolor('none')  # Fundo da figura transparente
+                        ax_patrimonio.spines['bottom'].set_color('#FFFFFF')
+                        ax_patrimonio.spines['top'].set_color('#FFFFFF')
+                        ax_patrimonio.spines['right'].set_color('#FFFFFF')
+                        ax_patrimonio.spines['left'].set_color('#FFFFFF')
+                        ax_patrimonio.tick_params(axis='x', colors='#FFFFFF')
+                        ax_patrimonio.tick_params(axis='y', colors='#FFFFFF')
+                        st.pyplot(fig_patrimonio)
 
                 # Sessão para Conversão por Faixa de Renda
                 st.subheader("CONVERSÃO POR FAIXA DE RENDA")
                 col5, col6 = st.columns([3, 2])
                 with col5:
-                    # Tabela de Conversão por Faixa de Renda
-                    tabela_renda = tabela_combined.groupby('RENDA MENSAL').agg({
-                        'LEADS': 'sum',
-                        'ALUNOS': 'sum'
-                    }).reset_index()
-                    tabela_renda['CONVERSÃO'] = (tabela_renda['ALUNOS'] / tabela_renda['LEADS']) * 100
-                    tabela_renda['CONVERSÃO'] = tabela_renda['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
-                    st.dataframe(tabela_renda)
+                    if not df_VENDAS.empty:
+                        # Tabela de Conversão por Faixa de Renda
+                        tabela_renda = tabela_combined.groupby('RENDA MENSAL').agg({
+                            'LEADS': 'sum',
+                            'ALUNOS': 'sum'
+                        }).reset_index()
+                        tabela_renda['CONVERSÃO'] = (tabela_renda['ALUNOS'] / tabela_renda['LEADS']) * 100
+                        tabela_renda['CONVERSÃO'] = tabela_renda['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
+                        st.dataframe(tabela_renda)
+                    else:
+                        # Tabela de Percentual de LEADS por Faixa de Renda
+                        tabela_renda = tabela_combined.groupby('RENDA MENSAL').agg({
+                            'LEADS': 'sum'
+                        }).reset_index()
+                        total_leads = tabela_renda['LEADS'].sum()
+                        tabela_renda['% DO TOTAL DE LEADS'] = (tabela_renda['LEADS'] / total_leads) * 100
+                        tabela_renda['% DO TOTAL DE LEADS'] = tabela_renda['% DO TOTAL DE LEADS'].apply(lambda x: f"{x:.2f}%")
+                        st.dataframe(tabela_renda)
 
                 with col6:
-                    # Gráfico de Conversão por Faixa de Renda
-                    fig_renda, ax_renda = plt.subplots()
-                    tabela_renda['CONVERSÃO_NUM'] = tabela_renda['CONVERSÃO'].str.rstrip('%').astype('float')
-                    ax_renda.bar(tabela_renda['RENDA MENSAL'], tabela_renda['CONVERSÃO_NUM'])
-                    ax_renda.set_title('Conversão por Faixa de Renda', color='#FFFFFF')
-                    ax_renda.set_ylabel('Conversão (%)', color='#FFFFFF')
-                    ax_renda.set_xticklabels(tabela_renda['RENDA MENSAL'], rotation=45, ha='right', color='#FFFFFF')
-                    ax_renda.set_facecolor('none')  # Fundo do gráfico transparente
-                    fig_renda.patch.set_facecolor('none')  # Fundo da figura transparente
-                    ax_renda.spines['bottom'].set_color('#FFFFFF')
-                    ax_renda.spines['top'].set_color('#FFFFFF')
-                    ax_renda.spines['right'].set_color('#FFFFFF')
-                    ax_renda.spines['left'].set_color('#FFFFFF')
-                    ax_renda.tick_params(axis='x', colors='#FFFFFF')
-                    ax_renda.tick_params(axis='y', colors='#FFFFFF')
-                    st.pyplot(fig_renda)
+                    if not df_VENDAS.empty:
+                        # Gráfico de Conversão por Faixa de Renda
+                        fig_renda, ax_renda = plt.subplots()
+                        tabela_renda['CONVERSÃO_NUM'] = tabela_renda['CONVERSÃO'].str.rstrip('%').astype('float')
+                        ax_renda.bar(tabela_renda['RENDA MENSAL'], tabela_renda['CONVERSÃO_NUM'])
+                        ax_renda.set_title('Conversão por Faixa de Renda', color='#FFFFFF')
+                        ax_renda.set_ylabel('Conversão (%)', color='#FFFFFF')
+                        ax_renda.set_xticklabels(tabela_renda['RENDA MENSAL'], rotation=45, ha='right', color='#FFFFFF')
+                        ax_renda.set_facecolor('none')  # Fundo do gráfico transparente
+                        fig_renda.patch.set_facecolor('none')  # Fundo da figura transparente
+                        ax_renda.spines['bottom'].set_color('#FFFFFF')
+                        ax_renda.spines['top'].set_color('#FFFFFF')
+                        ax_renda.spines['right'].set_color('#FFFFFF')
+                        ax_renda.spines['left'].set_color('#FFFFFF')
+                        ax_renda.tick_params(axis='x', colors='#FFFFFF')
+                        ax_renda.tick_params(axis='y', colors='#FFFFFF')
+                        st.pyplot(fig_renda)
+                    else:
+                        # Gráfico de Percentual de LEADS por Faixa de Renda
+                        fig_renda, ax_renda = plt.subplots()
+                        tabela_renda['PERCENTUAL_NUM'] = tabela_renda['% DO TOTAL DE LEADS'].str.rstrip('%').astype('float')
+                        ax_renda.bar(tabela_renda['RENDA MENSAL'], tabela_renda['PERCENTUAL_NUM'])
+                        ax_renda.set_title('Percentual de LEADS por Faixa de Renda', color='#FFFFFF')
+                        ax_renda.set_ylabel('Percentual (%)', color='#FFFFFF')
+                        ax_renda.set_xticklabels(tabela_renda['RENDA MENSAL'], rotation=45, ha='right', color='#FFFFFF')
+                        ax_renda.set_facecolor('none')  # Fundo do gráfico transparente
+                        fig_renda.patch.set_facecolor('none')  # Fundo da figura transparente
+                        ax_renda.spines['bottom'].set_color('#FFFFFF')
+                        ax_renda.spines['top'].set_color('#FFFFFF')
+                        ax_renda.spines['right'].set_color('#FFFFFF')
+                        ax_renda.spines['left'].set_color('#FFFFFF')
+                        ax_renda.tick_params(axis='x', colors='#FFFFFF')
+                        ax_renda.tick_params(axis='y', colors='#FFFFFF')
+                        st.pyplot(fig_renda)
+
 
             
             with tabs[2]:
