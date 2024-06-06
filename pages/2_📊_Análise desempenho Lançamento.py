@@ -141,7 +141,7 @@ if st.button("Continuar para Análise"):
             df_dados = pd.DataFrame(data)
             
             # Abas para navegação
-            tabs = st.tabs(["Dados Gerais do Lançamento", "Conversão Leads x Alunos por Faixa Patrimonial", "Análise de Percurso dos Leads"])
+            tabs = st.tabs(["Dados Gerais do Lançamento" , "Conversão Leads x Alunos por Faixa Patrimonial", "Análise de Percurso dos Leads"])
 
             with tabs[0]:
                 st.subheader("DADOS GERAIS DO LANÇAMENTO")
