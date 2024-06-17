@@ -66,8 +66,8 @@ if st.button("Continuar para Análise"):
         ]
 
         for coluna in colunas_numericas:
-            df_METAADS[coluna] = df_METAADS[coluna].str.replace('.', '', regex=False)  # Remove separador de milhar
-            df_METAADS[coluna] = df_METAADS[coluna].str.replace(',', '.', regex=False)  # Substitui separador decimal
+            df_METAADS[coluna] = df_METAADS[coluna].astype(str)
+            #df_METAADS[coluna] = df_METAADS[coluna].str.replace(',', '.', regex=False)  # Substitui separador decimal
             df_METAADS[coluna] = pd.to_numeric(df_METAADS[coluna], errors='coerce')
 
         try:
@@ -152,7 +152,7 @@ if st.button("Continuar para Análise"):
                 #calcular 'DIFERENÇA'            
                 df_PORANUNCIO['DIFERENÇA'] = df_PORANUNCIO['PREÇO MÁXIMO'] - df_PORANUNCIO['CUSTO POR LEAD']
 
-                st.header('TA ERRADO O PREÇO MAXIMO DEPOIS CORRIJA')
+                st.header('TA ERRADO O VALOR USADO DEPOIS CORRIJA')
                 # Exibir o novo DataFrame
                 st.dataframe(df_PORANUNCIO)
 
