@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import time
 
+@st.cache_data(show_spinner="Carregando dados...", ttl=9000)
 # Função para carregar uma aba específica de uma planilha
 def load_sheet(sheet_name, worksheet_name):
     scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
@@ -50,7 +51,7 @@ if st.button("Continuar para Análise"):
     
     try:
         # Carregar dados da New Meta Ads
-        df_METAADS = load_sheet(spreadsheet_trafego, 'NEW META ADs')
+        df_METAADS = load_sheet(spreadsheet_trafego, 'NEW META ADS')
         st.success("NEW META ADs carregadas com sucesso!")
         df_METAADS = df_METAADS.astype(str)
 
@@ -66,7 +67,7 @@ if st.button("Continuar para Análise"):
         ]
 
         for coluna in colunas_numericas:
-            df_METAADS[coluna] = df_METAADS[coluna].astype(str)
+           #df_METAADS[coluna] = df_METAADS[coluna].astype(str)
             #df_METAADS[coluna] = df_METAADS[coluna].str.replace(',', '.', regex=False)  # Substitui separador decimal
             df_METAADS[coluna] = pd.to_numeric(df_METAADS[coluna], errors='coerce')
 
@@ -78,11 +79,12 @@ if st.button("Continuar para Análise"):
             try:
                 # Carregar dados de pesquisa
                 df_PESQUISA = load_sheet(spreadsheet_trafego, 'DADOS')
+                df_PESQUISA['UTM_TERM'] = df_PESQUISA['UTM_TERM'].replace('+',' ')
                 st.success("Dados carregado com sucesso!")
 
                 # Criar o novo DataFrame com as colunas especificadas
                 
-                ticket = 1490*0.7
+                ticket = 1500*0.7
                 
                 
                 columns = [
@@ -125,7 +127,7 @@ if st.button("Continuar para Análise"):
                     df_PORANUNCIO[faixa] = df_PORANUNCIO['ANÚNCIO'].apply(
                         lambda anuncio: (
                             df_PESQUISA[(df_PESQUISA['UTM_TERM'] == anuncio) & 
-                                        (df_PESQUISA['PATRIMÔNIO'] == faixa)].shape[0] / 
+                                        (df_PESQUISA['PATRIMONIO'] == faixa)].shape[0] / 
                             df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0]
                         ) if df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0] != 0 else 0
                     )
