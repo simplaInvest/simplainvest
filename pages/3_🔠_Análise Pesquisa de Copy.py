@@ -135,8 +135,8 @@ if st.button("Continuar para Análise") or 'df_VENDAS2' in st.session_state:
         df_PESQUISA2 = st.session_state.df_PESQUISA2
 
     # Adicionar controles deslizantes para o usuário definir os filtros
-    min_freq_vendas = st.slider("Quantidade mínima de alunos", min_value=0, max_value=20(df_VENDAS2['COPY MAIOR MOTIVACAO'].count()), value=1)
-    min_freq_pesquisa = st.slider("Quantidade mínima de respostas na pesquisa", min_value=0, max_value=100(df_PESQUISA2['Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?'].count()), value=1)
+    min_freq_vendas = st.slider("Quantidade mínima de alunos", min_value=0, max_value=20)
+    min_freq_pesquisa = st.slider("Quantidade mínima de respostas na pesquisa", min_value=0, max_value=100)
 
     st.write("Análise de Bigramas - Pesquisa de Copy Lançamento")
 
