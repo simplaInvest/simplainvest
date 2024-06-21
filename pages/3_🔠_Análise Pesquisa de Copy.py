@@ -199,30 +199,50 @@ if st.button("Continuar para Análise"):
             # Tabela de conversão para cada pergunta
             st.write("Tabelas de Conversão")
 
+            # Adicionar controles deslizantes para o usuário definir os filtros
+            min_freq_vendas = st.slider("Quantidade mínima de alunos", min_value=0, max_value=int(df_VENDAS2['COPY MAIOR MOTIVACAO'].count()), value=1)
+            min_freq_pesquisa = st.slider("Quantidade mínima de respostas na pesquisa", min_value=0, max_value=int(df_PESQUISA2['Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?'].count()), value=1)
+
+            # Função para aplicar o filtro no DataFrame de conversão
+            def aplicar_filtro(df_conversao, min_freq_vendas, min_freq_pesquisa):
+                df_filtrado = df_conversao[(df_conversao['Freq Vendas'] >= min_freq_vendas) & (df_conversao['Freq Pesquisa'] >= min_freq_pesquisa)]
+                return df_filtrado
+
+
+
+            # Tabela de conversão para cada pergunta
+            st.write("Tabelas de Conversão")
+
             # Maior Motivação
             df_conversao_maior_motivacao = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY MAIOR MOTIVACAO', 'Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?')
+            df_conversao_maior_motivacao_filtrado = aplicar_filtro(df_conversao_maior_motivacao, min_freq_vendas, min_freq_pesquisa)
             st.write("Conversão - Maior Motivação")
-            st.dataframe(df_conversao_maior_motivacao)
+            st.dataframe(df_conversao_maior_motivacao_filtrado)
 
             # Defina Sucesso
             df_conversao_defina_sucesso = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY DEFINA SUCESSO', 'O que precisa acontecer para você acreditar que é uma pessoa bem-sucedida?')
+            df_conversao_defina_sucesso_filtrado = aplicar_filtro(df_conversao_defina_sucesso, min_freq_vendas, min_freq_pesquisa)
             st.write("Conversão - Defina Sucesso")
-            st.dataframe(df_conversao_defina_sucesso)
+            st.dataframe(df_conversao_defina_sucesso_filtrado)
 
             # Maior Dificuldade
             df_conversao_maior_dificuldade = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY MAIOR DIFICULDADE', 'Qual é a sua maior dificuldade em relação aos investimentos e/ou finanças?')
+            df_conversao_maior_dificuldade_filtrado = aplicar_filtro(df_conversao_maior_dificuldade, min_freq_vendas, min_freq_pesquisa)
             st.write("Conversão - Maior Dificuldade")
-            st.dataframe(df_conversao_maior_dificuldade)
+            st.dataframe(df_conversao_maior_dificuldade_filtrado)
 
             # Porque Investir
             df_conversao_porque_investir = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY PORQUE INVESTIR', 'Por que você quer aprender a investir?')
+            df_conversao_porque_investir_filtrado = aplicar_filtro(df_conversao_porque_investir, min_freq_vendas, min_freq_pesquisa)
             st.write("Conversão - Porque Investir")
-            st.dataframe(df_conversao_porque_investir)
+            st.dataframe(df_conversao_porque_investir_filtrado)
 
             # Expectativa CPL
             df_conversao_expectativa_cpl = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY EXPECTATIVA CPL', 'O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?')
+            df_conversao_expectativa_cpl_filtrado = aplicar_filtro(df_conversao_expectativa_cpl, min_freq_vendas, min_freq_pesquisa)
             st.write("Conversão - Expectativa CPL")
-            st.dataframe(df_conversao_expectativa_cpl)
+            st.dataframe(df_conversao_expectativa_cpl_filtrado)
+
 
         except Exception as e:
             st.error(f"Erro no código dos bigramas {e}")
