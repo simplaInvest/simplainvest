@@ -25,6 +25,7 @@ def load_sheet(sheet_name, worksheet_name):
     data = sheet.get_all_records()
     return pd.DataFrame(data)
 
+
 # Função para processar e ranquear os bigramas
 def processar_coluna_bigramas(respostas_coluna, excecoes=[]):
     # Criando lista de stopwords em português
@@ -59,6 +60,9 @@ def processar_coluna_bigramas(respostas_coluna, excecoes=[]):
     df_rankeado = df_rankeado.sort_values(by='Frequência', ascending=False).reset_index(drop=True)
 
     return df_rankeado
+
+# Palavras a serem excluídas
+excecoes = ['ter', 'pra', 'wlandsmidt', 'milazzo']
 
 # Função para calcular a conversão dos bigramas, mantendo a ordem dos bigramas nas vendas
 def calcular_conversao(df_vendas, df_pesquisa, coluna_vendas, coluna_pesquisa):
@@ -140,8 +144,7 @@ if st.button("Continuar para Análise") or 'df_VENDAS2' in st.session_state:
 
     st.write("Análise de Bigramas - Pesquisa de Copy Lançamento")
 
-    # Palavras a serem excluídas
-    excecoes = ['ter', 'pra', 'wlandsmidt', 'milazzo']
+   
 
     # Tabela de conversão para cada pergunta
     st.write("Tabelas de Conversão")
