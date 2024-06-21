@@ -122,7 +122,7 @@ if st.button("Continuar para Análise"):
 
             with col1:
                 st.text('Maior Motivação')
-                df_maior_motivacao = processar_coluna_bigramas(df_VENDAS2['COPY MAIOR MOTIVAÇÃO'], excecoes)
+                df_maior_motivacao = processar_coluna_bigramas(df_VENDAS2['COPY MAIOR MOTIVACAO'], excecoes)
                 st.dataframe(df_maior_motivacao)
 
             with col2:
