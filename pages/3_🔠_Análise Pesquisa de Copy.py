@@ -13,10 +13,10 @@ from nltk.stem import RSLPStemmer
 from string import punctuation
 from collections import Counter
 
-    # Função para carregar uma aba específica de uma planilha
+# Função para carregar uma aba específica de uma planilha
 def load_sheet(sheet_name, worksheet_name):
     scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
-                "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+             "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name('autorizador.json', scope)
     client = gspread.authorize(creds)
     # Open the Google spreadsheet
@@ -49,14 +49,10 @@ if st.button("Continuar para Análise"):
     st.write(f"Planilha Central: {spreadsheet_central}")
     st.write(f"Planilha Pesquisa Copy: {spreadsheet_pesquisa_copy}")
 
-    spreadsheet_central = lancamento2 + ' - CENTRAL DO UTM'
-    spreadsheet_pesquisa_copy = lancamento2 + ' - PESQUISA COPY'
-
     if lancamento2:
         try:
             # Carregando Planilha de Vendas Central do UTM
             df_VENDAS2 = load_sheet(spreadsheet_central, 'VENDAS')
-            #st.dataframe(df_VENDAS2)
         except Exception as e:
             st.error(f"Erro ao carregar a planilha de vendas: {e}")
         
@@ -68,7 +64,6 @@ if st.button("Continuar para Análise"):
             df_PESQUISA2 = load_sheet(SPREADSHEETCOPY, WORKSHEETCOPY)
             df_PESQUISA2 = df_PESQUISA2.astype(str)
             df_PESQUISA2 = df_PESQUISA2.fillna('semdados')
-            #st.dataframe(df_PESQUISA2)
 
         except Exception as e:
             st.error(f"Erro ao carregar a planilha de Copy {e}")
@@ -98,7 +93,7 @@ if st.button("Continuar para Análise"):
                 tokens = [stemmer.stem(word.lower()) for word in word_tokenize(text) if word.lower() not in stop_words and word.isalpha() and word.lower() not in excecoes]
 
                 # Gerando bigramas
-                bigrams = [(min(token1, token2), max(token1, token2)) for token1, token2 in nltk.ngrams(tokens, 2)]
+                bigrams = list(nltk.bigrams(tokens))
 
                 # Contagem dos bigramas
                 contagem_bigramas = Counter(bigrams)
@@ -111,8 +106,33 @@ if st.button("Continuar para Análise"):
 
                 return df_rankeado
 
+            # Função para calcular a conversão dos bigramas, mantendo a ordem dos bigramas nas vendas
+            def calcular_conversao(df_vendas, df_pesquisa, coluna_vendas, coluna_pesquisa):
+                # Processar bigramas nas vendas
+                bigramas_vendas = processar_coluna_bigramas(df_vendas[coluna_vendas])
+                
+                # Processar bigramas na pesquisa
+                bigramas_pesquisa = processar_coluna_bigramas(df_pesquisa[coluna_pesquisa])
+                
+                # Criar um DataFrame para armazenar a conversão, mantendo a ordem das vendas
+                conversao = []
+                
+                for bigrama, freq_vendas in zip(bigramas_vendas['Bigrama'], bigramas_vendas['Frequência']):
+                    # Verificar se o bigrama está na pesquisa
+                    freq_pesquisa = bigramas_pesquisa[bigramas_pesquisa['Bigrama'] == bigrama]['Frequência'].values
+                    if len(freq_pesquisa) > 0:
+                        taxa_conversao = freq_vendas / freq_pesquisa[0]
+                    else:
+                        taxa_conversao = 0
+                    conversao.append((bigrama, freq_vendas, freq_pesquisa[0] if len(freq_pesquisa) > 0 else 0, taxa_conversao))
+                
+                # Criar DataFrame da conversão, mantendo a ordem das vendas
+                df_conversao = pd.DataFrame(conversao, columns=['Bigrama', 'Freq Vendas', 'Freq Pesquisa', 'Conversão'])
+                
+                return df_conversao
+
             # Palavras a serem excluídas
-            excecoes = ['ter', 'pra', 'rufino', 'wlandsmidt', 'milazzo']
+            excecoes = ['ter', 'pra', 'wlandsmidt', 'milazzo']
 
             st.title('VENDAS')
             st.text('Bigramas recorrentes em diferentes categorias')
@@ -175,6 +195,34 @@ if st.button("Continuar para Análise"):
                 st.text('Expectativa CPL')
                 df_expectativa_cpl = processar_coluna_bigramas(df_PESQUISA2['O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?'], excecoes)
                 st.dataframe(df_expectativa_cpl)
+
+            # Tabela de conversão para cada pergunta
+            st.write("Tabelas de Conversão")
+
+            # Maior Motivação
+            df_conversao_maior_motivacao = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY MAIOR MOTIVACAO', 'Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?')
+            st.write("Conversão - Maior Motivação")
+            st.dataframe(df_conversao_maior_motivacao)
+
+            # Defina Sucesso
+            df_conversao_defina_sucesso = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY DEFINA SUCESSO', 'O que precisa acontecer para você acreditar que é uma pessoa bem-sucedida?')
+            st.write("Conversão - Defina Sucesso")
+            st.dataframe(df_conversao_defina_sucesso)
+
+            # Maior Dificuldade
+            df_conversao_maior_dificuldade = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY MAIOR DIFICULDADE', 'Qual é a sua maior dificuldade em relação aos investimentos e/ou finanças?')
+            st.write("Conversão - Maior Dificuldade")
+            st.dataframe(df_conversao_maior_dificuldade)
+
+            # Porque Investir
+            df_conversao_porque_investir = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY PORQUE INVESTIR', 'Por que você quer aprender a investir?')
+            st.write("Conversão - Porque Investir")
+            st.dataframe(df_conversao_porque_investir)
+
+            # Expectativa CPL
+            df_conversao_expectativa_cpl = calcular_conversao(df_VENDAS2, df_PESQUISA2, 'COPY EXPECTATIVA CPL', 'O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?')
+            st.write("Conversão - Expectativa CPL")
+            st.dataframe(df_conversao_expectativa_cpl)
 
         except Exception as e:
             st.error(f"Erro no código dos bigramas {e}")
