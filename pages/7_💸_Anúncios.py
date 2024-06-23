@@ -10,11 +10,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import io
 
-@st.cache_data(show_spinner="Carregando dados...", ttl=9000)
 # Função para carregar uma aba específica de uma planilha
 def load_sheet(sheet_name, worksheet_name):
     scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
-                "https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+             "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name('autorizador.json', scope)
     client = gspread.authorize(creds)
     # Open the Google spreadsheet
@@ -22,6 +21,15 @@ def load_sheet(sheet_name, worksheet_name):
     # Get all data from the sheet
     data = sheet.get_all_records()
     return pd.DataFrame(data)
+
+# Função para transformar link de compartilhamento do Google Drive em link direto para imagem
+def transform_drive_link(link):
+    if "drive.google.com" in link and "file/d/" in link:
+        file_id = link.split("file/d/")[1].split("/")[0]
+        return f"https://drive.google.com/uc?export=view&id={file_id}"
+    else:
+        return link  # Se o link não estiver no formato esperado, retorna o link original
+
 
 # Perguntar qual lançamento a pessoa gostaria de analisar
 st.write('Qual o Lançamento em Questão?')
@@ -34,7 +42,7 @@ versao = st.selectbox('Versão', list(range(1, 31)))
 
 # Formatar os inputs do usuário
 start_time = time.time()
-lancamentoT = f"{produto}.{str(versao).zfill(2)}"   
+lancamentoT = f"{produto}.{str(versao).zfill(2)}"
 spreadsheet_trafego = lancamentoT + ' - PESQUISA TRAFEGO'
 st.write(f"Lançamento selecionado: {lancamentoT}")
 st.write(f"Planilha Central: {spreadsheet_trafego}")
@@ -47,6 +55,9 @@ if 'analyze_clicked' not in st.session_state:
     st.session_state['analyze_clicked'] = False
 
 if st.session_state['analyze_clicked']:
+    # Adicionar slider para selecionar o valor mínimo de 'VALOR USADO'
+    min_valor_usado = st.slider("Selecione o valor mínimo de 'VALOR USADO'", 0, 1000, 250)
+    
     tabs = st.tabs(["Planilhas", "Top Anúncios", "Por Anuncio"])
 
     with tabs[0]:
@@ -54,10 +65,10 @@ if st.session_state['analyze_clicked']:
         df_METAADS = load_sheet(spreadsheet_trafego, 'NEW META ADS')
         df_METAADS = df_METAADS.astype(str)
         colunas_numericas = [
-            'CPM', 'VALOR USADO', 'LEADS', 'CPL', 'CTR', 'CONNECT RATE', 
-            'CONVERSÃO DA PÁGINA', 'IMPRESSOES', 'ALCANCE', 'FREQUÊNCIA', 
-            'CLICKS', 'CLICKS NO LINK', 'PAGEVIEWS', 'LP CTR', 'PERFIL CTR', 
-            '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 
+            'CPM', 'VALOR USADO', 'LEADS', 'CPL', 'CTR', 'CONNECT RATE',
+            'CONVERSAO PAG', 'IMPRESSOES', 'ALCANCE', 'FREQUÊNCIA',
+            'CLICKS', 'CLICKS NO LINK', 'PAGEVIEWS', 'LP CTR', 'PERFIL CTR',
+            '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
             '13', '14', '15-20', '20-25', '25-30', '30-40', '40-50', '50-60', '60+'
         ]
         table = pa.Table.from_pandas(df_METAADS)
@@ -67,6 +78,9 @@ if st.session_state['analyze_clicked']:
         df_METAADS = pq.read_table(buffer).to_pandas()
         for coluna in colunas_numericas:
             df_METAADS[coluna] = pd.to_numeric(df_METAADS[coluna], errors='coerce')
+        
+        # Filtrar DataFrame pelo valor do slider
+        df_METAADS = df_METAADS[df_METAADS['VALOR USADO'] >= min_valor_usado]
         
         # Carregar dados de Anúncios Subidos
         df_SUBIDOS = load_sheet(spreadsheet_trafego, 'ANUNCIOS SUBIDOS')
@@ -84,10 +98,10 @@ if st.session_state['analyze_clicked']:
         ticket = 1500 * 0.7
         columns = [
             'ANÚNCIO', 'TOTAL DE LEADS', 'TOTAL DE PESQUISA',
-            'CUSTO POR LEAD', 'PREÇO MÁXIMO', 'DIFERENÇA', 'MARGEM', 'VALOR USADO', 
-            'CPM', 'CTR', 'CONNECT RATE', 'CONVERSÃO PÁG', 'Acima de R$1 milhão',
-            'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil', 
-            'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil', 
+            'CUSTO POR LEAD', 'PREÇO MÁXIMO', 'DIFERENÇA', 'MARGEM', 'VALOR USADO',
+            'CPM', 'CTR', 'CONNECT RATE', 'CONVERSAO PAG', 'Acima de R$1 milhão',
+            'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
+            'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil',
             'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil', 'TAXA DE RESPOSTA'
         ]
         df_PORANUNCIO = pd.DataFrame(columns=columns)
@@ -155,6 +169,11 @@ if st.session_state['analyze_clicked']:
         df_PORANUNCIO['TAXA DE RESPOSTA'] = df_PORANUNCIO.apply(
             lambda row: row['TOTAL DE PESQUISA'] / row['TOTAL DE LEADS'] if row['TOTAL DE LEADS'] != 0 else "Sem respostas", axis=1
         )
+        df_PORANUNCIO['CONVERSAO PAG'] = df_PORANUNCIO['ANÚNCIO'].apply(
+            lambda anuncio: df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'LEADS'].sum() /
+            df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum()
+            if not df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
+        )
         st.header('TRÁFEGO POR ANÚNCIO')
         st.dataframe(df_PORANUNCIO)
 
@@ -178,10 +197,8 @@ if st.session_state['analyze_clicked']:
             plt.setp(ax.get_yticklabels(), color="#FFFFFF")
             return fig
 
-        colunas_analise = [
-            'TOTAL DE LEADS', 'TOTAL DE PESQUISA', 'CUSTO POR LEAD', 'PREÇO MÁXIMO', 'DIFERENÇA',
-            'MARGEM', 'VALOR USADO', 'CPM', 'CTR', 'CONNECT RATE', 'CONVERSÃO PÁG', 'TAXA DE RESPOSTA'
-        ]
+        colunas_analise = ['MARGEM', 'VALOR USADO', 'CTR', 'CONVERSAO PAG']
+        
         df_PORANUNCIO_COPY = df_PORANUNCIO.copy()
         for coluna in colunas_analise:
             df_PORANUNCIO_COPY[coluna] = pd.to_numeric(df_PORANUNCIO_COPY[coluna], errors='coerce')
@@ -211,9 +228,19 @@ if st.session_state['analyze_clicked']:
 
     with tabs[2]:
         st.header('Detalhes do Anúncio')
+
         selected_anuncio = st.selectbox('Selecione o Anúncio', df_PORANUNCIO['ANÚNCIO'].unique())
         if selected_anuncio:
             anuncio_data = df_PORANUNCIO[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio].iloc[0]
+
+            # Encontrar o link da imagem correspondente no df_SUBIDOS
+            drive_link = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == selected_anuncio, 'LINK DO DRIVE'].values[0]
+            image_link = transform_drive_link(drive_link)
+
+            st.write(f"Anúncio: {selected_anuncio}")
+            st.write(f"Link da Imagem: [Clique aqui]({image_link})")
+            st.image(image_link, caption=selected_anuncio)
+
             st.subheader(f"Detalhes do Anúncio: {selected_anuncio}")
             st.markdown(f"""
             <div style="background-color: #1e1e1e; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
@@ -228,7 +255,7 @@ if st.session_state['analyze_clicked']:
                 <p style="color: #ffffff;"><strong>CPM:</strong> {anuncio_data['CPM']:.2f}</p>
                 <p style="color: #ffffff;"><strong>CTR:</strong> {anuncio_data['CTR']:.2%}</p>
                 <p style="color: #ffffff;"><strong>Connect Rate:</strong> {anuncio_data['CONNECT RATE']:.2%}</p>
-                <p style="color: #ffffff;"><strong>Conversão da Página:</strong> {anuncio_data['CONVERSÃO PÁG']:.2%}</p>
+                <p style="color: #ffffff;"><strong>Conversão da Página:</strong> {anuncio_data['CONVERSAO PAG']:.2%}</p>
                 <p style="color: #ffffff;"><strong>Taxa de Resposta:</strong> {anuncio_data['TAXA DE RESPOSTA']:.2%}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -265,9 +292,9 @@ if st.session_state['analyze_clicked']:
                 'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil', 'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil'
             ]
             patrimonio_sizes = [
-                anuncio_data['Acima de R$1 milhão'], anuncio_data['Entre R$500 mil e R$1 milhão'], 
-                anuncio_data['Entre R$250 mil e R$500 mil'], anuncio_data['Entre R$100 mil e R$250 mil'], 
-                anuncio_data['Entre R$20 mil e R$100 mil'], anuncio_data['Entre R$5 mil e R$20 mil'], 
+                anuncio_data['Acima de R$1 milhão'], anuncio_data['Entre R$500 mil e R$1 milhão'],
+                anuncio_data['Entre R$250 mil e R$500 mil'], anuncio_data['Entre R$100 mil e R$250 mil'],
+                anuncio_data['Entre R$20 mil e R$100 mil'], anuncio_data['Entre R$5 mil e R$20 mil'],
                 anuncio_data['Menos de R$5 mil']
             ]
             fig_patrimonio = styled_pie_chart(patrimonio_labels, patrimonio_sizes, 'Distribuição de Patrimônio')
