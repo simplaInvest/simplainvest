@@ -1,3 +1,6 @@
+import requests
+from PIL import Image, UnidentifiedImageError
+import io
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,9 +11,28 @@ import matplotlib.cm as cm
 import time
 import pyarrow as pa
 import pyarrow.parquet as pq
-import io
+
+# Função para transformar link de compartilhamento do Google Drive em link direto para imagem
+def transform_drive_link(link):
+    if "drive.google.com" in link and "file/d/" in link:
+        file_id = link.split("file/d/")[1].split("/")[0]
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+    elif "drive.google.com" in link and "id=" in link:
+        file_id = link.split("id=")[1].split("&")[0]
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+    else:
+        return link
+
+# Função para baixar a imagem a partir de um link
+def download_image(image_url):
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        return Image.open(io.BytesIO(response.content))
+    else:
+        return None
 
 # Função para carregar uma aba específica de uma planilha
+@st.cache_data
 def load_sheet(sheet_name, worksheet_name):
     scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
              "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
@@ -22,14 +44,37 @@ def load_sheet(sheet_name, worksheet_name):
     data = sheet.get_all_records()
     return pd.DataFrame(data)
 
-# Função para transformar link de compartilhamento do Google Drive em link direto para imagem
-def transform_drive_link(link):
-    if "drive.google.com" in link and "file/d/" in link:
-        file_id = link.split("file/d/")[1].split("/")[0]
-        return f"https://drive.google.com/uc?export=view&id={file_id}"
-    else:
-        return link  # Se o link não estiver no formato esperado, retorna o link original
+# Carregar dados da planilha
+@st.cache_data
+def load_data(spreadsheet_trafego):
+    df_METAADS = load_sheet(spreadsheet_trafego, 'NEW META ADS')
+    df_METAADS = df_METAADS.astype(str)
+    colunas_numericas = [
+        'CPM', 'VALOR USADO', 'LEADS', 'CPL', 'CTR', 'CONNECT RATE',
+        'CONVERSAO PAG', 'IMPRESSOES', 'ALCANCE', 'FREQUENCIA',
+        'CLICKS', 'CLICKS NO LINK', 'PAGEVIEWS', 'LP CTR', 'PERFIL CTR',
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+        '13', '14', '15-20', '20-25', '25-30', '30-40', '40-50', '50-60', '60+'
+    ]
+    table = pa.Table.from_pandas(df_METAADS)
+    buffer = io.BytesIO()
+    pq.write_table(table, buffer)
+    buffer.seek(0)
+    df_METAADS = pq.read_table(buffer).to_pandas()
+    for coluna in colunas_numericas:
+        df_METAADS[coluna] = pd.to_numeric(df_METAADS[coluna], errors='coerce')
 
+    df_SUBIDOS = load_sheet(spreadsheet_trafego, 'ANUNCIOS SUBIDOS')
+    df_PESQUISA = load_sheet(spreadsheet_trafego, 'DADOS')
+    df_PESQUISA['UTM_TERM'] = df_PESQUISA['UTM_TERM'].replace('+', ' ')
+    df_PESQUISA = df_PESQUISA.astype(str)
+    table = pa.Table.from_pandas(df_PESQUISA)
+    buffer = io.BytesIO()
+    pq.write_table(table, buffer)
+    buffer.seek(0)
+    df_PESQUISA = pq.read_table(buffer).to_pandas()
+
+    return df_METAADS, df_SUBIDOS, df_PESQUISA
 
 # Perguntar qual lançamento a pessoa gostaria de analisar
 st.write('Qual o Lançamento em Questão?')
@@ -47,53 +92,27 @@ spreadsheet_trafego = lancamentoT + ' - PESQUISA TRAFEGO'
 st.write(f"Lançamento selecionado: {lancamentoT}")
 st.write(f"Planilha Central: {spreadsheet_trafego}")
 
+ # Adicionar slider para selecionar o valor mínimo de 'VALOR USADO'
+min_valor_usado = st.slider("Selecione o valor mínimo de 'VALOR USADO'", 0, 1000, 250)
+
 # Botão para continuar para a análise
 if st.button("Continuar para Análise"):
+    st.cache_data.clear()  # Limpar o cache antes de recarregar os dados
     st.session_state['analyze_clicked'] = True
 
 if 'analyze_clicked' not in st.session_state:
     st.session_state['analyze_clicked'] = False
 
-if st.session_state['analyze_clicked']:
-    # Adicionar slider para selecionar o valor mínimo de 'VALOR USADO'
-    min_valor_usado = st.slider("Selecione o valor mínimo de 'VALOR USADO'", 0, 1000, 250)
+if st.session_state['analyze_clicked']:   
     
     tabs = st.tabs(["Planilhas", "Top Anúncios", "Por Anuncio"])
 
+    # Carregar os dados uma única vez
+    df_METAADS, df_SUBIDOS, df_PESQUISA = load_data(spreadsheet_trafego)
+    
     with tabs[0]:
-        # Carregar dados da New Meta Ads
-        df_METAADS = load_sheet(spreadsheet_trafego, 'NEW META ADS')
-        df_METAADS = df_METAADS.astype(str)
-        colunas_numericas = [
-            'CPM', 'VALOR USADO', 'LEADS', 'CPL', 'CTR', 'CONNECT RATE',
-            'CONVERSAO PAG', 'IMPRESSOES', 'ALCANCE', 'FREQUÊNCIA',
-            'CLICKS', 'CLICKS NO LINK', 'PAGEVIEWS', 'LP CTR', 'PERFIL CTR',
-            '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
-            '13', '14', '15-20', '20-25', '25-30', '30-40', '40-50', '50-60', '60+'
-        ]
-        table = pa.Table.from_pandas(df_METAADS)
-        buffer = io.BytesIO()
-        pq.write_table(table, buffer)
-        buffer.seek(0)
-        df_METAADS = pq.read_table(buffer).to_pandas()
-        for coluna in colunas_numericas:
-            df_METAADS[coluna] = pd.to_numeric(df_METAADS[coluna], errors='coerce')
-        
         # Filtrar DataFrame pelo valor do slider
         df_METAADS = df_METAADS[df_METAADS['VALOR USADO'] >= min_valor_usado]
-        
-        # Carregar dados de Anúncios Subidos
-        df_SUBIDOS = load_sheet(spreadsheet_trafego, 'ANUNCIOS SUBIDOS')
-
-        # Carregar dados de pesquisa
-        df_PESQUISA = load_sheet(spreadsheet_trafego, 'DADOS')
-        df_PESQUISA['UTM_TERM'] = df_PESQUISA['UTM_TERM'].replace('+', ' ')
-        df_PESQUISA = df_PESQUISA.astype(str)
-        table = pa.Table.from_pandas(df_PESQUISA)
-        buffer = io.BytesIO()
-        pq.write_table(table, buffer)
-        buffer.seek(0)
-        df_PESQUISA = pq.read_table(buffer).to_pandas()
         
         ticket = 1500 * 0.7
         columns = [
@@ -239,7 +258,13 @@ if st.session_state['analyze_clicked']:
 
             st.write(f"Anúncio: {selected_anuncio}")
             st.write(f"Link da Imagem: [Clique aqui]({image_link})")
-            st.image(image_link, caption=selected_anuncio)
+
+            try:
+                image = download_image(image_link)
+                if image:
+                    st.image(image, caption=selected_anuncio, width=300)
+            except UnidentifiedImageError:
+                st.write("Clique no link para assistir o anúncio de vídeo")
 
             st.subheader(f"Detalhes do Anúncio: {selected_anuncio}")
             st.markdown(f"""
@@ -259,17 +284,18 @@ if st.session_state['analyze_clicked']:
                 <p style="color: #ffffff;"><strong>Taxa de Resposta:</strong> {anuncio_data['TAXA DE RESPOSTA']:.2%}</p>
             </div>
             """, unsafe_allow_html=True)
+
             def styled_pie_chart(labels, sizes, title):
                 fig, ax = plt.subplots()
                 labels = [label for label, size in zip(labels, sizes) if size > 0]
                 sizes = [size for size in sizes if size > 0]
-                ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140, colors=cm.Dark2.colors,
-                    textprops={'color': 'white'})
+                ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140, colors=cm.Dark2.colors, textprops={'color': 'white'})
                 ax.axis('equal')
                 ax.set_facecolor('none')
                 fig.patch.set_facecolor('none')
                 ax.set_title(title, color='#FFFFFF')
                 return fig
+
             def styled_bar_chart(x, y, title, color=['blue', 'orange']):
                 fig, ax = plt.subplots()
                 ax.bar(x, y, color=color)
@@ -287,6 +313,7 @@ if st.session_state['analyze_clicked']:
                 plt.setp(ax.get_xticklabels(), color="#FFFFFF", rotation=45, ha='right')
                 plt.setp(ax.get_yticklabels(), color="#FFFFFF")
                 return fig
+
             patrimonio_labels = [
                 'Acima de R$1 milhão', 'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
                 'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil', 'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil'
@@ -298,16 +325,13 @@ if st.session_state['analyze_clicked']:
                 anuncio_data['Menos de R$5 mil']
             ]
             fig_patrimonio = styled_pie_chart(patrimonio_labels, patrimonio_sizes, 'Distribuição de Patrimônio')
+
             metrics_labels = ['TOTAL DE LEADS', 'TOTAL DE PESQUISA', 'VALOR USADO']
             metrics_values = [anuncio_data['TOTAL DE LEADS'], anuncio_data['TOTAL DE PESQUISA'], anuncio_data['VALOR USADO']]
             fig_metrics = styled_bar_chart(metrics_labels, metrics_values, 'Métricas Principais')
+
             col1, col2 = st.columns(2)
             with col1:
                 st.pyplot(fig_patrimonio)
             with col2:
                 st.pyplot(fig_metrics)
-
-
-    end_time = time.time()
-    execution_time = end_time - start_time    
-    st.write("Tempo de execução do código otimizado:", execution_time)
