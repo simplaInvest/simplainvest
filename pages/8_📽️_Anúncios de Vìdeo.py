@@ -76,7 +76,7 @@ def transcribe_audio_speech_recognition(audio_path):
         return None
 
 # Função para carregar uma aba específica de uma planilha
-@st.cache_data
+@st.cache
 def load_sheet(sheet_name, worksheet_name):
     scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
              "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
@@ -123,7 +123,7 @@ with tab1:
     # Botão para continuar para a análise
     if st.button("Continuar para Análise de Vídeos"):
         st.session_state['analyze_clicked'] = True
-        st.cache_data.clear()  # Limpar o cache após clicar no botão
+        st.cache.clear()  # Limpar o cache após clicar no botão
 
     if 'analyze_clicked' not in st.session_state:
         st.session_state['analyze_clicked'] = False
