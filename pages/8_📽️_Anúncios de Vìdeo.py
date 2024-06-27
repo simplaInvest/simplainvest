@@ -123,7 +123,7 @@ with tab1:
     # Botão para continuar para a análise
     if st.button("Continuar para Análise de Vídeos"):
         st.session_state['analyze_clicked'] = True
-        st.cache.clear()  # Limpar o cache após clicar no botão
+        st.caching.clear_cache()  # Limpar o cache após clicar no botão
 
     if 'analyze_clicked' not in st.session_state:
         st.session_state['analyze_clicked'] = False
