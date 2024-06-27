@@ -12,7 +12,6 @@ from pydub import AudioSegment
 import speech_recognition as sr
 import time
 import tempfile
-import spacy
 import openai
 
 # Configuração da página do Streamlit
