@@ -47,7 +47,7 @@ def load_sheet(sheet_name, worksheet_name):
     return pd.DataFrame(data)
 
 # Carregar dados da planilha
-@st.cache_data
+@st.cache
 def load_data(spreadsheet_trafego):
     df_METAADS = load_sheet(spreadsheet_trafego, 'NEW META ADS')
     df_METAADS = df_METAADS.astype(str)
@@ -99,7 +99,7 @@ min_valor_usado = st.slider("Selecione o valor mínimo de 'VALOR USADO'", 0, 100
 
 # Botão para continuar para a análise
 if st.button("Continuar para Análise"):
-    st.cache_data.clear()  # Limpar o cache antes de recarregar os dados
+    st.cache.clear()  # Limpar o cache antes de recarregar os dados
     st.session_state['analyze_clicked'] = True
 
 if 'analyze_clicked' not in st.session_state:
