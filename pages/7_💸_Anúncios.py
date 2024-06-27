@@ -34,7 +34,7 @@ def download_image(image_url):
         return None
 
 # Função para carregar uma aba específica de uma planilha
-@st.cache_data
+@st.cache
 def load_sheet(sheet_name, worksheet_name):
     scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
              "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
