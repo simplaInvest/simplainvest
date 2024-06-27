@@ -7,10 +7,12 @@ import numpy as np
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+from matplotlib import colormaps
+import matplotlib.colors as mcolors
 import time
 import pyarrow as pa
 import pyarrow.parquet as pq
+
 
 # Função para transformar link de compartilhamento do Google Drive em link direto para imagem
 def transform_drive_link(link):
@@ -111,9 +113,7 @@ if st.session_state['analyze_clicked']:
     df_METAADS, df_SUBIDOS, df_PESQUISA = load_data(spreadsheet_trafego)
     
     with tabs[0]:
-        # Filtrar DataFrame pelo valor do slider
-        df_METAADS = df_METAADS[df_METAADS['VALOR USADO'] >= min_valor_usado]
-        
+              
         ticket = 1500 * 0.7
         columns = [
             'ANÚNCIO', 'TOTAL DE LEADS', 'TOTAL DE PESQUISA',
@@ -133,10 +133,10 @@ if st.session_state['analyze_clicked']:
             'Entre R$5 mil e R$20 mil': 0.0142,
             'Menos de R$5 mil': 0.0067
         }
-        anuncios_unicos = df_METAADS['ANÚNCIO: NOME'].unique()
+        anuncios_unicos = df_METAADS['ANUNCIO: NOME'].unique()
         df_PORANUNCIO['ANÚNCIO'] = pd.Series(anuncios_unicos)
         df_PORANUNCIO['TOTAL DE LEADS'] = df_PORANUNCIO['ANÚNCIO'].apply(
-            lambda anuncio: df_METAADS[df_METAADS['ANÚNCIO: NOME'] == anuncio]['LEADS'].sum()
+            lambda anuncio: df_METAADS[df_METAADS['ANUNCIO: NOME'] == anuncio]['LEADS'].sum()
         )
         df_PORANUNCIO['TOTAL DE PESQUISA'] = df_PORANUNCIO['ANÚNCIO'].apply(
             lambda anuncio: df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0]
@@ -166,55 +166,64 @@ if st.session_state['analyze_clicked']:
             taxas_conversao_patrimonio['Menos de R$5 mil'] * df_PORANUNCIO['Menos de R$5 mil']
         )
         df_PORANUNCIO['VALOR USADO'] = df_PORANUNCIO['ANÚNCIO'].apply(
-            lambda anuncio: df_METAADS[df_METAADS['ANÚNCIO: NOME'] == anuncio]['VALOR USADO'].sum()
+            lambda anuncio: df_METAADS[df_METAADS['ANUNCIO: NOME'] == anuncio]['VALOR USADO'].sum()
         )
         df_PORANUNCIO['CUSTO POR LEAD'] = df_PORANUNCIO['VALOR USADO'] / df_PORANUNCIO['TOTAL DE LEADS']
         df_PORANUNCIO['DIFERENÇA'] = df_PORANUNCIO['PREÇO MÁXIMO'] - df_PORANUNCIO['CUSTO POR LEAD']
         df_PORANUNCIO['MARGEM'] = df_PORANUNCIO['DIFERENÇA'] / df_PORANUNCIO['PREÇO MÁXIMO']
         df_PORANUNCIO['CPM'] = df_PORANUNCIO['ANÚNCIO'].apply(
-            lambda anuncio: df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'CPM'].mean()
-            if not df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'CPM'].empty else "Sem conversões"
+            lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CPM'].mean()
+            if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CPM'].empty else "Sem conversões"
         )
         df_PORANUNCIO['CTR'] = df_PORANUNCIO['ANÚNCIO'].apply(
-            lambda anuncio: df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS'].sum() /
-            df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'IMPRESSOES'].sum()
-            if not df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS'].empty else "Sem conversões"
+            lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS'].sum() /
+            df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'IMPRESSOES'].sum()
+            if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS'].empty else "Sem conversões"
         )
         df_PORANUNCIO['CONNECT RATE'] = df_PORANUNCIO['ANÚNCIO'].apply(
-            lambda anuncio: df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum() /
-            df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS NO LINK'].sum()
-            if not df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
+            lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum() /
+            df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS NO LINK'].sum()
+            if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
         )
         df_PORANUNCIO['TAXA DE RESPOSTA'] = df_PORANUNCIO.apply(
             lambda row: row['TOTAL DE PESQUISA'] / row['TOTAL DE LEADS'] if row['TOTAL DE LEADS'] != 0 else "Sem respostas", axis=1
         )
         df_PORANUNCIO['CONVERSAO PAG'] = df_PORANUNCIO['ANÚNCIO'].apply(
-            lambda anuncio: df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'LEADS'].sum() /
-            df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum()
-            if not df_METAADS.loc[df_METAADS['ANÚNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
+            lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'LEADS'].sum() /
+            df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum()
+            if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
         )
         st.header('TRÁFEGO POR ANÚNCIO')
+        # Filtrar DataFrame pelo valor do slider       
+        df_PORANUNCIO = df_PORANUNCIO[df_PORANUNCIO['VALOR USADO'] >= min_valor_usado]
         st.dataframe(df_PORANUNCIO)
 
     with tabs[1]:
         st.header('Análise de Anúncios')
-        def styled_bar_chart(x, y, title, color=['blue', 'orange']):
-            fig, ax = plt.subplots()
-            ax.bar(x, y, color=color)
-            ax.set_facecolor('none')  # Fundo do gráfico transparente
-            fig.patch.set_facecolor('none')  # Fundo da figura transparente
-            ax.spines['bottom'].set_color('#FFFFFF')
-            ax.spines['top'].set_color('#FFFFFF')
-            ax.spines['right'].set_color('#FFFFFF')
-            ax.spines['left'].set_color('#FFFFFF')
-            ax.tick_params(axis='x', colors='#FFFFFF', rotation=45)
-            ax.tick_params(axis='y', colors='#FFFFFF')
-            ax.set_title(title, color='#FFFFFF')
-            ax.set_ylabel('Quantidade', color='#FFFFFF')
-            ax.set_xlabel(' ', color='#FFFFFF')
-            plt.setp(ax.get_xticklabels(), color="#FFFFFF", rotation=45, ha='right')
-            plt.setp(ax.get_yticklabels(), color="#FFFFFF")
-            return fig
+        def styled_bar_chart(x, y, title):
+                fig, ax = plt.subplots()
+
+                # Definindo cores usando colormaps de tons de azul
+                cmap = colormaps['Blues']
+                norm = mcolors.Normalize(vmin=0, vmax=len(x)-1)
+                colors = [cmap(norm(i)) for i in range(len(x))]
+
+                ax.bar(x, y, color=colors)
+                ax.set_facecolor('none')  # Fundo do gráfico transparente
+                fig.patch.set_facecolor('none')  # Fundo da figura transparente
+                ax.spines['bottom'].set_color('#FFFFFF')
+                ax.spines['top'].set_color('#FFFFFF')
+                ax.spines['right'].set_color('#FFFFFF')
+                ax.spines['left'].set_color('#FFFFFF')
+                ax.tick_params(axis='x', colors='#FFFFFF', rotation=45)
+                ax.tick_params(axis='y', colors='#FFFFFF')
+                ax.set_title(title, color='#FFFFFF')
+                ax.set_ylabel('Quantidade', color='#FFFFFF')
+                ax.set_xlabel(' ', color='#FFFFFF')
+                plt.setp(ax.get_xticklabels(), color="#FFFFFF", rotation=45, ha='right')
+                plt.setp(ax.get_yticklabels(), color="#FFFFFF")
+                
+                return fig
 
         colunas_analise = ['MARGEM', 'VALOR USADO', 'CTR', 'CONVERSAO PAG']
         
@@ -285,22 +294,41 @@ if st.session_state['analyze_clicked']:
             </div>
             """, unsafe_allow_html=True)
 
-            def styled_pie_chart(labels, sizes, title):
+            def styled_bar_chart_horizontal(labels, sizes, title):
                 fig, ax = plt.subplots()
-                labels = [label for label, size in zip(labels, sizes) if size > 0]
-                sizes = [size for size in sizes if size > 0]
-                ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140, colors=cm.Dark2.colors, textprops={'color': 'white'})
-                ax.axis('equal')
-                ax.set_facecolor('none')
-                fig.patch.set_facecolor('none')
+
+                # Definindo cores usando colormaps e invertendo a ordem
+                cmap = colormaps['RdYlGn']
+                norm = mcolors.Normalize(vmin=0, vmax=len(labels)-1)
+                colors = [cmap(norm(i)) for i in reversed(range(len(labels)))]
+
+                ax.barh(labels, sizes, color=colors)
+                ax.set_facecolor('none')  # Fundo do gráfico transparente
+                fig.patch.set_facecolor('none')  # Fundo da figura transparente
+                ax.spines['bottom'].set_color('#FFFFFF')
+                ax.spines['top'].set_color('#FFFFFF')
+                ax.spines['right'].set_color('#FFFFFF')
+                ax.spines['left'].set_color('#FFFFFF')
+                ax.tick_params(axis='x', colors='#FFFFFF')
+                ax.tick_params(axis='y', colors='#FFFFFF')
                 ax.set_title(title, color='#FFFFFF')
+                ax.set_xlabel('Porcentagem', color='#FFFFFF')
+                plt.setp(ax.get_xticklabels(), color="#FFFFFF")
+                plt.setp(ax.get_yticklabels(), color="#FFFFFF")
+                
                 return fig
 
-            def styled_bar_chart(x, y, title, color=['blue', 'orange']):
+            def styled_bar_chart(x, y, title):
                 fig, ax = plt.subplots()
-                ax.bar(x, y, color=color)
-                ax.set_facecolor('none')
-                fig.patch.set_facecolor('none')
+
+                # Definindo cores usando colormaps de tons de azul
+                cmap = colormaps['Blues']
+                norm = mcolors.Normalize(vmin=0, vmax=len(x)-1)
+                colors = [cmap(norm(i)) for i in range(len(x))]
+
+                ax.bar(x, y, color=colors)
+                ax.set_facecolor('none')  # Fundo do gráfico transparente
+                fig.patch.set_facecolor('none')  # Fundo da figura transparente
                 ax.spines['bottom'].set_color('#FFFFFF')
                 ax.spines['top'].set_color('#FFFFFF')
                 ax.spines['right'].set_color('#FFFFFF')
@@ -312,6 +340,7 @@ if st.session_state['analyze_clicked']:
                 ax.set_xlabel(' ', color='#FFFFFF')
                 plt.setp(ax.get_xticklabels(), color="#FFFFFF", rotation=45, ha='right')
                 plt.setp(ax.get_yticklabels(), color="#FFFFFF")
+                
                 return fig
 
             patrimonio_labels = [
@@ -324,10 +353,10 @@ if st.session_state['analyze_clicked']:
                 anuncio_data['Entre R$20 mil e R$100 mil'], anuncio_data['Entre R$5 mil e R$20 mil'],
                 anuncio_data['Menos de R$5 mil']
             ]
-            fig_patrimonio = styled_pie_chart(patrimonio_labels, patrimonio_sizes, 'Distribuição de Patrimônio')
+            fig_patrimonio = styled_bar_chart_horizontal(patrimonio_labels, patrimonio_sizes, 'Distribuição de Patrimônio')
 
-            metrics_labels = ['TOTAL DE LEADS', 'TOTAL DE PESQUISA', 'VALOR USADO']
-            metrics_values = [anuncio_data['TOTAL DE LEADS'], anuncio_data['TOTAL DE PESQUISA'], anuncio_data['VALOR USADO']]
+            metrics_labels = ['MARGEM', 'CTR', 'CONVERSAO PAG']
+            metrics_values = [anuncio_data['MARGEM'], anuncio_data['CTR'], anuncio_data['CONVERSAO PAG']]
             fig_metrics = styled_bar_chart(metrics_labels, metrics_values, 'Métricas Principais')
 
             col1, col2 = st.columns(2)
