@@ -12,6 +12,7 @@ import matplotlib.colors as mcolors
 import time
 import pyarrow as pa
 import pyarrow.parquet as pq
+from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
 
 
 # Função para transformar link de compartilhamento do Google Drive em link direto para imagem
@@ -112,8 +113,10 @@ if st.session_state['analyze_clicked']:
     # Carregar os dados uma única vez
     df_METAADS, df_SUBIDOS, df_PESQUISA = load_data(spreadsheet_trafego)
     
+
+
+    # Adicionar a aba de "Planilhas"
     with tabs[0]:
-              
         ticket = 1500 * 0.7
         columns = [
             'ANÚNCIO', 'TOTAL DE LEADS', 'TOTAL DE PESQUISA',
@@ -197,6 +200,38 @@ if st.session_state['analyze_clicked']:
         # Filtrar DataFrame pelo valor do slider       
         df_PORANUNCIO = df_PORANUNCIO[df_PORANUNCIO['VALOR USADO'] >= min_valor_usado]
         st.dataframe(df_PORANUNCIO)
+
+        # Criar o DataFrame df_STATUS
+        df_STATUS = pd.DataFrame({
+            'ID UNICO': df_METAADS['ANUNCIO: NOME'] + '&' + df_METAADS['CONJUNTO: NOME'],
+            'STATUS': ['ATIVO'] * len(df_METAADS)  # Inicialmente todos os status são 'ATIVO'
+        })
+
+        # Configurar opções para o Grid
+        gb = GridOptionsBuilder.from_dataframe(df_STATUS)
+        gb.configure_column('STATUS', editable=True, cellEditor='agSelectCellEditor', cellEditorParams={'values': ['ATIVO', 'PAUSADO', 'REJEITADO']})
+        gridOptions = gb.build()
+
+        # Exibir o DataFrame usando AgGrid
+        grid_response = AgGrid(
+            df_STATUS,
+            gridOptions=gridOptions,
+            data_return_mode='AS_INPUT',
+            update_mode='MODEL_CHANGED',
+            fit_columns_on_grid_load=True,
+            theme='streamlit',
+            columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
+            enable_enterprise_modules=True,
+            height=400,
+            width='100%',
+            reload_data=True
+        )
+
+        df_STATUS = grid_response['data']
+
+        st.write("Status dos Anúncios:")
+        #st.dataframe(df_STATUS)
+
 
     with tabs[1]:
         st.header('Análise de Anúncios')
