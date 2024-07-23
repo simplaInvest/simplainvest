@@ -52,20 +52,19 @@ def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.
         "domain": domain
     }
     links = []
+    url = f"https://api-ssl.bitly.com/v4/groups/{group_id}/bitlinks"
     page = 1
-    max_pages = 3  # Limitar a 3 páginas
-    next_url = f"https://api-ssl.bitly.com/v4/groups/{group_id}/bitlinks"
 
-    while page <= max_pages and next_url:
-        response = requests.get(next_url, headers=headers, params=params)
+    while url and page <= 10:  # Limitar a 10 páginas
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
-        
+
         if 'links' not in data or not data['links']:
             break
 
         for link in data['links']:
-            if campaign_code in link['title'] and 'Vendas' in link['title']:
+            if 'title' in link and campaign_code in link['title'] and 'Vendas' in link['title']:
                 link_id = link['id']
                 click_response = requests.get(f"https://api-ssl.bitly.com/v4/bitlinks/{link_id}/clicks/summary", headers=headers)
                 click_response.raise_for_status()
@@ -73,16 +72,17 @@ def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.
                 clicks = clicks_data.get('total_clicks', 0)
                 # Extrair a data do nome do link
                 match = re.search(r'\d{2}/\d{2} \d{2}:\d{2}', link['title'])
-                data = match.group(0) if match else 'não informado'
+                data_match = match.group(0) if match else 'não informado'
                 links.append({
                     "Nome": link['title'],
                     "Link de Origem": link['long_url'],
                     "Número de Cliques": clicks,
-                    "Data": data
+                    "Data": data_match
                 })
-        
-        # Verificar se há mais páginas para carregar
-        next_url = data['pagination']['next'] if 'pagination' in data and 'next' in data['pagination'] else None
+
+        # Atualizar URL para a próxima página de resultados
+        url = data.get('pagination', {}).get('next')
+        params = None  # Remover params para que a URL de paginação seja usada
         page += 1
 
     return pd.DataFrame(links)
@@ -95,6 +95,7 @@ def adicionar_informacoes(ranking, bitly_links):
     ranking['Data'] = ranking['UTM_TERM'].apply(
         lambda utm_term: next((row['Data'] for index, row in bitly_links.iterrows() if utm_term in row['Link de Origem']), 'não informado')
     )
+    ranking['Conversão'] = (ranking['Vendas'] / ranking['Número de Cliques']).apply(lambda x: f"{x:.2%}" if x > 0 else "0.00%")
     return ranking
 
 # Função principal
@@ -125,9 +126,13 @@ def main():
                 df_vendas = load_sheet(lancamento, 'VENDAS')
                 st.session_state.df_vendas = df_vendas
 
-                # Filtrar os dados com base na coluna 'UTM_TERM'
-                filtro = f"Whatsapp_EI.{str(versao).zfill(2)}"
-                df_filtrado = df_vendas[df_vendas['UTM_TERM'].str.startswith(filtro, na=False)]
+                # Aplicar a lógica condicional para o lançamento 17
+                if versao == 17:
+                    df_filtrado = df_vendas[(df_vendas['UTM_CONTENT'] == 'Whatsapp_Direto') & df_vendas['UTM_TERM'].str.startswith('Whatsapp_')]
+                else:
+                    filtro = f"Whatsapp_EI.{str(versao).zfill(2)}"
+                    df_filtrado = df_vendas[df_vendas['UTM_TERM'].str.startswith(filtro, na=False)]
+                
                 st.session_state.df_filtrado = df_filtrado
 
                 # Criar um DataFrame rankeando os 20 'UTM_TERM' que mais aparecem
@@ -152,11 +157,13 @@ def main():
                 df_bitly_links = get_bitly_links(access_token, campaign_code)
                 st.session_state.df_bitly_links = df_bitly_links
 
+                # Adicionar colunas necessárias ao ranking antes de chamar adicionar_informacoes
+                st.session_state.ranking['Número de Cliques'] = 0
+                st.session_state.ranking['Conversão'] = '0.00%'
+                st.session_state.ranking['Data'] = 'não informado'
+
                 # Adicionar informações ao ranking
                 st.session_state.ranking = adicionar_informacoes(st.session_state.ranking, df_bitly_links)
-
-                # Adicionar coluna de conversão
-                st.session_state.ranking['Conversão'] = (st.session_state.ranking['Vendas'] / st.session_state.ranking['Número de Cliques']).apply(lambda x: f"{x:.2%}" if x > 0 else "0.00%")
 
             st.success("Planilhas carregadas com sucesso!")
 
