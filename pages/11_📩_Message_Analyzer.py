@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from pyairtable import Table
 import re
 
 # Configuração da página do Streamlit
@@ -30,6 +31,14 @@ def buscar_conteudo(df_mensagens, utm_term):
     filtro_link = df_mensagens['Link parametrizado'].str.contains(utm_term, na=False)
     return df_mensagens[filtro_link]['Conteúdo'].values
 
+# Função para carregar dados do Airtable usando pyairtable
+def load_airtable_data(api_key, base_id, table_ID):
+    table = Table(api_key, base_id, table_ID)
+    all_records = table.all()
+    records_data = [record['fields'] for record in all_records]
+    df = pd.DataFrame(records_data)
+    return df
+
 # Função para obter o Group ID do Bitly
 def get_bitly_group_id(access_token):
     headers = {
@@ -55,7 +64,7 @@ def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.
     url = f"https://api-ssl.bitly.com/v4/groups/{group_id}/bitlinks"
     page = 1
 
-    while url and page <= 10:  # Limitar a 10 páginas
+    while url and page <= 2:  # Limitar a 2 páginas
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
@@ -126,12 +135,9 @@ def main():
                 df_vendas = load_sheet(lancamento, 'VENDAS')
                 st.session_state.df_vendas = df_vendas
 
-                # Aplicar a lógica condicional para o lançamento 17
-                if versao == 17:
-                    df_filtrado = df_vendas[(df_vendas['UTM_CONTENT'] == 'Whatsapp_Direto') & df_vendas['UTM_TERM'].str.startswith('Whatsapp_')]
-                else:
-                    filtro = f"Whatsapp_EI.{str(versao).zfill(2)}"
-                    df_filtrado = df_vendas[df_vendas['UTM_TERM'].str.startswith(filtro, na=False)]
+                # Aplicar o filtro para a versão
+                filtro = f"Whatsapp_EI.{str(versao).zfill(2)}"
+                df_filtrado = df_vendas[df_vendas['UTM_TERM'].str.startswith(filtro, na=False)]
                 
                 st.session_state.df_filtrado = df_filtrado
 
@@ -139,8 +145,12 @@ def main():
                 ranking = df_filtrado['UTM_TERM'].value_counts().head(20).reset_index()
                 ranking.columns = ['UTM_TERM', 'Vendas']
 
-                # Carregar dados da aba 'MENSAGENS'
-                df_mensagens = load_sheet(lancamento, 'MENSAGENS')
+                # Carregar dados do Airtable
+                api_key_airtable = "patprpIekfruKBiQc.290906f8b9dc7dfdfa4aa2641e7c10971ca1375bf52174d8d0b2f43969fae862"
+                base_id_airtable = "appfMl5wuWgZAPQ0g"
+                table_ID = "tblFoPgpbbSAj7S9G"
+                
+                df_mensagens = load_airtable_data(api_key_airtable, base_id_airtable, table_ID)
                 st.session_state.df_mensagens = df_mensagens
 
                 # Adicionar conteúdo das mensagens ao ranking
@@ -165,10 +175,10 @@ def main():
                 # Adicionar informações ao ranking
                 st.session_state.ranking = adicionar_informacoes(st.session_state.ranking, df_bitly_links)
 
-            st.success("Planilhas carregadas com sucesso!")
+            st.success("Planilhas e dados do Airtable carregados com sucesso!")
 
         except Exception as e:
-            st.error(f"Erro ao carregar a planilha: {e}")
+            st.error(f"Erro ao carregar os dados: {e}")
 
     if 'ranking' in st.session_state:
         st.subheader("Comunicações: Cliques e Vendas")
