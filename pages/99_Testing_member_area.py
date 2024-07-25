@@ -9,6 +9,9 @@ logging.basicConfig(level=logging.INFO)
 # Supabase credentials
 SUPABASE_URL = 'https://kcbmrsrddmxgaewnwqxg.supabase.co'  # Your Supabase project URL
 SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjYm1yc3JkZG14Z2Fld253cXhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE2MDIyODAsImV4cCI6MjAzNzE3ODI4MH0.QVtexhpShu440CvcGUY1SBCtqxQaY8lhRoij3zJLmiA'  # Replace with your Supabase public anon key
+ADMIN_EMAIL = 'working.milazzo@gmail.com'
+ADMIN_PASSWORD = 'Pdl@123!'
+
 
 # Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -34,9 +37,9 @@ def sign_up_user(email, senha):
             logging.warning("This email is already registered.")
             return None
 
-        response = supabase.auth.sign_up({
-            "email": email,
-            "password": senha,
+        response = supabase.auth.sign_in_with_password({
+            "email": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
         })
         if response.user:
             logging.info(f"User {email} signed up successfully")
@@ -56,14 +59,25 @@ def sign_up_user(email, senha):
 # Function to sign in user
 def sign_in_user(email, senha):
     try:
-        logging.info(f"Attempt to sign in user: {email}")
+        logging.info(f"Attempt to sign in user: {ADMIN_EMAIL}")
         response = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": senha,
+            "email": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
         })
+        if response.user:
+            response_login = supabase.table('Testing Supabase').select('*').eq('email', email).eq('senha', senha).neq('email', '').execute()
+            if response_login.data:
+                logging.info(f"User {email} signed in successfully")
+                st.session_state['logged_in'] = True
+                st.session_state['user'] = response_login
+                return response_login
+            else:
+                logging.warning(f"User {email} not found")
+                return { 'error': 'Usuário não encontrado', 'code': 'USER_NOT_FOUND' }
+        else:
+            logging.warning(f"Credenciais para {email} inválidas")
         return response
     except Exception as e:
-        st.error(f"Erro na função sign_in_user: {str(e)}")
         logging.error(f"Erro na função sign_in_user: {str(e)}")
         return None
 
@@ -103,14 +117,17 @@ def show_login():
     senha_login = st.text_input('Senha (Login)', type='password', key='senha_login')
     if st.button('Login'):
         response = sign_in_user(email_login, senha_login)
-        if response and response.user:
-            st.session_state['logged_in'] = True
-            st.session_state['user'] = response.user
+        if response and hasattr(response, 'data'):
             st.success('Login successful')
+            show_main_app()
+        elif response and 'code' in response:
+            st.error('Email ou senha inválidos')
+        else:
+            st.error('Algo deu errado... (verifique sua autenticação na API)')
 
 # Main app content
 def show_main_app():
-    st.write(f"Welcome, {st.session_state['user'].email}!")
+    st.write(f"Welcome, {st.session_state['user'].data[0]['email']}!")
     st.write("Hello World")
     if st.button('Logout'):
         sign_out_user()
