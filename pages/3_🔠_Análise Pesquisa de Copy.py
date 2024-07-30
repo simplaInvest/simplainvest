@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from urllib.parse import unquote_plus
 import nltk
 nltk.download('rslp')
+nltk.download('punkt')
+nltk.download('stopwords')
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import RSLPStemmer
@@ -30,9 +32,7 @@ def load_sheet(sheet_name, worksheet_name):
 
 # Função para processar e ranquear os bigramas
 def processar_coluna_bigramas(respostas_coluna, excecoes=[]):
-    # Criando lista de stopwords em português
-    nltk.download('punkt')
-    nltk.download('stopwords')
+    # Criando lista de stopwords em português    
     stop_words = set(stopwords.words('portuguese'))
     stop_words.update(set(punctuation))
 
