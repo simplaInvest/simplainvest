@@ -119,9 +119,9 @@ produto = st.selectbox('Produto', ['EI', 'SC'])
 versao = st.selectbox('Versão', list(range(1, 31)))
 
 # Botão para continuar para a análise
-if st.button("Continuar para Análise") or 'df_VENDAS2' in st.session_state:
+if st.button("Continuar para Análise") or ('df_VENDAS2' in st.session_state and 'df_PESQUISA2' in st.session_state):
 
-    if 'df_VENDAS2' not in st.session_state:
+    if 'df_VENDAS2' not in st.session_state or 'df_PESQUISA2' not in st.session_state:
         # Formatar os inputs do usuário
         lancamento2 = f"{produto}.{str(versao).zfill(2)}"
         spreadsheet_central = lancamento2 + ' - CENTRAL DO UTM'
@@ -215,5 +215,3 @@ if st.button("Continuar para Análise") or 'df_VENDAS2' in st.session_state:
         df_radicais_expectativa_cpl = converter_radical_dict_para_df(radical_dict_expectativa_cpl)
         st.write("Radicais - Expectativa CPL")
         st.dataframe(df_radicais_expectativa_cpl)
-
-
