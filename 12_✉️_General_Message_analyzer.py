@@ -5,12 +5,7 @@ import requests
 import re
 from pyairtable import Table
 
-# Configuração da página do Streamlit
-st.set_page_config(
-    layout="wide",
-    page_title="Exibição de Dados do Airtable e Bitly",
-    page_icon="📊"
-)
+
 
 # Função para carregar dados do Airtable usando pyairtable
 def load_airtable_data(api_key, base_id, table_id, lancamento):

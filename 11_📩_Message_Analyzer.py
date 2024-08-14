@@ -6,12 +6,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from pyairtable import Table
 import re
 
-# Configuração da página do Streamlit
-st.set_page_config(
-    layout="wide",
-    page_title="Análise de Vendas - CENTRAL DO UTM",
-    page_icon="📊"
-)
+
 
 # Função para carregar uma aba específica de uma planilha
 def load_sheet(sheet_name, worksheet_name):

@@ -15,6 +15,24 @@ from nltk.stem import RSLPStemmer
 from string import punctuation
 from collections import Counter, defaultdict
 
+import streamlit as st
+
+# Verifique se os dados foram carregados
+if 'data_loaded' in st.session_state and st.session_state.data_loaded:
+    # Carregar os dataframes da sessão
+    df_PESQUISA = st.session_state.get('df_PESQUISA', pd.DataFrame())
+    df_CAPTURA = st.session_state.get('df_CAPTURA', pd.DataFrame())
+    df_PREMATRICULA = st.session_state.get('df_PREMATRICULA', pd.DataFrame())
+    df_VENDAS = st.session_state.get('df_VENDAS', pd.DataFrame())
+    df_COPY = st.session_state.get('df_COPY', pd.DataFrame())
+
+    # Conteúdo da aba
+    st.write(df_PESQUISA.head())
+else:
+    st.error("Os dados não foram carregados. Por favor, volte à aba 'Início' e carregue os dados.")
+    st.query_params = {"page": "Inicio"}
+
+
 # Palavras a serem excluídas
 excecoes = ['ter', 'pra', 'wlandsmidt', 'milazzo']
 

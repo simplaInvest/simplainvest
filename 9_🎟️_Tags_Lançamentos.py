@@ -3,12 +3,7 @@ import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Configuração da página do Streamlit
-st.set_page_config(
-    layout="wide",
-    page_title="Análises Simpla Invest",
-    page_icon="💎"
-)
+
 
 # Função para carregar a planilha e a aba 'TAGS'
 def load_sheet(sheet_name, worksheet_name):
