@@ -4,15 +4,12 @@ import io
 import streamlit as st
 import pandas as pd
 import numpy as np
-import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 import matplotlib.colors as mcolors
 import time
-import pyarrow as pa
-import pyarrow.parquet as pq
-from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
+
 
 
 def styled_bar_chart(x, y, title):
@@ -80,166 +77,148 @@ df_PESQUISA = st.session_state.df_PESQUISA.copy()
 df_PESQUISA['UTM_TERM'] = df_PESQUISA['UTM_TERM'].replace('+', ' ')
 df_PESQUISA = df_PESQUISA.astype(str)
 
-# Formatar os inputs do usuário
-start_time = time.time()
+ticket = 1500 * 0.7
+columns = [
+    'ANÚNCIO', 'TOTAL DE LEADS', 'TOTAL DE PESQUISA',
+    'CUSTO POR LEAD', 'PREÇO MÁXIMO', 'DIFERENÇA', 'MARGEM', 'VALOR USADO',
+    'CPM', 'CTR', 'CONNECT RATE', 'CONVERSAO PAG', 'Acima de R$1 milhão',
+    'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
+    'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil',
+    'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil', 'TAXA DE RESPOSTA'
+]
+df_PORANUNCIO = pd.DataFrame(columns=columns)
+taxas_conversao_patrimonio = {
+    'Acima de R$1 milhão': 0.0489,
+    'Entre R$500 mil e R$1 milhão': 0.0442,
+    'Entre R$250 mil e R$500 mil': 0.0400,
+    'Entre R$100 mil e R$250 mil': 0.0382,
+    'Entre R$20 mil e R$100 mil': 0.0203,
+    'Entre R$5 mil e R$20 mil': 0.0142,
+    'Menos de R$5 mil': 0.0067
+}
+anuncios_unicos = df_METAADS['ANUNCIO: NOME'].unique()
+df_PORANUNCIO['ANÚNCIO'] = pd.Series(anuncios_unicos)
+df_PORANUNCIO['TOTAL DE LEADS'] = df_PORANUNCIO['ANÚNCIO'].apply(
+    lambda anuncio: df_METAADS[df_METAADS['ANUNCIO: NOME'] == anuncio]['LEADS'].sum()
+)
+df_PORANUNCIO['TOTAL DE PESQUISA'] = df_PORANUNCIO['ANÚNCIO'].apply(
+    lambda anuncio: df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0]
+)
+faixas_patrimonio = [
+    'Acima de R$1 milhão', 'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
+    'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil', 'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil'
+]
+for faixa in faixas_patrimonio:
+    df_PORANUNCIO[faixa] = df_PORANUNCIO['ANÚNCIO'].apply(
+        lambda anuncio: (
+            df_PESQUISA[(df_PESQUISA['UTM_TERM'] == anuncio) & 
+                        (df_PESQUISA['PATRIMONIO'] == faixa)].shape[0] / 
+            df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0]
+        ) if df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0] != 0 else 0
+    )
+   
+df_PORANUNCIO['PREÇO MÁXIMO'] = ticket * (
+    taxas_conversao_patrimonio['Acima de R$1 milhão'] * df_PORANUNCIO['Acima de R$1 milhão'] +
+    taxas_conversao_patrimonio['Entre R$500 mil e R$1 milhão'] * df_PORANUNCIO['Entre R$500 mil e R$1 milhão'] +
+    taxas_conversao_patrimonio['Entre R$250 mil e R$500 mil'] * df_PORANUNCIO['Entre R$250 mil e R$500 mil'] +
+    taxas_conversao_patrimonio['Entre R$100 mil e R$250 mil'] * df_PORANUNCIO['Entre R$100 mil e R$250 mil'] +
+    taxas_conversao_patrimonio['Entre R$20 mil e R$100 mil'] * df_PORANUNCIO['Entre R$20 mil e R$100 mil'] +
+    taxas_conversao_patrimonio['Entre R$5 mil e R$20 mil'] * df_PORANUNCIO['Entre R$5 mil e R$20 mil'] +
+    taxas_conversao_patrimonio['Menos de R$5 mil'] * df_PORANUNCIO['Menos de R$5 mil']
+)
+df_PORANUNCIO['VALOR USADO'] = df_PORANUNCIO['ANÚNCIO'].apply(
+    lambda anuncio: df_METAADS[df_METAADS['ANUNCIO: NOME'] == anuncio]['VALOR USADO'].sum()
+)
+df_PORANUNCIO['CUSTO POR LEAD'] = df_PORANUNCIO['VALOR USADO'] / df_PORANUNCIO['TOTAL DE LEADS']
+df_PORANUNCIO['DIFERENÇA'] = df_PORANUNCIO['PREÇO MÁXIMO'] - df_PORANUNCIO['CUSTO POR LEAD']
+df_PORANUNCIO['MARGEM'] = df_PORANUNCIO['DIFERENÇA'] / df_PORANUNCIO['PREÇO MÁXIMO']
+df_PORANUNCIO['CPM'] = df_PORANUNCIO['ANÚNCIO'].apply(
+    lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CPM'].mean()
+    if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CPM'].empty else "Sem conversões"
+)
+df_PORANUNCIO['CTR'] = df_PORANUNCIO['ANÚNCIO'].apply(
+    lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS'].sum() /
+    df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'IMPRESSOES'].sum()
+    if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS'].empty else "Sem conversões"
+)
+df_PORANUNCIO['CONNECT RATE'] = df_PORANUNCIO['ANÚNCIO'].apply(
+    lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum() /
+    df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS NO LINK'].sum()
+    if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
+)
+df_PORANUNCIO['TAXA DE RESPOSTA'] = df_PORANUNCIO.apply(
+    lambda row: row['TOTAL DE PESQUISA'] / row['TOTAL DE LEADS'] if row['TOTAL DE LEADS'] != 0 else "Sem respostas", axis=1
+)
+df_PORANUNCIO['CONVERSAO PAG'] = df_PORANUNCIO['ANÚNCIO'].apply(
+    lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'LEADS'].sum() /
+    df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum()
+    if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
+)
+
+
 
  # Adicionar slider para selecionar o valor mínimo de 'VALOR USADO'
 min_valor_usado = st.slider("Selecione o valor mínimo de 'VALOR USADO'", 0, 1000, 250)
- 
-tabs = st.tabs(["Planilhas", "Top Anúncios", "Por Anuncio"])
 
-# Adicionar a aba de "Planilhas"
-with tabs[0]:
-    ticket = 1500 * 0.7
-    columns = [
-        'ANÚNCIO', 'TOTAL DE LEADS', 'TOTAL DE PESQUISA',
-        'CUSTO POR LEAD', 'PREÇO MÁXIMO', 'DIFERENÇA', 'MARGEM', 'VALOR USADO',
-        'CPM', 'CTR', 'CONNECT RATE', 'CONVERSAO PAG', 'Acima de R$1 milhão',
-        'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
-        'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil',
-        'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil', 'TAXA DE RESPOSTA'
-    ]
-    df_PORANUNCIO = pd.DataFrame(columns=columns)
-    taxas_conversao_patrimonio = {
-        'Acima de R$1 milhão': 0.0489,
-        'Entre R$500 mil e R$1 milhão': 0.0442,
-        'Entre R$250 mil e R$500 mil': 0.0400,
-        'Entre R$100 mil e R$250 mil': 0.0382,
-        'Entre R$20 mil e R$100 mil': 0.0203,
-        'Entre R$5 mil e R$20 mil': 0.0142,
-        'Menos de R$5 mil': 0.0067
-    }
-    anuncios_unicos = df_METAADS['ANUNCIO: NOME'].unique()
-    df_PORANUNCIO['ANÚNCIO'] = pd.Series(anuncios_unicos)
-    df_PORANUNCIO['TOTAL DE LEADS'] = df_PORANUNCIO['ANÚNCIO'].apply(
-        lambda anuncio: df_METAADS[df_METAADS['ANUNCIO: NOME'] == anuncio]['LEADS'].sum()
-    )
-    df_PORANUNCIO['TOTAL DE PESQUISA'] = df_PORANUNCIO['ANÚNCIO'].apply(
-        lambda anuncio: df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0]
-    )
-    faixas_patrimonio = [
-        'Acima de R$1 milhão', 'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
-        'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil', 'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil'
-    ]
-    for faixa in faixas_patrimonio:
-        df_PORANUNCIO[faixa] = df_PORANUNCIO['ANÚNCIO'].apply(
-            lambda anuncio: (
-                df_PESQUISA[(df_PESQUISA['UTM_TERM'] == anuncio) & 
-                            (df_PESQUISA['PATRIMONIO'] == faixa)].shape[0] / 
-                df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0]
-            ) if df_PESQUISA[df_PESQUISA['UTM_TERM'] == anuncio].shape[0] != 0 else 0
-        )
-    end_time = time.time()
-    execution_time = end_time - start_time    
-    st.write("Tempo de execução do código otimizado:", execution_time)
-    df_PORANUNCIO['PREÇO MÁXIMO'] = ticket * (
-        taxas_conversao_patrimonio['Acima de R$1 milhão'] * df_PORANUNCIO['Acima de R$1 milhão'] +
-        taxas_conversao_patrimonio['Entre R$500 mil e R$1 milhão'] * df_PORANUNCIO['Entre R$500 mil e R$1 milhão'] +
-        taxas_conversao_patrimonio['Entre R$250 mil e R$500 mil'] * df_PORANUNCIO['Entre R$250 mil e R$500 mil'] +
-        taxas_conversao_patrimonio['Entre R$100 mil e R$250 mil'] * df_PORANUNCIO['Entre R$100 mil e R$250 mil'] +
-        taxas_conversao_patrimonio['Entre R$20 mil e R$100 mil'] * df_PORANUNCIO['Entre R$20 mil e R$100 mil'] +
-        taxas_conversao_patrimonio['Entre R$5 mil e R$20 mil'] * df_PORANUNCIO['Entre R$5 mil e R$20 mil'] +
-        taxas_conversao_patrimonio['Menos de R$5 mil'] * df_PORANUNCIO['Menos de R$5 mil']
-    )
-    df_PORANUNCIO['VALOR USADO'] = df_PORANUNCIO['ANÚNCIO'].apply(
-        lambda anuncio: df_METAADS[df_METAADS['ANUNCIO: NOME'] == anuncio]['VALOR USADO'].sum()
-    )
-    df_PORANUNCIO['CUSTO POR LEAD'] = df_PORANUNCIO['VALOR USADO'] / df_PORANUNCIO['TOTAL DE LEADS']
-    df_PORANUNCIO['DIFERENÇA'] = df_PORANUNCIO['PREÇO MÁXIMO'] - df_PORANUNCIO['CUSTO POR LEAD']
-    df_PORANUNCIO['MARGEM'] = df_PORANUNCIO['DIFERENÇA'] / df_PORANUNCIO['PREÇO MÁXIMO']
-    df_PORANUNCIO['CPM'] = df_PORANUNCIO['ANÚNCIO'].apply(
-        lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CPM'].mean()
-        if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CPM'].empty else "Sem conversões"
-    )
-    df_PORANUNCIO['CTR'] = df_PORANUNCIO['ANÚNCIO'].apply(
-        lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS'].sum() /
-        df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'IMPRESSOES'].sum()
-        if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS'].empty else "Sem conversões"
-    )
-    df_PORANUNCIO['CONNECT RATE'] = df_PORANUNCIO['ANÚNCIO'].apply(
-        lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum() /
-        df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'CLICKS NO LINK'].sum()
-        if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
-    )
-    df_PORANUNCIO['TAXA DE RESPOSTA'] = df_PORANUNCIO.apply(
-        lambda row: row['TOTAL DE PESQUISA'] / row['TOTAL DE LEADS'] if row['TOTAL DE LEADS'] != 0 else "Sem respostas", axis=1
-    )
-    df_PORANUNCIO['CONVERSAO PAG'] = df_PORANUNCIO['ANÚNCIO'].apply(
-        lambda anuncio: df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'LEADS'].sum() /
-        df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].sum()
-        if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
-    )
-    st.header('TRÁFEGO POR ANÚNCIO')
-    # Filtrar DataFrame pelo valor do slider       
-    df_PORANUNCIO = df_PORANUNCIO[df_PORANUNCIO['VALOR USADO'] >= min_valor_usado]
+# Filtrar DataFrame pelo valor do slider       
+df_PORANUNCIO = df_PORANUNCIO[df_PORANUNCIO['VALOR USADO'] >= min_valor_usado]
+with st.expander('dataframes'):
     st.dataframe(df_PORANUNCIO)
+    st.dataframe(df_METAADS)
 
-    # Criar o DataFrame df_STATUS
-    df_STATUS = pd.DataFrame({
-        'ID UNICO': df_METAADS['ANUNCIO: NOME'] + '&' + df_METAADS['CONJUNTO: NOME'],
-        'STATUS': ['ATIVO'] * len(df_METAADS)  # Inicialmente todos os status são 'ATIVO'
-    })
+# Criar o DataFrame df_STATUS
+df_STATUS = pd.DataFrame({
+    'ID UNICO': df_METAADS['ANUNCIO: NOME'] + '&' + df_METAADS['CONJUNTO: NOME'],
+    'STATUS': ['ATIVO'] * len(df_METAADS)  # Inicialmente todos os status são 'ATIVO'
+})
 
-    # Configurar opções para o Grid
-    #gb = GridOptionsBuilder.from_dataframe(df_STATUS)
-    #gb.configure_column('STATUS', editable=True, cellEditor='agSelectCellEditor', cellEditorParams={'values': ['ATIVO', 'PAUSADO', 'REJEITADO']})
-    #gridOptions = gb.build()
+#OUTRO CÓDIGO QUE DEVERIA ESTAR PEGANDO DATAFRAMES DIFERENTES PARA MOSTRAR EM ABAS DIFERENTES
 
-    # Exibir o DataFrame usando AgGrid
-    #grid_response = AgGrid(
-       # df_STATUS,
-      #  gridOptions=gridOptions,
-      #  data_return_mode='AS_INPUT',
-      #  update_mode='MODEL_CHANGED',
-      #  fit_columns_on_grid_load=True,
-      #  theme='streamlit',
-       # columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
-       # enable_enterprise_modules=True,
-       # height=400,
-      #  width='100%',
-       # reload_data=True
-    #)
+df_METAVIDS = df_METAADS.copy()
+# Converter colunas de retenção para numéricas
+colunas_retencao = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15-20', '20-25', '25-30', '30-40', '40-50', '50-60', '60+']
+# Filtrar anúncios de vídeo (não vazios nas colunas de tempo)
+df_videos = df_METAVIDS.dropna(subset=colunas_retencao, how='all')
 
-    #df_STATUS = grid_response['data']
+# Agrupar por 'ANUNCIO: NOME' e calcular a média das retenções e somar 'VALOR USADO'
+df_agrupado = df_videos.groupby('ANUNCIO: NOME').agg(
+    {**{col: 'mean' for col in colunas_retencao}, 'VALOR USADO': 'sum'}
+).reset_index()
+ 
+tabs = st.tabs(["Top Anúncios", "Por Anuncio - Imagem", "Por Anuncio - Video", "hook analyzer"])
 
-    #st.write("Status dos Anúncios:")
-    #st.dataframe(df_STATUS)
-
-
-with tabs[1]:
+with tabs[0]:
     st.header('Análise de Anúncios')
-   
-
+         
     colunas_analise = ['MARGEM', 'VALOR USADO', 'CTR', 'CONVERSAO PAG']
-    
     df_PORANUNCIO_COPY = df_PORANUNCIO.copy()
-    for coluna in colunas_analise:
-        df_PORANUNCIO_COPY[coluna] = pd.to_numeric(df_PORANUNCIO_COPY[coluna], errors='coerce')
-    for coluna in colunas_analise:
+    for coluna_a in colunas_analise:
+        df_PORANUNCIO_COPY[coluna_a] = pd.to_numeric(df_PORANUNCIO_COPY[coluna_a], errors='coerce')
+    for coluna_a in colunas_analise:
         df_filtrado = df_PORANUNCIO_COPY[
-            (df_PORANUNCIO_COPY[coluna].notnull()) &
-            (df_PORANUNCIO_COPY[coluna] != 0) &
-            (df_PORANUNCIO_COPY[coluna] != "Sem respostas") &
-            (df_PORANUNCIO_COPY[coluna] != "")
+            (df_PORANUNCIO_COPY[coluna_a].notnull()) &
+            (df_PORANUNCIO_COPY[coluna_a] != 0) &
+            (df_PORANUNCIO_COPY[coluna_a] != "Sem respostas") &
+            (df_PORANUNCIO_COPY[coluna_a] != "")
         ]
-        top_5 = df_filtrado.nlargest(5, coluna)
-        bottom_5 = df_filtrado.nsmallest(5, coluna)
-        st.subheader(f'Análise da Coluna: {coluna}')
+        top_5 = df_filtrado.nlargest(5, coluna_a)
+        bottom_5 = df_filtrado.nsmallest(5, coluna_a)
+        st.subheader(f'Análise da Coluna: {coluna_a}')
         col1, col2 = st.columns(2)
         with col1:
             if not top_5.empty:
-                fig_top_5 = styled_bar_chart(top_5['ANÚNCIO'], top_5[coluna], f'Top 5 Anúncios - {coluna}')
+                fig_top_5 = styled_bar_chart(top_5['ANÚNCIO'], top_5[coluna_a], f'Top 5 Anúncios - {coluna_a}')
                 st.pyplot(fig_top_5)
             else:
-                st.write(f"Não há dados suficientes para os Top 5 Anúncios - {coluna}")
+                st.write(f"Não há dados suficientes para os Top 5 Anúncios - {coluna_a}")
         with col2:
             if not bottom_5.empty and len(bottom_5) >= 5:
-                fig_bottom_5 = styled_bar_chart(bottom_5['ANÚNCIO'], bottom_5[coluna], f'Bottom 5 Anúncios - {coluna}')
+                fig_bottom_5 = styled_bar_chart(bottom_5['ANÚNCIO'], bottom_5[coluna_a], f'Bottom 5 Anúncios - {coluna_a}')
                 st.pyplot(fig_bottom_5)
             else:
-                st.write(f"Não há dados suficientes para os Bottom 5 Anúncios - {coluna}")
+                st.write(f"Não há dados suficientes para os Bottom 5 Anúncios - {coluna_a}")
 
-with tabs[2]:
+with tabs[1]:
     st.header('Detalhes do Anúncio')
 
     selected_anuncio = st.selectbox('Selecione o Anúncio', df_PORANUNCIO['ANÚNCIO'].unique())
@@ -352,3 +331,95 @@ with tabs[2]:
             st.pyplot(fig_patrimonio)
         with col2:
             st.pyplot(fig_metrics)
+
+with tabs[2]:
+    if 'df_videos' in locals():        
+        # Carregar os dados da aba 'ANUNCIOS SUBIDOS'
+        df_SUBIDOS = st.session_state.df_SUBIDOS.copy()
+
+        # Selectbox para selecionar anúncios
+        st.write("Selecione até 3 anúncios para comparar:")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            anuncio1 = st.selectbox("Anúncio 1", df_videos['ANUNCIO: NOME'].unique(), key='anuncio1')
+            link1 = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == anuncio1, 'LINK DO DRIVE'].values[0]
+            st.write(f"Link: [{link1}]({link1})")
+
+        with col2:
+            anuncio2 = st.selectbox("Anúncio 2", [None] + list(df_videos['ANUNCIO: NOME'].unique()), key='anuncio2')
+            if anuncio2:
+                link2 = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == anuncio2, 'LINK DO DRIVE'].values[0]
+                st.write(f"Link: [{link2}]({link2})")
+                
+        with col3:
+            anuncio3 = st.selectbox("Anúncio 3", [None] + list(df_videos['ANUNCIO: NOME'].unique()), key='anuncio3')
+            if anuncio3:
+                link3 = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == anuncio3, 'LINK DO DRIVE'].values[0]
+                st.write(f"Link: [{link3}]({link3})")
+                
+        if st.button("Gerar Análise"):
+            # Criar um novo DataFrame com uma linha chamada 'média'
+            df_media = df_videos[colunas_retencao].mean().to_frame().T
+            df_media.index = ['média']
+            
+            # Obter dados dos anúncios selecionados
+            df_selecionados = df_videos[df_videos['ANUNCIO: NOME'].isin([anuncio1, anuncio2, anuncio3])]
+
+            # Preparar o gráfico de linhas estilizado
+            fig, ax = plt.subplots(figsize=(12, 7))  # Aumentar levemente o tamanho da figura
+            
+            # Plotar os anúncios selecionados
+            cores = ['#FFA500', '#32CD32', '#1E90FF']  # Cores levemente mais claras: laranja, verde e azul
+            for i, anuncio in enumerate([anuncio1, anuncio2, anuncio3]):
+                if anuncio:
+                    ax.plot(colunas_retencao, df_selecionados[df_selecionados['ANUNCIO: NOME'] == anuncio].iloc[0, 1:-1], label=anuncio, color=cores[i])
+            
+            # Plotar a linha da média
+            ax.plot(colunas_retencao, df_media.iloc[0], label='média', color='#FF6347')  # Vermelho claro
+            
+            # Configurações do gráfico
+            ax.set_xlabel('Tempo de Retenção', color='white')
+            ax.set_ylabel('Percentual de Retenção', color='white')
+            ax.set_title('Comparação de Retenção dos Anúncios', color='white')
+            ax.legend()
+            ax.grid(True, color='#666666', linestyle='--', linewidth=0.5)
+            ax.patch.set_alpha(0)  # Fundo do gráfico transparente
+            fig.patch.set_alpha(0)  # Fundo da figura transparente
+            ax.spines['bottom'].set_color('white')
+            ax.spines['top'].set_color('white') 
+            ax.spines['right'].set_color('white')
+            ax.spines['left'].set_color('white')
+            ax.xaxis.label.set_color('white')
+            ax.yaxis.label.set_color('white')
+            ax.tick_params(axis='x', colors='white', rotation=45)  # Rotacionar labels de tempo
+            ax.tick_params(axis='y', colors='white')
+
+            # Mostrar o gráfico
+            st.pyplot(fig)
+
+with tabs[3]:
+    st.write("Análise de Hook de Vídeos")
+
+    # Garantir que os dados estejam carregados na aba "Dados"
+    if 'df_videos' in locals() and df_videos is not None:
+        # Perguntar em qual segundo avaliar a retenção
+        segundo = st.selectbox('Em qual segundo deseja avaliar a retenção?', list(range(1, 11)), index=4)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            top_or_bottom = st.selectbox('Selecionar', ['Melhores', 'Piores'])
+        with col2:
+            top_n = st.selectbox('Quantidade', list(range(3, 11)), index=2)
+
+        # Mostrar o dataframe de acordo com a seleção
+        if st.button("Mostrar Anúncios"):
+            col_retenção = str(segundo)
+            if top_or_bottom == 'Melhores':
+                top_anuncios = df_videos.nlargest(top_n, col_retenção)
+            else:
+                top_anuncios = df_videos.nsmallest(top_n, col_retenção)
+            
+            # Mostrar o dataframe dos top anúncios
+            st.write(f"Top {top_n} anúncios de acordo com a retenção no segundo {segundo}:")
+            st.dataframe(top_anuncios)
