@@ -4,12 +4,104 @@ import io
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
 from oauth2client.service_account import ServiceAccountCredentials
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 import matplotlib.colors as mcolors
 import time
+import plotly.graph_objects as go
+from plotly.colors import n_colors
 
+# Carrega o arquivo CSS
+with open("styles.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+import plotly.graph_objects as go
+import numpy as np
+
+import plotly.graph_objects as go
+import numpy as np
+
+def styled_bar_chart_horizontal(labels, sizes):
+    # Define a cor para cada valor baseado no colormap 'Blues'
+    colorscale = 'Blues'
+    normalized_sizes = np.linspace(0, 1, len(sizes))  # Normaliza o tamanho para aplicação da escala de cor
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        y=labels,
+        x=sizes,
+        orientation='h',
+        marker=dict(
+            color=normalized_sizes,  # Aplica cores normalizadas
+            colorscale=colorscale,   # Colormap azul
+            line=dict(color='#FFFFFF', width=1)
+        )
+    ))
+
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',  # Fundo do gráfico transparente
+        paper_bgcolor='rgba(0,0,0,0)',  # Fundo da figura transparente
+        xaxis=dict(
+            title='',  # Remove o título do eixo X
+            color='#FFFFFF',
+            tickfont=dict(size=14, color='#FFFFFF'),  # Aumenta o tamanho do texto dos ticks
+            showgrid=True,
+            gridcolor='#666666'
+        ),
+        yaxis=dict(
+            color='#FFFFFF',
+            tickfont=dict(size=16, color='#FFFFFF')  # Aumenta o tamanho do texto dos ticks
+        ),
+        height=500,  # Define a altura do gráfico
+        margin=dict(l=40, r=40, t=20, b=20)  # Ajuste da margem superior para 120
+    )
+
+    return fig
+
+
+
+
+def styled_bar_chart_plotly(x, y, title):
+    # Usando o colormap 'Blues' do Plotly Express para obter as cores
+    num_bars = len(x)
+    colors = px.colors.sequential.Blues[num_bars]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=x,
+        y=y,
+        marker=dict(color=colors),  # Aplicando as cores
+    ))
+
+    # Ajustando o layout para corresponder ao estilo do gráfico original
+    fig.update_layout(
+        title=title,
+        plot_bgcolor='rgba(0,0,0,0)',  # Fundo transparente
+        paper_bgcolor='rgba(0,0,0,0)',  # Fundo da figura transparente
+        autosize=True,
+        font=dict(color='#FFFFFF'),  # Texto branco
+        xaxis=dict(
+            tickangle=45,  # Rotacionando os rótulos do eixo x
+            tickfont=dict(color='#FFFFFF'),
+            showline=True,
+            linecolor='#FFFFFF'
+        ),
+        yaxis=dict(
+            tickfont=dict(color='#FFFFFF'),
+            showline=True,
+            linecolor='#FFFFFF'
+        ),
+        title_font=dict(color='#FFFFFF'),
+    )
+
+    fig.update_traces(marker_line_color='white', marker_line_width=1.5)
+    
+    return fig
 
 
 def styled_bar_chart(x, y, title):
@@ -155,10 +247,21 @@ df_PORANUNCIO['CONVERSAO PAG'] = df_PORANUNCIO['ANÚNCIO'].apply(
     if not df_METAADS.loc[df_METAADS['ANUNCIO: NOME'].str.contains(anuncio, regex=False), 'PAGEVIEWS'].empty else "Sem conversões"
 )
 
+# Adicionando as colunas de retenção por segundo ao df_PORANUNCIO
+colunas_retencao = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+                    '13', '14', '15-20', '20-25', '25-30', '30-40', '40-50', '50-60', '60+']
+
+for col in colunas_retencao:
+    df_PORANUNCIO[col] = df_PORANUNCIO['ANÚNCIO'].apply(
+        lambda anuncio: df_METAADS[df_METAADS['ANUNCIO: NOME'] == anuncio][col].mean()
+        if not df_METAADS[df_METAADS['ANUNCIO: NOME'] == anuncio].empty else 0
+    )
+
 
 
  # Adicionar slider para selecionar o valor mínimo de 'VALOR USADO'
-min_valor_usado = st.slider("Selecione o valor mínimo de 'VALOR USADO'", 0, 1000, 250)
+st.subheader("Selecione o valor mínimo de VALOR USADO:")
+min_valor_usado = st.slider("",0, 1000, 250)
 
 # Filtrar DataFrame pelo valor do slider       
 df_PORANUNCIO = df_PORANUNCIO[df_PORANUNCIO['VALOR USADO'] >= min_valor_usado]
@@ -185,7 +288,7 @@ df_agrupado = df_videos.groupby('ANUNCIO: NOME').agg(
     {**{col: 'mean' for col in colunas_retencao}, 'VALOR USADO': 'sum'}
 ).reset_index()
  
-tabs = st.tabs(["Top Anúncios", "Por Anuncio - Imagem", "Por Anuncio - Video", "hook analyzer"])
+tabs = st.tabs(["Top Anúncios", "Por Anuncio", "Ranking de hooks"])
 
 with tabs[0]:
     st.header('Análise de Anúncios')
@@ -207,198 +310,223 @@ with tabs[0]:
         col1, col2 = st.columns(2)
         with col1:
             if not top_5.empty:
-                fig_top_5 = styled_bar_chart(top_5['ANÚNCIO'], top_5[coluna_a], f'Top 5 Anúncios - {coluna_a}')
-                st.pyplot(fig_top_5)
+                fig_top_5 = styled_bar_chart_plotly(top_5['ANÚNCIO'], top_5[coluna_a], f'5 Melhores Anúncios - {coluna_a}')
+                st.plotly_chart(fig_top_5)
             else:
-                st.write(f"Não há dados suficientes para os Top 5 Anúncios - {coluna_a}")
+                st.write(f"Não há dados suficientes para os 5 Melhores Anúncios - {coluna_a}")
         with col2:
             if not bottom_5.empty and len(bottom_5) >= 5:
-                fig_bottom_5 = styled_bar_chart(bottom_5['ANÚNCIO'], bottom_5[coluna_a], f'Bottom 5 Anúncios - {coluna_a}')
-                st.pyplot(fig_bottom_5)
+                fig_bottom_5 = styled_bar_chart_plotly(bottom_5['ANÚNCIO'], bottom_5[coluna_a], f'Bottom 5 Anúncios - {coluna_a}')
+                st.plotly_chart(fig_bottom_5)
             else:
-                st.write(f"Não há dados suficientes para os Bottom 5 Anúncios - {coluna_a}")
+                st.write(f"Não há dados suficientes para os 5 Piores Anúncios - {coluna_a}")
 
-with tabs[1]:
+        st.divider()
+
+with tabs[1]:    
     st.header('Detalhes do Anúncio')
 
-    selected_anuncio = st.selectbox('Selecione o Anúncio', df_PORANUNCIO['ANÚNCIO'].unique())
-    if selected_anuncio:
-        anuncio_data = df_PORANUNCIO[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio].iloc[0]
+    # Pegar todos os anúncios para o selectbox
+    anuncios_imagens = df_PORANUNCIO['ANÚNCIO'].unique()
 
-        # Encontrar o link da imagem correspondente no df_SUBIDOS
-        drive_link = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == selected_anuncio, 'LINK DO DRIVE'].values[0]
-        image_link = transform_drive_link(drive_link)
+    # Criar o selectbox com todos os anúncios
+    selected_anuncio = st.selectbox('Selecione o Anúncio', anuncios_imagens)
+    st.divider()
 
-        st.write(f"Anúncio: {selected_anuncio}")
-        if "ADNV" in selected_anuncio:
-            st.write(f"Link do Video: [Clique aqui]({image_link})")
-        else:
-            st.write(f"Link da Imagem: [Clique aqui]({image_link})")    
+    # Verifica se o anúncio selecionado contém 'ADNI' ou 'ADOI'
+    if "ADNI" in selected_anuncio or "ADOI" in selected_anuncio:
+        anuncio_data = df_PORANUNCIO[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio].iloc[0]     
+        st.header(f"Anúncio: {selected_anuncio}")
+        
+        # Ajuste das colunas para exibir a imagem e o gráfico de patrimônio
+        x1, x2 = st.columns([0.2, 0.8])
+        with st.container():
+            with x1:
+                # Encontrar o link da imagem correspondente no df_SUBIDOS
+                drive_link = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == selected_anuncio, 'LINK DO DRIVE'].values[0]
+                image_link = transform_drive_link(drive_link)
 
-        try:
-            image = download_image(image_link)
-            if image:
-                st.image(image, caption=selected_anuncio, width=300)
-        except UnidentifiedImageError:
-            st.write("Clique no link para assistir o anúncio de vídeo")
+                if "ADNV" in selected_anuncio:               
+                    st.write(f"Link do Video: [Clique aqui]({image_link})")
+                else:
+                    st.subheader("Imagem:")
+                    st.write(f"[Link]({image_link})")    
 
+                try:
+                    image = download_image(image_link)
+                    if image:
+                        st.image(image, caption=selected_anuncio, width=280)  
+                except UnidentifiedImageError:
+                    st.write("Clique no link para assistir o anúncio de vídeo")
+
+            with x2:
+                st.subheader("Distribuição de Patrimônio:")
+                patrimonio_labels = [
+                    'Acima de R$1 milhão', 'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
+                    'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil', 'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil'
+                ]
+                patrimonio_sizes = [
+                    anuncio_data.get('Acima de R$1 milhão', 0), anuncio_data.get('Entre R$500 mil e R$1 milhão', 0),
+                    anuncio_data.get('Entre R$250 mil e R$500 mil', 0), anuncio_data.get('Entre R$100 mil e R$250 mil', 0),
+                    anuncio_data.get('Entre R$20 mil e R$100 mil', 0), anuncio_data.get('Entre R$5 mil e R$20 mil', 0),
+                    anuncio_data.get('Menos de R$5 mil', 0)
+                ]
+
+                fig_patrimonio = styled_bar_chart_horizontal(patrimonio_labels, patrimonio_sizes)
+                st.plotly_chart(fig_patrimonio, use_container_width=True)  # Use o máximo de espaço disponível
+
+        # Espaçamento entre o gráfico e as métricas
+        st.divider()
+
+        # Cria as métricas embaixo da imagem e do gráfico
         st.subheader(f"Detalhes do Anúncio: {selected_anuncio}")
-        st.markdown(f"""
-        <div style="background-color: #1e1e1e; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-            <h3 style="color: #ffffff;">Informações Gerais</h3>
-            <p style="color: #ffffff;"><strong>Total de Leads:</strong> {anuncio_data['TOTAL DE LEADS']}</p>
-            <p style="color: #ffffff;"><strong>Total de Pesquisa:</strong> {anuncio_data['TOTAL DE PESQUISA']}</p>
-            <p style="color: #ffffff;"><strong>Custo por Lead:</strong> {anuncio_data['CUSTO POR LEAD']:.2f}</p>
-            <p style="color: #ffffff;"><strong>Preço Máximo:</strong> {anuncio_data['PREÇO MÁXIMO']:.2f}</p>
-            <p style="color: #ffffff;"><strong>Diferença:</strong> {anuncio_data['DIFERENÇA']:.2f}</p>
-            <p style="color: #ffffff;"><strong>Margem:</strong> {anuncio_data['MARGEM']:.2%}</p>
-            <p style="color: #ffffff;"><strong>Valor Usado:</strong> {anuncio_data['VALOR USADO']:.2f}</p>
-            <p style="color: #ffffff;"><strong>CPM:</strong> {anuncio_data['CPM']:.2f}</p>
-            <p style="color: #ffffff;"><strong>CTR:</strong> {anuncio_data['CTR']:.2%}</p>
-            <p style="color: #ffffff;"><strong>Connect Rate:</strong> {anuncio_data['CONNECT RATE']:.2%}</p>
-            <p style="color: #ffffff;"><strong>Conversão da Página:</strong> {anuncio_data['CONVERSAO PAG']:.2%}</p>
-            <p style="color: #ffffff;"><strong>Taxa de Resposta:</strong> {anuncio_data['TAXA DE RESPOSTA']:.2%}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        img_metrica1, img_metrica2, img_metrica3, img_metrica4 = st.columns(4)
+        with img_metrica1:
+            st.metric(label="Total de Leads", value=anuncio_data['TOTAL DE LEADS'])
+        with img_metrica2:
+            st.metric(label="Total de Pesquisa", value=anuncio_data['TOTAL DE PESQUISA'])
+        with img_metrica3:
+            st.metric(label="Custo por Lead", value=f"R$ {anuncio_data['CUSTO POR LEAD']:.2f}")
+        with img_metrica4:
+            st.metric(label="Preço Máximo", value=f"R$ {anuncio_data['PREÇO MÁXIMO']:.2f}")
+        
+        img_metrica5, img_metrica6, img_metrica7, img_metrica8 = st.columns(4)
+        with img_metrica5:
+            st.metric(label="Diferença", value=f"R$ {anuncio_data['DIFERENÇA']:.2f}")
+        with img_metrica6:
+            st.metric(label="Margem", value=f"{anuncio_data['MARGEM']:.2%}")
+        with img_metrica7:
+            st.metric(label="Valor Usado", value=f"R$ {anuncio_data['VALOR USADO']:.2f}")
+        with img_metrica8:
+            st.metric(label="CPM", value=f"R$ {anuncio_data['CPM']:.2f}")
 
-        def styled_bar_chart_horizontal(labels, sizes, title):
-            fig, ax = plt.subplots()
-
-            # Definindo cores usando colormaps e invertendo a ordem
-            cmap = colormaps['RdYlGn']
-            norm = mcolors.Normalize(vmin=0, vmax=len(labels)-1)
-            colors = [cmap(norm(i)) for i in reversed(range(len(labels)))]
-
-            ax.barh(labels, sizes, color=colors)
-            ax.set_facecolor('none')  # Fundo do gráfico transparente
-            fig.patch.set_facecolor('none')  # Fundo da figura transparente
-            ax.spines['bottom'].set_color('#FFFFFF')
-            ax.spines['top'].set_color('#FFFFFF')
-            ax.spines['right'].set_color('#FFFFFF')
-            ax.spines['left'].set_color('#FFFFFF')
-            ax.tick_params(axis='x', colors='#FFFFFF')
-            ax.tick_params(axis='y', colors='#FFFFFF')
-            ax.set_title(title, color='#FFFFFF')
-            ax.set_xlabel('Porcentagem', color='#FFFFFF')
-            plt.setp(ax.get_xticklabels(), color="#FFFFFF")
-            plt.setp(ax.get_yticklabels(), color="#FFFFFF")
+        img_metrica9, img_metrica10, img_metrica11, img_metrica12 = st.columns(4)
+        with img_metrica9:
+            st.metric(label="CTR", value=f"{anuncio_data['CTR']:.2%}")
+        with img_metrica10:
+            st.metric(label="Connect Rate", value=f"{anuncio_data['CONNECT RATE']:.2%}")
+        with img_metrica11:
+            st.metric(label="Conversão da Página", value=f"{anuncio_data['CONVERSAO PAG']:.2%}")
+        with img_metrica12:
+            st.metric(label="Taxa de Resposta", value=f"{anuncio_data['TAXA DE RESPOSTA']:.2%}")
+    
+    else:         
             
-            return fig
-
-        def styled_bar_chart(x, y, title):
-            fig, ax = plt.subplots()
-
-            # Definindo cores usando colormaps de tons de azul
-            cmap = colormaps['Blues']
-            norm = mcolors.Normalize(vmin=0, vmax=len(x)-1)
-            colors = [cmap(norm(i)) for i in range(len(x))]
-
-            ax.bar(x, y, color=colors)
-            ax.set_facecolor('none')  # Fundo do gráfico transparente
-            fig.patch.set_facecolor('none')  # Fundo da figura transparente
-            ax.spines['bottom'].set_color('#FFFFFF')
-            ax.spines['top'].set_color('#FFFFFF')
-            ax.spines['right'].set_color('#FFFFFF')
-            ax.spines['left'].set_color('#FFFFFF')
-            ax.tick_params(axis='x', colors='#FFFFFF', rotation=45)
-            ax.tick_params(axis='y', colors='#FFFFFF')
-            ax.set_title(title, color='#FFFFFF')
-            ax.set_ylabel('Quantidade', color='#FFFFFF')
-            ax.set_xlabel(' ', color='#FFFFFF')
-            plt.setp(ax.get_xticklabels(), color="#FFFFFF", rotation=45, ha='right')
-            plt.setp(ax.get_yticklabels(), color="#FFFFFF")
+        # Código para anúncios de vídeo   
+        st.header(f"Anúncio: {selected_anuncio}")
+        
+        # Colunas para gráfico de retenção (50%) e gráfico de patrimônio (50%)
+        video_col1, video_col2 = st.columns([0.5, 0.5])
+        
+        with video_col1:
+            st.subheader("Retenção do Vídeo:")
             
-            return fig
+            # Segundos ou faixas de tempo
+            retencao_labels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 
+                            '11', '12', '13', '14', '15-20', '20-25', '25-30', 
+                            '30-40', '40-50', '50-60', '60+']  
+            
+            # Obtenha os valores de retenção correspondentes
+            retencao_values = [df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, label].values[0] 
+                            for label in retencao_labels]
+            
+            # Expandir as faixas de tempo em valores individuais
+            expanded_labels = []
+            expanded_values = []
 
-        patrimonio_labels = [
-            'Acima de R$1 milhão', 'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
-            'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil', 'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil'
-        ]
-        patrimonio_sizes = [
-            anuncio_data['Acima de R$1 milhão'], anuncio_data['Entre R$500 mil e R$1 milhão'],
-            anuncio_data['Entre R$250 mil e R$500 mil'], anuncio_data['Entre R$100 mil e R$250 mil'],
-            anuncio_data['Entre R$20 mil e R$100 mil'], anuncio_data['Entre R$5 mil e R$20 mil'],
-            anuncio_data['Menos de R$5 mil']
-        ]
-        fig_patrimonio = styled_bar_chart_horizontal(patrimonio_labels, patrimonio_sizes, 'Distribuição de Patrimônio')
+            for label, value in zip(retencao_labels, retencao_values):
+                if '-' in label:
+                    start, end = map(int, label.split('-'))
+                    for i in range(start, end + 1):
+                        expanded_labels.append(str(i))
+                        expanded_values.append(value)
+                elif '+' in label:
+                    start = int(label.replace('+', ''))
+                    for i in range(start, 61):
+                        expanded_labels.append(str(i))
+                        expanded_values.append(value)
+                else:
+                    expanded_labels.append(label)
+                    expanded_values.append(value)
+            
+            # Criar o gráfico de área sob a curva de retenção usando Plotly
+            fig_retencao = go.Figure()
+            fig_retencao.add_trace(go.Scatter(
+                x=expanded_labels,
+                y=expanded_values,
+                fill='tozeroy',
+                line=dict(color='royalblue'),
+                mode='lines'
+            ))
 
-        metrics_labels = ['MARGEM', 'CTR', 'CONVERSAO PAG']
-        metrics_values = [anuncio_data['MARGEM'], anuncio_data['CTR'], anuncio_data['CONVERSAO PAG']]
-        fig_metrics = styled_bar_chart(metrics_labels, metrics_values, 'Métricas Principais')
+            fig_retencao.update_layout(
+                xaxis=dict(
+                    title='Tempo de Retenção', 
+                    color='#FFFFFF', 
+                    tickfont=dict(size=14),
+                    range=[1, 15]
+                ),
+                yaxis=dict(title='Retenção (%)', color='#FFFFFF', tickfont=dict(size=14)),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                margin=dict(l=20, r=20, t=20, b=20)
+            )
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.pyplot(fig_patrimonio)
-        with col2:
-            st.pyplot(fig_metrics)
+            st.plotly_chart(fig_retencao, use_container_width=True)
+
+            # Adicionando o CTR abaixo do gráfico de retenção
+            st.subheader("CTR:")
+            st.metric(label="CTR", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'CTR'].values[0]:.2%}", delta_color="off")
+
+        with video_col2:
+            st.subheader("Distribuição de Patrimônio:")
+            patrimonio_labels = [
+                'Acima de R$1 milhão', 'Entre R$500 mil e R$1 milhão', 'Entre R$250 mil e R$500 mil',
+                'Entre R$100 mil e R$250 mil', 'Entre R$20 mil e R$100 mil', 'Entre R$5 mil e R$20 mil', 'Menos de R$5 mil'
+            ]
+            patrimonio_sizes = [
+                df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, label].values[0] 
+                for label in patrimonio_labels
+            ]
+
+            fig_patrimonio = styled_bar_chart_horizontal(patrimonio_labels, patrimonio_sizes)
+            st.plotly_chart(fig_patrimonio, use_container_width=True)  # Use o máximo de espaço disponível
+
+        # Espaçamento entre o gráfico/CTR e as métricas gerais
+        st.divider()
+
+        # Cria as métricas gerais abaixo do gráfico e do CTR
+        st.subheader(f"Detalhes do Anúncio: {selected_anuncio}")
+        img_metrica1, img_metrica2, img_metrica3, img_metrica4 = st.columns(4)
+        with img_metrica1:
+            st.metric(label="Total de Leads", value=df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'TOTAL DE LEADS'].values[0])
+        with img_metrica2:
+            st.metric(label="Total de Pesquisa", value=df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'TOTAL DE PESQUISA'].values[0])
+        with img_metrica3:
+            st.metric(label="Custo por Lead", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'CUSTO POR LEAD'].values[0]:.2f}")
+        with img_metrica4:
+            st.metric(label="Preço Máximo", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'PREÇO MÁXIMO'].values[0]:.2f}")
+        
+        img_metrica5, img_metrica6, img_metrica7, img_metrica8 = st.columns(4)
+        with img_metrica5:
+            st.metric(label="Diferença", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'DIFERENÇA'].values[0]:.2f}")
+        with img_metrica6:
+            st.metric(label="Margem", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'MARGEM'].values[0]:-.2%}")
+        with img_metrica7:
+            st.metric(label="Valor Usado", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'VALOR USADO'].values[0]:.2f}")
+        with img_metrica8:
+            st.metric(label="CPM", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'CPM'].values[0]:.2f}")
+
+        img_metrica9, img_metrica10, img_metrica11, img_metrica12 = st.columns(4)
+        with img_metrica9:
+            st.metric(label="Connect Rate", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'CONNECT RATE'].values[0]:.2%}")
+        with img_metrica10:
+            st.metric(label="Conversão da Página", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'CONVERSAO PAG'].values[0]:.2%}")
+        with img_metrica11:
+            st.metric(label="Taxa de Resposta", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANÚNCIO'] == selected_anuncio, 'TAXA DE RESPOSTA'].values[0]:.2%}")
+
 
 with tabs[2]:
-    if 'df_videos' in locals():        
-        # Carregar os dados da aba 'ANUNCIOS SUBIDOS'
-        df_SUBIDOS = st.session_state.df_SUBIDOS.copy()
-
-        # Selectbox para selecionar anúncios
-        st.write("Selecione até 3 anúncios para comparar:")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            anuncio1 = st.selectbox("Anúncio 1", df_videos['ANUNCIO: NOME'].unique(), key='anuncio1')
-            link1 = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == anuncio1, 'LINK DO DRIVE'].values[0]
-            st.write(f"Link: [{link1}]({link1})")
-
-        with col2:
-            anuncio2 = st.selectbox("Anúncio 2", [None] + list(df_videos['ANUNCIO: NOME'].unique()), key='anuncio2')
-            if anuncio2:
-                link2 = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == anuncio2, 'LINK DO DRIVE'].values[0]
-                st.write(f"Link: [{link2}]({link2})")
-                
-        with col3:
-            anuncio3 = st.selectbox("Anúncio 3", [None] + list(df_videos['ANUNCIO: NOME'].unique()), key='anuncio3')
-            if anuncio3:
-                link3 = df_SUBIDOS.loc[df_SUBIDOS['ANUNCIO'] == anuncio3, 'LINK DO DRIVE'].values[0]
-                st.write(f"Link: [{link3}]({link3})")
-                
-        if st.button("Gerar Análise"):
-            # Criar um novo DataFrame com uma linha chamada 'média'
-            df_media = df_videos[colunas_retencao].mean().to_frame().T
-            df_media.index = ['média']
-            
-            # Obter dados dos anúncios selecionados
-            df_selecionados = df_videos[df_videos['ANUNCIO: NOME'].isin([anuncio1, anuncio2, anuncio3])]
-
-            # Preparar o gráfico de linhas estilizado
-            fig, ax = plt.subplots(figsize=(12, 7))  # Aumentar levemente o tamanho da figura
-            
-            # Plotar os anúncios selecionados
-            cores = ['#FFA500', '#32CD32', '#1E90FF']  # Cores levemente mais claras: laranja, verde e azul
-            for i, anuncio in enumerate([anuncio1, anuncio2, anuncio3]):
-                if anuncio:
-                    ax.plot(colunas_retencao, df_selecionados[df_selecionados['ANUNCIO: NOME'] == anuncio].iloc[0, 1:-1], label=anuncio, color=cores[i])
-            
-            # Plotar a linha da média
-            ax.plot(colunas_retencao, df_media.iloc[0], label='média', color='#FF6347')  # Vermelho claro
-            
-            # Configurações do gráfico
-            ax.set_xlabel('Tempo de Retenção', color='white')
-            ax.set_ylabel('Percentual de Retenção', color='white')
-            ax.set_title('Comparação de Retenção dos Anúncios', color='white')
-            ax.legend()
-            ax.grid(True, color='#666666', linestyle='--', linewidth=0.5)
-            ax.patch.set_alpha(0)  # Fundo do gráfico transparente
-            fig.patch.set_alpha(0)  # Fundo da figura transparente
-            ax.spines['bottom'].set_color('white')
-            ax.spines['top'].set_color('white') 
-            ax.spines['right'].set_color('white')
-            ax.spines['left'].set_color('white')
-            ax.xaxis.label.set_color('white')
-            ax.yaxis.label.set_color('white')
-            ax.tick_params(axis='x', colors='white', rotation=45)  # Rotacionar labels de tempo
-            ax.tick_params(axis='y', colors='white')
-
-            # Mostrar o gráfico
-            st.pyplot(fig)
-
-with tabs[3]:
     st.write("Análise de Hook de Vídeos")
 
     # Garantir que os dados estejam carregados na aba "Dados"

@@ -19,8 +19,7 @@ if 'sheets_loaded' in st.session_state:
         'ANALISES': [
             st.Page("2_Análise Geral Lançamento.py", title="📊 Análise Geral Lançamento"),
             st.Page("4_Anúncios.py", title="🔎 Anuncios"),       
-            st.Page("3_Desempenho_UTMS.py", title="🌐 Desempenho UTMS"),
-            st.Page("5_Anúncios de Vídeo.py", title = "📽️ Anuncios Video")
+            st.Page("3_Desempenho_UTMS.py", title="🌐 Desempenho UTMS")
         ]
     }   
 
