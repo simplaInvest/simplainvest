@@ -317,7 +317,7 @@ with tabs[0]:
                 st.write(f"Não há dados suficientes para os 5 Melhores Anúncios - {coluna_a}")
         with col2:
             if not bottom_5.empty and len(bottom_5) >= 5:
-                fig_bottom_5 = styled_bar_chart_plotly(bottom_5['ANUNCIO'], bottom_5[coluna_a], f'Bottom 5 Anúncios - {coluna_a}')
+                fig_bottom_5 = styled_bar_chart_plotly(bottom_5['ANUNCIO'], bottom_5[coluna_a], f'5 Piores Anúncios - {coluna_a}')
                 st.plotly_chart(fig_bottom_5)
             else:
                 st.write(f"Não há dados suficientes para os 5 Piores Anúncios - {coluna_a}")
