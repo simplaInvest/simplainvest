@@ -100,9 +100,9 @@ if st.button("Continuar para Análise"):
                     #df_GRUPOS['Evento'] = pd.to_datetime(df_GRUPOS['Evento'], format='ISO8601', errors='coerce')
                     st.success("Planilha GRUPOS com sucesso!")
                     
-                    st.buton("Iniciar Aplicativo")
+                    st.button("Iniciar Aplicativo")
                     if st.button("Iniciar Aplicativo"):
-                        st.rerun()
+                        st.experimental_rerun()
                 
                 except Exception as e:
                     st.error(f"Erro ao carregar a planilha de grupos {e}")
