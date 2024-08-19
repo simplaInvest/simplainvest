@@ -99,8 +99,7 @@ if st.button("Continuar para Análise"):
                     st.session_state.sheets_loaded = True
                     #df_GRUPOS['Evento'] = pd.to_datetime(df_GRUPOS['Evento'], format='ISO8601', errors='coerce')
                     st.success("Planilha GRUPOS com sucesso!")
-                    
-                    st.button("Iniciar Aplicativo")
+                                       
                     if st.button("Iniciar Aplicativo"):
                         st.experimental_rerun()
                 
