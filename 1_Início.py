@@ -102,7 +102,7 @@ if st.button("Continuar para Análise"):
                     
                     st.buton("Iniciar Aplicativo")
                     if st.button("Iniciar Aplicativo"):
-                        st.experimental_rerun()
+                        st.rerun()
                 
                 except Exception as e:
                     st.error(f"Erro ao carregar a planilha de grupos {e}")
