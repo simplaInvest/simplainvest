@@ -95,10 +95,13 @@ if st.button("Continuar para Análise"):
                 
                 try:
                     df_GRUPOS = load_sheet(spreadsheet_grupos, worksheet_grupos)
-                    st.session_state.df_GRUPOS = df_GRUPOS
-                    st.session_state.sheets_loaded = True
-                    #df_GRUPOS['Evento'] = pd.to_datetime(df_GRUPOS['Evento'], format='ISO8601', errors='coerce')
-                    st.success("Planilha GRUPOS com sucesso!")
+                    if not df_GRUPOS.empty:
+                        st.session_state.df_GRUPOS = df_GRUPOS
+                        st.session_state.sheets_loaded = True
+                        #df_GRUPOS['Evento'] = pd.to_datetime(df_GRUPOS['Evento'], format='ISO8601', errors='coerce')
+                        st.success("Planilha GRUPOS com sucesso!")
+                    else:
+                        st.success("Planilha GRUPOS vazia")    
                                        
                     if st.button("Iniciar Aplicativo"):
                         st.rerun()
