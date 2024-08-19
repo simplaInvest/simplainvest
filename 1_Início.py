@@ -33,7 +33,7 @@ produto = st.selectbox('Produto', ['EI', 'SC'])
 versao = st.selectbox('Versão', list(range(1, 31)))
 
 # Botão para continuar para a análise
-if st.button("Continuar para Análise"):
+if st.button("Continuar para Análise"):   
     # Formatar os inputs do usuário
     lancamento = f"{produto}.{str(versao).zfill(2)}"
     spreadsheet_central = lancamento + ' - CENTRAL DO UTM'
