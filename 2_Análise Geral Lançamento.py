@@ -1,66 +1,99 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import altair as alt
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.express as px
-import altair as alt
-import seaborn as sns
-
 
 # Cacheamento de Processamento de Dados
 @st.cache_data
 def processa_dados_grupos(df_GRUPOS):
-    if 'Data' in df_GRUPOS.columns:
-        # Converter para string para evitar o erro
-        df_GRUPOS['Data'] = df_GRUPOS['Data'].astype(str)
-        df_GRUPOS['Data'] = pd.to_datetime(df_GRUPOS['Data'].str.split(' às ').str[0], format='%d/%m/%Y', errors='coerce')
-        return df_GRUPOS.sort_values('Data')
-    return pd.DataFrame()
+    # Verifique se o DataFrame está vazio
+    if df_GRUPOS.empty:
+        st.warning("O DataFrame 'df_GRUPOS' está vazio.")
+        return pd.DataFrame()
+
+    # Verifique se a coluna 'Data' existe
+    if 'Data' not in df_GRUPOS.columns:
+        st.error("A coluna 'Data' não foi encontrada no DataFrame 'df_GRUPOS'.")
+        return pd.DataFrame()
+
+    # Converta a coluna 'Data' para datetime, se necessário
+    if not pd.api.types.is_datetime64_any_dtype(df_GRUPOS['Data']):
+        try:
+            df_GRUPOS['Data'] = pd.to_datetime(df_GRUPOS['Data'].astype(str).str.split(' às ').str[0], format='%d/%m/%Y', errors='coerce')
+        except Exception as e:
+            st.error(f"Erro ao converter a coluna 'Data': {e}")
+            return pd.DataFrame()
+
+    # Adicione uma coluna 'Membros' para representar as entradas/saídas
+    df_GRUPOS['Membros'] = df_GRUPOS['Evento'].apply(lambda x: 1 if x == 'Entrou no grupo' else -1)
+
+    # Faça o cálculo cumulativo de membros por dia
+    try:
+        df_GRUPOS = df_GRUPOS.groupby('Data')['Membros'].sum().cumsum().reset_index()
+        df_GRUPOS.columns = ['Date', 'Members']
+    except Exception as e:
+        st.error(f"Erro ao processar os dados de membros: {e}")
+        return pd.DataFrame()
+
+    return df_GRUPOS
+
+
 
 # Cacheamento para Gráficos
 @st.cache_data
-def plot_group_members_per_day_matplotlib(df_member_count):
-    fig, ax = plt.subplots()
-    sns.lineplot(data=df_member_count, x='Date', y='Members', ax=ax, marker='o')
+def plot_group_members_per_day_altair(df_member_count):
+    if df_member_count.empty:
+        st.warning("Os dados de contagem de membros estão vazios.")
+        return None
+
+    chart = alt.Chart(df_member_count).mark_line(point=True).encode(
+        x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
+        y=alt.Y('Members:Q', title='Número de Membros'),
+        tooltip=['Date:T', 'Members:Q']
+    ).properties(
+        title='Número de Membros no Grupo por Dia',
+        width=600,
+        height=400
+    ).configure_axis(
+        grid=False,
+        labelColor='white',
+        titleColor='white'
+    ).configure_view(
+        strokeWidth=0
+    ).configure_title(
+        color='white'
+    ).configure(background='rgba(0,0,0,0)')
     
-    ax.set_title('Número de Membros no Grupo por Dia', color='white')
-    ax.set_xlabel('Data', color='white')
-    ax.set_ylabel('Número de Membros', color='white')
-    
-    # Estilizando o gráfico
-    ax.set_facecolor('none')
-    fig.patch.set_facecolor('none')
-    ax.spines['bottom'].set_color('white')
-    ax.spines['top'].set_color('white')
-    ax.spines['right'].set_color('white')
-    ax.spines['left'].set_color('white')
-    ax.tick_params(axis='x', colors='white', rotation=45)
-    ax.tick_params(axis='y', colors='white')
-    return fig
+    return chart
 
 @st.cache_data
-def plot_leads_per_day_matplotlib(df, date_column):
+def plot_leads_per_day_altair(df, date_column):
     df[date_column] = pd.to_datetime(df[date_column], errors='coerce').dt.date
     leads_per_day = df[date_column].value_counts().sort_index()
     df_leads_per_day = pd.DataFrame({'Date': leads_per_day.index, 'Leads': leads_per_day.values})
 
-    fig, ax = plt.subplots()
-    sns.lineplot(data=df_leads_per_day, x='Date', y='Leads', ax=ax, marker='o')   
-    ax.set_title('Leads por Dia', color='white')
-    ax.set_xlabel('Data', color='white')
-    ax.set_ylabel('Número de Leads', color='white')
-    # Estilizando o gráfico
-    ax.set_facecolor('none')
-    fig.patch.set_facecolor('none')
-    ax.spines['bottom'].set_color('white')
-    ax.spines['top'].set_color('white')
-    ax.spines['right'].set_color('white')
-    ax.spines['left'].set_color('white')
-    ax.tick_params(axis='x', colors='white', rotation=45)
-    ax.tick_params(axis='y', colors='white')
-    return fig
+    chart = alt.Chart(df_leads_per_day).mark_line(point=True).encode(
+        x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
+        y=alt.Y('Leads:Q', title='Número de Leads'),
+        tooltip=['Date:T', 'Leads:Q']
+    ).properties(
+        title='Leads por Dia',
+        width=600,
+        height=400
+    ).configure_axis(
+        grid=False,
+        labelColor='white',
+        titleColor='white'
+    ).configure_view(
+        strokeWidth=0
+    ).configure_title(
+        color='white'
+    ).configure(background='rgba(0,0,0,0)')
+    return chart
 
 # Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
@@ -118,7 +151,7 @@ if 'sheets_loaded' in st.session_state and st.session_state.sheets_loaded:
     df_COPY = st.session_state.df_COPY.copy()
     df_GRUPOS = processa_dados_grupos(st.session_state.df_GRUPOS)
 else:
-    st.error("Os dados não foram carregados. Por favor, atualize a página e carregue os dados. Se o erro persistir, contacte o time de TI")
+    st.error("Os dados não foram carregados. Por favor, atualize a página e carregue os dados. Se o erro persistir, contacte o time de TI.")
     st.query_params = {"page": "Inicio"}
 
 # Calcular conversões
@@ -135,17 +168,9 @@ conversao_copy = (total_copy / total_captura) * 100 if total_vendas > 0 else 0
 
 # Contar o número de membros por dia utilizando df_GRUPOS
 if not df_GRUPOS.empty and 'Data' in df_GRUPOS.columns:
-    current_members = 0
-    members_per_day = {}
-    for i, row in df_GRUPOS.iterrows():
-        if row['Evento'] == 'Entrou no grupo':
-            current_members += 1
-        elif row['Evento'] == 'Saiu do grupo':
-            current_members -= 1
-        members_per_day[row['Data']] = current_members
-
-    df_member_count = pd.DataFrame(list(members_per_day.items()), columns=['Date', 'Members'])
-    df_member_count = df_member_count.sort_values('Date')
+    df_member_count = df_GRUPOS[['Data', 'Members']].copy()
+#else:
+    #st.warning("Os dados de grupos estão vazios ou a coluna 'Data' não foi encontrada.")
 
 # Criando tabelas cruzadas PATRIMONIO x RENDA
 categorias_patrimonio = [
@@ -304,13 +329,20 @@ with tabs[0]:
         with ctcol5:
             st.metric("Conversão Geral do Lançamento", f"{conversao_vendas:.2f}%")
     
-        fig = plot_leads_per_day_matplotlib(df_CAPTURA, 'CAP DATA_CAPTURA')
-    st.pyplot(fig)  # Usando st.pyplot para Matplotlib
+   
+    fig = plot_leads_per_day_altair(df_CAPTURA, 'CAP DATA_CAPTURA')
+    st.altair_chart(fig, use_container_width=True)
 
-    if not df_GRUPOS.empty:
-        fig = plot_group_members_per_day_matplotlib(df_member_count)
-        st.pyplot(fig)  # Usando st.pyplot para Matplotlib
-        
+    df_member_count = processa_dados_grupos(st.session_state.df_GRUPOS)
+
+    # Exibindo o gráfico usando Altair
+    if not df_member_count.empty:
+        fig = plot_group_members_per_day_altair(df_member_count)
+        st.altair_chart(fig, use_container_width=True)
+    else:
+        st.warning("O gráfico de Membros no Grupo não pôde ser gerado porque os dados estão vazios.")
+
+
 with tabs[1]:     
     if not df_VENDAS.empty:
         st.plotly_chart(heatmap)    
@@ -360,10 +392,10 @@ with tabs[1]:
             ax_patrimonio.set_xticklabels(tabela_patrimonio['PATRIMONIO'], rotation=45, ha='right', color='#FFFFFF')
             ax_patrimonio.set_facecolor('none')
             fig_patrimonio.patch.set_facecolor('none')
-            ax_patrimonio.spines['bottom'].set_color('#FFFFFF')
             ax_patrimonio.spines['top'].set_color('#FFFFFF')
-            ax_patrimonio.spines['right'].set_color('#FFFFFF')
+            ax_patrimonio.spines['bottom'].set_color('#FFFFFF')
             ax_patrimonio.spines['left'].set_color('#FFFFFF')
+            ax_patrimonio.spines['right'].set_color('#FFFFFF')
             ax_patrimonio.tick_params(axis='x', colors='#FFFFFF')
             ax_patrimonio.tick_params(axis='y', colors='#FFFFFF')
             st.pyplot(fig_patrimonio)
@@ -392,11 +424,11 @@ with tabs[1]:
             ax_renda.set_ylabel('Conversão (%)', color='#FFFFFF')
             ax_renda.set_xticklabels(tabela_renda['RENDA MENSAL'], rotation=45, ha='right', color='#FFFFFF')
             ax_renda.set_facecolor('none')
-            fig_renda.patch.set_facecolor('none')
-            ax_renda.spines['bottom'].set_color('#FFFFFF')
-            ax_renda.spines['top'].set_color('#FFFFFF')
-            ax_renda.spines['right'].set_color('#FFFFFF')
-            ax_renda.spines['left'].set_color('#FFFFFF')
+            fig_renda.patch.set.facecolor('none')
+            ax_renda.spines['bottom'].set.color('#FFFFFF')
+            ax_renda.spines['top'].set.color('#FFFFFF')
+            ax_renda.spines['right'].set.color('#FFFFFF')
+            ax_renda.spines['left'].set.color('#FFFFFF')
             ax_renda.tick_params(axis='x', colors='#FFFFFF')
             ax_renda.tick_params(axis='y', colors='#FFFFFF')
             st.pyplot(fig_renda)
@@ -449,14 +481,14 @@ with tabs[2]:
             ax.set_ylabel('PERCURSO', color='#FFFFFF')
             ax.set_title('Top 5 Percursos Mais Comuns', color='#FFFFFF')
             ax.set_facecolor('none')
-            fig.patch.set_facecolor('none')
-            ax.spines['bottom'].set_color('#FFFFFF')
-            ax.spines['top'].set_color('#FFFFFF')
-            ax.spines['right'].set_color('#FFFFFF')
-            ax.spines['left'].set_color('#FFFFFF')
+            fig.patch.set.facecolor('none')
+            ax.spines['bottom'].set.color('#FFFFFF')
+            ax.spines['top'].set.color('#FFFFFF')
+            ax.spines['right'].set.color('#FFFFFF')
+            ax.spines['left'].set.color('#FFFFFF')
             ax.tick_params(axis='x', colors='#FFFFFF')
             ax.tick_params(axis='y', colors='#FFFFFF')
             plt.tight_layout()
             st.pyplot(fig)
     else:
-        st.warning("Ainda não há vendas realizadas para executarmos a Análise de Percurso de Leads")
+        st.warning("Ainda não há vendas realizadas para executarmos a Análise de Percurso de Leads.")
