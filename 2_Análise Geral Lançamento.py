@@ -71,15 +71,17 @@ def plot_group_members_per_day_altair(df_member_count):
     return chart
 
 @st.cache_data
-def plot_leads_per_day_altair(df, date_column):
-    df[date_column] = pd.to_datetime(df[date_column], errors='coerce').dt.date
-    leads_per_day = df[date_column].value_counts().sort_index()
-    df_leads_per_day = pd.DataFrame({'Date': leads_per_day.index, 'Leads': leads_per_day.values})
+def plot_leads_per_day_altair(df_CONTALEADS2):
+    # Verificar se o DataFrame não está vazio
+    if df_CONTALEADS2.empty:
+        st.warning("Os dados de Leads por Dia estão vazios.")
+        return None
 
-    chart = alt.Chart(df_leads_per_day).mark_line(point=True).encode(
-        x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
-        y=alt.Y('Leads:Q', title='Número de Leads'),
-        tooltip=['Date:T', 'Leads:Q']
+    # Criar o gráfico usando Altair
+    fig = alt.Chart(df_CONTALEADS2).mark_line(point=True).encode(
+        x=alt.X('CAP DATA_CAPTURA:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
+        y=alt.Y('EMAIL:Q', title='Número de Leads'),
+        tooltip=['CAP DATA_CAPTURA:T', 'EMAIL:Q']
     ).properties(
         title='Leads por Dia',
         width=600,
@@ -93,7 +95,8 @@ def plot_leads_per_day_altair(df, date_column):
     ).configure_title(
         color='white'
     ).configure(background='rgba(0,0,0,0)')
-    return chart
+    
+    return fig
 
 # Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
@@ -166,11 +169,19 @@ conversao_prematricula = (total_prematricula / total_captura) * 100 if total_cap
 conversao_vendas = (total_vendas / total_captura) * 100 if total_prematricula > 0 else 0
 conversao_copy = (total_copy / total_captura) * 100 if total_vendas > 0 else 0
 
+
+df_CONTALEADS = df_CAPTURA.copy()
+df_CONTALEADS['CAP DATA_CAPTURA'] = pd.to_datetime(df_CONTALEADS['CAP DATA_CAPTURA']).dt.date
+st.dataframe(df_CONTALEADS)
+
+df_CONTALEADS2 = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
+st.dataframe(df_CONTALEADS2)
+
+
+
 # Contar o número de membros por dia utilizando df_GRUPOS
 if not df_GRUPOS.empty and 'Data' in df_GRUPOS.columns:
     df_member_count = df_GRUPOS[['Data', 'Members']].copy()
-#else:
-    #st.warning("Os dados de grupos estão vazios ou a coluna 'Data' não foi encontrada.")
 
 # Criando tabelas cruzadas PATRIMONIO x RENDA
 categorias_patrimonio = [
@@ -330,8 +341,9 @@ with tabs[0]:
             st.metric("Conversão Geral do Lançamento", f"{conversao_vendas:.2f}%")
     
    
-    fig = plot_leads_per_day_altair(df_CAPTURA, 'CAP DATA_CAPTURA')
-    st.altair_chart(fig, use_container_width=True)
+    fig = plot_leads_per_day_altair(df_CONTALEADS2)
+    if fig:
+        st.altair_chart(fig, use_container_width=True)
 
     df_member_count = processa_dados_grupos(st.session_state.df_GRUPOS)
 
