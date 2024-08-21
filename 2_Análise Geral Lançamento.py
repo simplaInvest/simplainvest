@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.express as px
+import altair as alt
 
 
 # Cacheamento de Processamento de Dados
@@ -19,35 +20,50 @@ def processa_dados_grupos(df_GRUPOS):
 
 # Cacheamento para Gráficos
 @st.cache_data
-def plot_group_members_per_day(df_member_count):
-    fig = px.line(df_member_count, x='Date', y='Members', title='Número de Membros no Grupo por Dia')
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',  
-        paper_bgcolor='rgba(0,0,0,0)',  
-        font=dict(color='white'),  
-        title=dict(x=0.5, font=dict(size=20, color='white')),
-        xaxis=dict(showgrid=False, tickfont=dict(color='white'), tickformat="%d %B (%a)"),
-        yaxis=dict(showgrid=False, tickfont=dict(color='white'))
-    )
-    return fig
+def plot_group_members_per_day_altair(df_member_count):
+    chart = alt.Chart(df_member_count).mark_line(point=True).encode(
+        x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
+        y=alt.Y('Members:Q', title='Número de Membros'),
+        tooltip=['Date:T', 'Members:Q']
+    ).properties(
+        title='Número de Membros no Grupo por Dia',
+        width=600,
+        height=400
+    ).configure_axis(
+        grid=False,
+        labelColor='white',
+        titleColor='white'
+    ).configure_view(
+        strokeWidth=0
+    ).configure_title(
+        color='white'
+    ).configure(background='rgba(0,0,0,0)')
+    return chart
 
 @st.cache_data
-def plot_leads_per_day(df, date_column):
+def plot_leads_per_day_altair(df, date_column):
     df[date_column] = pd.to_datetime(df[date_column], errors='coerce').dt.date
     leads_per_day = df[date_column].value_counts().sort_index()
     df_leads_per_day = pd.DataFrame({'Date': leads_per_day.index, 'Leads': leads_per_day.values})
-    df_leads_per_day.set_index('Date', inplace=True)
 
-    fig = px.line(df_leads_per_day, x=df_leads_per_day.index, y='Leads', title='Leads por Dia')
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',  
-        paper_bgcolor='rgba(0,0,0,0)',  
-        font=dict(color='white'),  
-        title=dict(x=0.5, font=dict(size=20, color='white')),
-        xaxis=dict(showgrid=False, tickfont=dict(color='white'), tickformat="%d %B (%a)"),
-        yaxis=dict(showgrid=False, tickfont=dict(color='white'))
-    )
-    return fig
+    chart = alt.Chart(df_leads_per_day).mark_line(point=True).encode(
+        x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
+        y=alt.Y('Leads:Q', title='Número de Leads'),
+        tooltip=['Date:T', 'Leads:Q']
+    ).properties(
+        title='Leads por Dia',
+        width=600,
+        height=400
+    ).configure_axis(
+        grid=False,
+        labelColor='white',
+        titleColor='white'
+    ).configure_view(
+        strokeWidth=0
+    ).configure_title(
+        color='white'
+    ).configure(background='rgba(0,0,0,0)')
+    return chart
 
 # Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
@@ -291,12 +307,12 @@ with tabs[0]:
         with ctcol5:
             st.metric("Conversão Geral do Lançamento", f"{conversao_vendas:.2f}%")
     
-    fig = plot_leads_per_day(df_CAPTURA, 'CAP DATA_CAPTURA')
-    st.plotly_chart(fig)  
+    fig = plot_leads_per_day_altair(df_CAPTURA, 'CAP DATA_CAPTURA')
+    st.altair_chart(fig, use_container_width=True)
 
     if not df_GRUPOS.empty:
-        fig = plot_group_members_per_day(df_member_count)
-        st.plotly_chart(fig)
+        fig = plot_group_members_per_day_altair(df_member_count)
+        st.altair_chart(fig, use_container_width=True)
                
 with tabs[1]:     
     if not df_VENDAS.empty:
