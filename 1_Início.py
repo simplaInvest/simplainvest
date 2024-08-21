@@ -71,7 +71,7 @@ if st.button("Continuar para Análise"):
         try:
             df_CAPTURA = load_sheet(spreadsheet_captura, worksheet_captura)
             # Converter a coluna para datetime, lidando com diferentes formatos
-            df_CAPTURA['CAP DATA_CAPTURA'] = pd.to_datetime(df_CAPTURA['CAP DATA_CAPTURA'], format='ISO8601', errors='coerce')
+            #df_CAPTURA['CAP DATA_CAPTURA'] = pd.to_datetime(df_CAPTURA['CAP DATA_CAPTURA'], format='ISO8601', errors='coerce')
             # Depois formatar para 'DD/MM/YYYY'
             #df_CAPTURA['CAP DATA_CAPTURA'] = df_CAPTURA['CAP DATA_CAPTURA'].dt.strftime('%d/%m/%Y às -%H:%M')
        
