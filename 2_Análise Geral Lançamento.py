@@ -6,6 +6,7 @@ import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.express as px
 import altair as alt
+import seaborn as sns
 
 
 # Cacheamento de Processamento de Dados
@@ -20,50 +21,46 @@ def processa_dados_grupos(df_GRUPOS):
 
 # Cacheamento para Gráficos
 @st.cache_data
-def plot_group_members_per_day_altair(df_member_count):
-    chart = alt.Chart(df_member_count).mark_line(point=True).encode(
-        x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
-        y=alt.Y('Members:Q', title='Número de Membros'),
-        tooltip=['Date:T', 'Members:Q']
-    ).properties(
-        title='Número de Membros no Grupo por Dia',
-        width=600,
-        height=400
-    ).configure_axis(
-        grid=False,
-        labelColor='white',
-        titleColor='white'
-    ).configure_view(
-        strokeWidth=0
-    ).configure_title(
-        color='white'
-    ).configure(background='rgba(0,0,0,0)')
-    return chart
+def plot_group_members_per_day_matplotlib(df_member_count):
+    fig, ax = plt.subplots()
+    sns.lineplot(data=df_member_count, x='Date', y='Members', ax=ax, marker='o')
+    
+    ax.set_title('Número de Membros no Grupo por Dia', color='white')
+    ax.set_xlabel('Data', color='white')
+    ax.set_ylabel('Número de Membros', color='white')
+    
+    # Estilizando o gráfico
+    ax.set_facecolor('none')
+    fig.patch.set_facecolor('none')
+    ax.spines['bottom'].set_color('white')
+    ax.spines['top'].set_color('white')
+    ax.spines['right'].set_color('white')
+    ax.spines['left'].set_color('white')
+    ax.tick_params(axis='x', colors='white', rotation=45)
+    ax.tick_params(axis='y', colors='white')
+    return fig
 
 @st.cache_data
-def plot_leads_per_day_altair(df, date_column):
+def plot_leads_per_day_matplotlib(df, date_column):
     df[date_column] = pd.to_datetime(df[date_column], errors='coerce').dt.date
     leads_per_day = df[date_column].value_counts().sort_index()
     df_leads_per_day = pd.DataFrame({'Date': leads_per_day.index, 'Leads': leads_per_day.values})
 
-    chart = alt.Chart(df_leads_per_day).mark_line(point=True).encode(
-        x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
-        y=alt.Y('Leads:Q', title='Número de Leads'),
-        tooltip=['Date:T', 'Leads:Q']
-    ).properties(
-        title='Leads por Dia',
-        width=600,
-        height=400
-    ).configure_axis(
-        grid=False,
-        labelColor='white',
-        titleColor='white'
-    ).configure_view(
-        strokeWidth=0
-    ).configure_title(
-        color='white'
-    ).configure(background='rgba(0,0,0,0)')
-    return chart
+    fig, ax = plt.subplots()
+    sns.lineplot(data=df_leads_per_day, x='Date', y='Leads', ax=ax, marker='o')   
+    ax.set_title('Leads por Dia', color='white')
+    ax.set_xlabel('Data', color='white')
+    ax.set_ylabel('Número de Leads', color='white')
+    # Estilizando o gráfico
+    ax.set_facecolor('none')
+    fig.patch.set_facecolor('none')
+    ax.spines['bottom'].set_color('white')
+    ax.spines['top'].set_color('white')
+    ax.spines['right'].set_color('white')
+    ax.spines['left'].set_color('white')
+    ax.tick_params(axis='x', colors='white', rotation=45)
+    ax.tick_params(axis='y', colors='white')
+    return fig
 
 # Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
@@ -307,13 +304,13 @@ with tabs[0]:
         with ctcol5:
             st.metric("Conversão Geral do Lançamento", f"{conversao_vendas:.2f}%")
     
-    fig = plot_leads_per_day_altair(df_CAPTURA, 'CAP DATA_CAPTURA')
-    st.altair_chart(fig, use_container_width=True)
+        fig = plot_leads_per_day_matplotlib(df_CAPTURA, 'CAP DATA_CAPTURA')
+    st.pyplot(fig)  # Usando st.pyplot para Matplotlib
 
     if not df_GRUPOS.empty:
-        fig = plot_group_members_per_day_altair(df_member_count)
-        st.altair_chart(fig, use_container_width=True)
-               
+        fig = plot_group_members_per_day_matplotlib(df_member_count)
+        st.pyplot(fig)  # Usando st.pyplot para Matplotlib
+        
 with tabs[1]:     
     if not df_VENDAS.empty:
         st.plotly_chart(heatmap)    
