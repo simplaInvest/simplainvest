@@ -172,10 +172,10 @@ conversao_copy = (total_copy / total_captura) * 100 if total_vendas > 0 else 0
 
 df_CONTALEADS = df_CAPTURA.copy()
 df_CONTALEADS['CAP DATA_CAPTURA'] = pd.to_datetime(df_CONTALEADS['CAP DATA_CAPTURA']).dt.date
-st.dataframe(df_CONTALEADS)
+#st.dataframe(df_CONTALEADS)
 
 df_CONTALEADS2 = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
-st.dataframe(df_CONTALEADS2)
+#st.dataframe(df_CONTALEADS2)
 
 
 
