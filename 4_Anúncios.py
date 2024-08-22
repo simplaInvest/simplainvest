@@ -242,11 +242,13 @@ def styled_bar_chart(x, y, title):
 # Carregamento dos dataframes da sessão
 df_METAADS = st.session_state.df_METAADS.copy()
 df_METAADS = processa_colunas_numericas(df_METAADS, colunas_numericas)
-
+df_CAPTURA = st.session_state.df_CAPTURA.copy()
 df_SUBIDOS = st.session_state.df_SUBIDOS.copy()
 df_PESQUISA = st.session_state.df_PESQUISA.copy()
 df_PESQUISA['UTM_TERM'] = df_PESQUISA['UTM_TERM'].replace('+', ' ')
 df_PESQUISA = df_PESQUISA.astype(str)
+
+leads_totais = len(df_CAPTURA)
 
 ticket = 1500 * 0.7
 
@@ -292,7 +294,7 @@ with tabs[0]:
         st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue; hover-color: red'>Dados gerais</h2>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns(3)      
         with col1:
-            st.metric(label='Total de leads 📊', value=int(total_leads))
+            st.metric(label='Total de leads 📊', value=int(leads_totais))
         with col2:    
             st.metric(label='Total gasto 💸', value=f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
         with col3:    
