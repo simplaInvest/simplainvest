@@ -45,12 +45,14 @@ def processa_dados_grupos(df_GRUPOS):
 
 # Cacheamento para Gráficos
 @st.cache_data
-def plot_group_members_per_day_altair(df_member_count):
-    if df_member_count.empty:
+def plot_group_members_per_day_altair(df_CONTAGRUPOS):
+    # Verificar se o DataFrame não está vazio
+    if df_CONTAGRUPOS.empty:
         st.warning("Os dados de contagem de membros estão vazios.")
         return None
 
-    chart = alt.Chart(df_member_count).mark_line(point=True).encode(
+    # Criar o gráfico usando Altair
+    chart = alt.Chart(df_CONTAGRUPOS).mark_line(point=True).encode(
         x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
         y=alt.Y('Members:Q', title='Número de Membros'),
         tooltip=['Date:T', 'Members:Q']
@@ -67,18 +69,18 @@ def plot_group_members_per_day_altair(df_member_count):
     ).configure_title(
         color='white'
     ).configure(background='rgba(0,0,0,0)')
-    
+
     return chart
 
 @st.cache_data
-def plot_leads_per_day_altair(df_CONTALEADS2):
+def plot_leads_per_day_altair(df_CONTALEADS):
     # Verificar se o DataFrame não está vazio
-    if df_CONTALEADS2.empty:
+    if df_CONTALEADS.empty:
         st.warning("Os dados de Leads por Dia estão vazios.")
         return None
 
     # Criar o gráfico usando Altair
-    fig = alt.Chart(df_CONTALEADS2).mark_line(point=True).encode(
+    fig = alt.Chart(df_CONTALEADS).mark_line(point=True).encode(
         x=alt.X('CAP DATA_CAPTURA:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
         y=alt.Y('EMAIL:Q', title='Número de Leads'),
         tooltip=['CAP DATA_CAPTURA:T', 'EMAIL:Q']
@@ -173,9 +175,13 @@ conversao_copy = (total_copy / total_captura) * 100 if total_vendas > 0 else 0
 df_CONTALEADS = df_CAPTURA.copy()
 df_CONTALEADS['CAP DATA_CAPTURA'] = pd.to_datetime(df_CONTALEADS['CAP DATA_CAPTURA']).dt.date
 #st.dataframe(df_CONTALEADS)
+df_CONTALEADS = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
 
-df_CONTALEADS2 = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
-#st.dataframe(df_CONTALEADS2)
+df_CONTAGRUPOS = df_GRUPOS.copy()
+#df_CONTAGRUPOS['Data'] = pd.to_datetime(df_CONTAGRUPOS['Data']).dt.date
+#st.dataframe(df_CONTAGRUPOS)
+
+
 
 
 
@@ -218,6 +224,10 @@ if not df_VENDAS.empty:
 
     tabela_combined = pd.merge(tabela_final, tabela_final_vendas, on='FAIXA PATRIMONIO x RENDA MENSAL', how='outer').fillna(0)
     tabela_combined['CONVERSÃO'] = (tabela_combined['ALUNOS'] / tabela_combined['LEADS'])
+    df_EXIBICAO = tabela_combined.copy()
+    df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO']*100
+    df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
+    df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
 else:
     tabela_empilhada = tabela_cruzada1_ordenada.stack().reset_index()
     tabela_empilhada.columns = ['PATRIMONIO', 'RENDA MENSAL', 'LEADS']
@@ -225,6 +235,10 @@ else:
     tabela_combined = tabela_empilhada[['FAIXA PATRIMONIO x RENDA MENSAL', 'LEADS']]
     total_leads = tabela_combined['LEADS'].sum()
     tabela_combined['% DO TOTAL DE LEADS'] = (tabela_combined['LEADS'] / total_leads)
+    df_EXIBICAO = tabela_combined.copy()
+    df_EXIBICAO['% DO TOTAL DE LEADS'] = df_EXIBICAO['% DO TOTAL DE LEADS']*100
+    df_EXIBICAO['% DO TOTAL DE LEADS'] = df_EXIBICAO['% DO TOTAL DE LEADS'].apply(lambda x: f"{x:.2f}%")
+    df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
 
 tabela_combined['PATRIMONIO'] = pd.Categorical(
     tabela_combined['FAIXA PATRIMONIO x RENDA MENSAL'].str.split(' x ').str[0],
@@ -238,8 +252,7 @@ tabela_combined['RENDA MENSAL'] = pd.Categorical(
 )
 tabela_combined = tabela_combined.sort_values(by=['PATRIMONIO', 'RENDA MENSAL']).reset_index(drop=True)
 
-# Exibindo a nova tabela combinada e os gráficos lado a lado
-st.subheader("CONVERSÃO PATRIMONIO X RENDA")        
+    
 tabs = st.tabs(["Dados Gerais do Lançamento" , "Análises de Patrimônio e Renda", "Análise de Percurso dos Leads"])
 
 #--------------------------------------------------------------------------#
@@ -325,9 +338,10 @@ if not df_VENDAS.empty:
 # Sessão de exibição dos dados e gráficos
 
 with tabs[0]:
-    st.subheader("DADOS GERAIS DO LANÇAMENTO")
-    with st.container():
-        st.markdown("### Dados Gerais")
+    st.markdown("<h1 style='text-align: center; font-size: 3.2vw; margin-bottom: 40px; margin-top: 40px; color: gold;hover-color: red'>Dados Gerais do Lançamento</h1>", unsafe_allow_html=True)
+    st.divider()
+    with st.container(border=False):
+        st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Métricas Gerais</h1>", unsafe_allow_html=True)
         ctcol1, ctcol2, ctcol3, ctcol4, ctcol5 = st.columns([1, 1, 1, 1, 1])
         with ctcol1:
             st.metric("Leads Totais Captura", total_captura)
@@ -340,28 +354,25 @@ with tabs[0]:
         with ctcol5:
             st.metric("Conversão Geral do Lançamento", f"{conversao_vendas:.2f}%")
     
+    st.divider()
    
-    fig = plot_leads_per_day_altair(df_CONTALEADS2)
+    fig = plot_leads_per_day_altair(df_CONTALEADS)
     if fig:
         st.altair_chart(fig, use_container_width=True)
 
-    df_member_count = processa_dados_grupos(st.session_state.df_GRUPOS)
+    
 
     # Exibindo o gráfico usando Altair
-    if not df_member_count.empty:
-        fig = plot_group_members_per_day_altair(df_member_count)
+    fig = plot_group_members_per_day_altair(df_CONTAGRUPOS)
+    if fig:
         st.altair_chart(fig, use_container_width=True)
-    else:
-        st.warning("O gráfico de Membros no Grupo não pôde ser gerado porque os dados estão vazios.")
 
 
 with tabs[1]:     
     if not df_VENDAS.empty:
         st.plotly_chart(heatmap)    
-        st.plotly_chart(scttplt)     
-     
-    styled_df = tabela_combined.style.apply(color_rows, axis=1)                
-    st.dataframe(styled_df)  
+        st.plotly_chart(scttplt)            
+        st.dataframe(df_EXIBICAO_STYLED)  
     
     st.subheader("CONVERSÃO POR FAIXA DE PATRIMONIO")
     col3, col4 = st.columns([3, 2])
@@ -436,11 +447,11 @@ with tabs[1]:
             ax_renda.set_ylabel('Conversão (%)', color='#FFFFFF')
             ax_renda.set_xticklabels(tabela_renda['RENDA MENSAL'], rotation=45, ha='right', color='#FFFFFF')
             ax_renda.set_facecolor('none')
-            fig_renda.patch.set.facecolor('none')
-            ax_renda.spines['bottom'].set.color('#FFFFFF')
-            ax_renda.spines['top'].set.color('#FFFFFF')
-            ax_renda.spines['right'].set.color('#FFFFFF')
-            ax_renda.spines['left'].set.color('#FFFFFF')
+            fig_renda.patch.set_facecolor('none')
+            ax_renda.spines['bottom'].set_color('#FFFFFF')
+            ax_renda.spines['top'].set_color('#FFFFFF')
+            ax_renda.spines['right'].set_color('#FFFFFF')
+            ax_renda.spines['left'].set_color('#FFFFFF')
             ax_renda.tick_params(axis='x', colors='#FFFFFF')
             ax_renda.tick_params(axis='y', colors='#FFFFFF')
             st.pyplot(fig_renda)
@@ -460,6 +471,8 @@ with tabs[1]:
             ax_renda.tick_params(axis='x', colors='#FFFFFF')
             ax_renda.tick_params(axis='y', colors='#FFFFFF')
             st.pyplot(fig_renda)
+
+    
 
 with tabs[2]:
     if not df_VENDAS.empty:
@@ -493,11 +506,11 @@ with tabs[2]:
             ax.set_ylabel('PERCURSO', color='#FFFFFF')
             ax.set_title('Top 5 Percursos Mais Comuns', color='#FFFFFF')
             ax.set_facecolor('none')
-            fig.patch.set.facecolor('none')
-            ax.spines['bottom'].set.color('#FFFFFF')
-            ax.spines['top'].set.color('#FFFFFF')
-            ax.spines['right'].set.color('#FFFFFF')
-            ax.spines['left'].set.color('#FFFFFF')
+            fig.patch.set_facecolor('none')
+            ax.spines['bottom'].set_color('#FFFFFF')
+            ax.spines['top'].set_color('#FFFFFF')
+            ax.spines['right'].set_color('#FFFFFF')
+            ax.spines['left'].set_color('#FFFFFF')
             ax.tick_params(axis='x', colors='#FFFFFF')
             ax.tick_params(axis='y', colors='#FFFFFF')
             plt.tight_layout()

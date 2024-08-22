@@ -10,7 +10,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 import matplotlib.colors as mcolors
-import time
+
 
 # Definindo as colunas do DataFrame df_PORANUNCIO
 columns = [
@@ -253,14 +253,13 @@ ticket = 1500 * 0.7
 # Calcular valores por anúncio com cacheamento
 df_PORANUNCIO = calcular_valores_por_anuncio(df_METAADS, df_PESQUISA, ticket)
 
-# Adicionar slider para selecionar o valor mínimo de 'VALOR USADO'
-st.subheader("Selecione o valor mínimo de VALOR USADO:")
-min_valor_usado = st.slider("", 0, 1000, 250)
+with st.expander('Calibragem e Dataframes'):
+    # Adicionar slider para selecionar o valor mínimo de 'VALOR USADO'
+    st.subheader("Selecione o valor mínimo de VALOR USADO:")
+    min_valor_usado = st.slider("", 0, 1000, 250)
 
-# Filtrar DataFrame pelo valor do slider       
-df_PORANUNCIO = df_PORANUNCIO[df_PORANUNCIO['VALOR USADO'] >= min_valor_usado]
-
-with st.expander('dataframes'):
+    # Filtrar DataFrame pelo valor do slider       
+    df_PORANUNCIO = df_PORANUNCIO[df_PORANUNCIO['VALOR USADO'] >= min_valor_usado]
     st.dataframe(df_PORANUNCIO)
     st.dataframe(df_METAADS)
 
@@ -270,11 +269,63 @@ df_videos = df_METAVIDS.dropna(subset=colunas_retencao, how='all')
 df_agrupado = df_videos.groupby('ANUNCIO: NOME').agg(
     {**{col: 'mean' for col in colunas_retencao}, 'VALOR USADO': 'sum'}
 ).reset_index()
+
+total_gasto = df_METAADS['VALOR USADO'].sum()
+total_leads = df_METAADS['LEADS'].sum()
+custo_por_lead = total_gasto / total_leads
+melhor_margem = df_PORANUNCIO['MARGEM'].max()
+pior_margem = df_PORANUNCIO['MARGEM'].min()
+melhor_hook = df_PORANUNCIO['3'].max()
+melhor_retencao = df_PORANUNCIO['10'].max()  
+anuncio_melhor_margem = df_PORANUNCIO[df_PORANUNCIO['MARGEM'] == melhor_margem]['ANUNCIO'].iloc[0]
+anuncio_pior_margem = df_PORANUNCIO[df_PORANUNCIO['MARGEM'] == pior_margem]['ANUNCIO'].iloc[0]
+anuncio_melhor_hook = df_PORANUNCIO[df_PORANUNCIO['3'] == melhor_hook]['ANUNCIO'].iloc[0]
+anuncio_melhor_retencao = df_PORANUNCIO[df_PORANUNCIO['10'] == melhor_retencao]['ANUNCIO'].iloc[0]
  
-tabs = st.tabs(["Top Anúncios", "Por Anuncio", "Ranking de hooks"])
+tabs = st.tabs(["Dashboard de Tráfego", "Top Anúncios", "Por Anuncio", "Ranking de hooks [VERSÃO BETA]"])
 
 with tabs[0]:
-    st.header('Análise de Anúncios')
+    st.markdown("<h1 style='text-align: center; font-size: 3.2vw; margin-bottom: 40px; margin-top: 40px; color: gold';hover: red>Dashboard de Tráfego</h1>", unsafe_allow_html=True)
+    st.divider()
+
+    with st.container():
+        st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue; hover-color: red'>Dados gerais</h2>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)      
+        with col1:
+            st.metric(label='Total de leads 📊', value=int(total_leads))
+        with col2:    
+            st.metric(label='Total gasto 💸', value=f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        with col3:    
+            st.metric(label='Custo por lead 👥', value=f"R$ {custo_por_lead:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
+    st.divider()
+
+    with st.container():
+        st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue';hover-color: red>Dados de Performance</h2>", unsafe_allow_html=True)
+        col1, col2 = st.columns(2)      
+        with col1:
+            st.metric(label='Melhor margem 📈', value=f"{melhor_margem * 100:.2f}%")
+            st.metric(label='Anúncio com Melhor margem 👍', value=anuncio_melhor_margem)
+        with col2:    
+            st.metric(label='Pior Margem 📉', value=f"{pior_margem * 100:.2f}%")
+            st.metric(label='Anúncio com Pior margem 👎', value=anuncio_pior_margem)
+        
+    st.divider()
+
+    with st.container():
+        st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Dados de Retenção de Vídeo</h2>", unsafe_allow_html=True)
+        col1, col2 = st.columns(2)      
+        with col1:
+            st.metric(label='Melhor Hook 3s 📹', value=f"{melhor_hook :.2f}%")
+            st.metric(label='Anúncio com Melhor Hook 3s 👍', value=anuncio_melhor_hook)
+        with col2:    
+            st.metric(label='Melhor Retenção aos 10s📹', value=f"{melhor_retencao :.2f}%")
+            st.metric(label='Anúncio com Melhor Retenção 10s 👍', value=anuncio_melhor_retencao)
+                
+
+with tabs[1]:
+    st.markdown("<h2 style='text-align: center; font-size: 3.2vw; margin-bottom: 40px; margin-top: 40px; color: gold;hover-color: red'>Dados de Retenção de Vídeo</h2>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2)      
          
     colunas_analise = ['MARGEM', 'VALOR USADO', 'CTR', 'CONVERSAO PAG']
     df_PORANUNCIO_COPY = df_PORANUNCIO.copy()
@@ -292,7 +343,8 @@ with tabs[0]:
         ]
         top_5 = df_filtrado.nlargest(5, coluna_a)
         bottom_5 = df_filtrado.nsmallest(5, coluna_a)
-        st.subheader(f'Análise da Coluna: {coluna_a}')
+        st.markdown(f"""<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;'> Melhores e Piores Anúncios: {coluna_a}</h2><style> h2:hover {{color: red;}}</style>""", unsafe_allow_html=True)
+    
         col1, col2 = st.columns(2)
         with col1:
             if not top_5.empty:
@@ -309,17 +361,55 @@ with tabs[0]:
 
         st.divider()
 
-with tabs[1]:    
-    st.header('Detalhes do Anúncio')
+with tabs[2]:    
+    st.markdown("<h2 style='text-align: center; font-size: 3.2vw; margin-bottom: 40px; margin-top: 40px; color: gold;hover-color: red'>Detalhes do Anúncio</h2>", unsafe_allow_html=True)
 
-    anuncios_imagens = df_PORANUNCIO['ANUNCIO'].unique()
-    selected_anuncio = st.selectbox('Selecione o Anúncio', anuncios_imagens)
+    anuncios = df_PORANUNCIO['ANUNCIO'].unique()
+    selected_anuncio = st.selectbox('Selecione o Anúncio', anuncios)
     st.divider()
 
     anuncio_data = df_PORANUNCIO[df_PORANUNCIO['ANUNCIO'] == selected_anuncio].iloc[0]
 
+    retencao_labels = [
+                '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 
+                '11', '12', '13', '14', '15-20', '20-25', '25-30', 
+                '30-40', '40-50', '50-60', '60+'
+            ] 
+
     if "ADNI" in selected_anuncio or "ADOI" in selected_anuncio:
-        st.header(f"Anúncio: {selected_anuncio}")
+        st.markdown(f"""<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;'> Anúncio: {selected_anuncio}</h2><style> h2:hover {{color: red;}}</style>""", unsafe_allow_html=True)    
+
+        img_metrica1, img_metrica2, img_metrica3, img_metrica4 = st.columns(4)
+        with img_metrica1:
+            st.metric(label="Total de Leads", value=anuncio_data['TOTAL DE LEADS'])
+        with img_metrica2:
+            st.metric(label="Total de Pesquisa", value=anuncio_data['TOTAL DE PESQUISA'])
+        with img_metrica3:
+            st.metric(label="Custo por Lead", value=f"R$ {anuncio_data['CUSTO POR LEAD']:.2f}")
+        with img_metrica4:
+            st.metric(label="Preço Máximo", value=f"R$ {anuncio_data['PREÇO MÁXIMO']:.2f}")
+        
+        img_metrica5, img_metrica6, img_metrica7, img_metrica8 = st.columns(4)
+        with img_metrica5:
+            st.metric(label="Diferença", value=f"R$ {anuncio_data['DIFERENÇA']:.2f}")
+        with img_metrica6:
+            st.metric(label="Margem", value=f"{anuncio_data['MARGEM']:.2%}")
+        with img_metrica7:
+            st.metric(label="Valor Usado", value=f"R$ {anuncio_data['VALOR USADO']:.2f}")
+        with img_metrica8:
+            st.metric(label="CPM", value=f"R$ {anuncio_data['CPM']:.2f}")
+
+        img_metrica9, img_metrica10, img_metrica11, img_metrica12 = st.columns(4)
+        with img_metrica9:
+            st.metric(label="CTR", value=f"{anuncio_data['CTR']:.2%}")
+        with img_metrica10:
+            st.metric(label="Connect Rate", value=f"{anuncio_data['CONNECT RATE']:.2%}")
+        with img_metrica11:
+            st.metric(label="Conversão da Página", value=f"{anuncio_data['CONVERSAO PAG']:.2%}")
+        with img_metrica12:
+            st.metric(label="Taxa de Resposta", value=f"{anuncio_data['TAXA DE RESPOSTA']:.2%}")
+
+        st.divider()
         
         x1, x2 = st.columns([0.2, 0.8])
         with st.container():
@@ -356,53 +446,49 @@ with tabs[1]:
                 fig_patrimonio = styled_bar_chart_horizontal(patrimonio_labels, patrimonio_sizes)
                 st.plotly_chart(fig_patrimonio, use_container_width=True)
 
-        st.divider()
+            st.divider()
 
-        st.subheader(f"Detalhes do Anúncio: {selected_anuncio}")
+       
+
+        
+    else:
+        st.markdown(f"""<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;'> Anúncio: {selected_anuncio}</h2><style> h2:hover {{color: red;}}</style>""", unsafe_allow_html=True)
+                
         img_metrica1, img_metrica2, img_metrica3, img_metrica4 = st.columns(4)
         with img_metrica1:
-            st.metric(label="Total de Leads", value=anuncio_data['TOTAL DE LEADS'])
+            st.metric(label="Total de Leads", value=df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'TOTAL DE LEADS'].values[0])
         with img_metrica2:
-            st.metric(label="Total de Pesquisa", value=anuncio_data['TOTAL DE PESQUISA'])
+            st.metric(label="Total de Pesquisa", value=df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'TOTAL DE PESQUISA'].values[0])
         with img_metrica3:
-            st.metric(label="Custo por Lead", value=f"R$ {anuncio_data['CUSTO POR LEAD']:.2f}")
+            st.metric(label="Custo por Lead", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CUSTO POR LEAD'].values[0]:.2f}")
         with img_metrica4:
-            st.metric(label="Preço Máximo", value=f"R$ {anuncio_data['PREÇO MÁXIMO']:.2f}")
+            st.metric(label="Preço Máximo", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'PREÇO MÁXIMO'].values[0]:.2f}")
         
         img_metrica5, img_metrica6, img_metrica7, img_metrica8 = st.columns(4)
         with img_metrica5:
-            st.metric(label="Diferença", value=f"R$ {anuncio_data['DIFERENÇA']:.2f}")
+            st.metric(label="Diferença", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'DIFERENÇA'].values[0]:.2f}")
         with img_metrica6:
-            st.metric(label="Margem", value=f"{anuncio_data['MARGEM']:.2%}")
+            st.metric(label="Margem", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'MARGEM'].values[0]:-.2%}")
         with img_metrica7:
-            st.metric(label="Valor Usado", value=f"R$ {anuncio_data['VALOR USADO']:.2f}")
+            st.metric(label="Valor Usado", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'VALOR USADO'].values[0]:.2f}")
         with img_metrica8:
-            st.metric(label="CPM", value=f"R$ {anuncio_data['CPM']:.2f}")
+            st.metric(label="CPM", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CPM'].values[0]:.2f}")
 
         img_metrica9, img_metrica10, img_metrica11, img_metrica12 = st.columns(4)
         with img_metrica9:
-            st.metric(label="CTR", value=f"{anuncio_data['CTR']:.2%}")
+            st.metric(label="Connect Rate", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CONNECT RATE'].values[0]:.2%}")
         with img_metrica10:
-            st.metric(label="Connect Rate", value=f"{anuncio_data['CONNECT RATE']:.2%}")
+            st.metric(label="Conversão da Página", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CONVERSAO PAG'].values[0]:.2%}")
         with img_metrica11:
-            st.metric(label="Conversão da Página", value=f"{anuncio_data['CONVERSAO PAG']:.2%}")
-        with img_metrica12:
-            st.metric(label="Taxa de Resposta", value=f"{anuncio_data['TAXA DE RESPOSTA']:.2%}")
-    
-    else:
-        st.header(f"Anúncio: {selected_anuncio}")
-        
+            st.metric(label="Taxa de Resposta", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'TAXA DE RESPOSTA'].values[0]:.2%}")
+
+        st.divider()
+
         video_col1, video_col2 = st.columns([0.5, 0.5])
-        
+            
         with video_col1:
             st.subheader("Retenção do Vídeo:")
-            
-            retencao_labels = [
-                '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 
-                '11', '12', '13', '14', '15-20', '20-25', '25-30', 
-                '30-40', '40-50', '50-60', '60+'
-            ]  
-            
+                                    
             retencao_values = [
                 df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio].get(label, 0).values[0]
                 for label in retencao_labels
@@ -449,8 +535,7 @@ with tabs[1]:
             )
 
             st.plotly_chart(fig_retencao, use_container_width=True)
-
-            st.subheader("CTR:")
+            
             st.metric(label="CTR", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CTR'].values[0]:.2%}", delta_color="off")
 
         with video_col2:
@@ -469,40 +554,12 @@ with tabs[1]:
 
         st.divider()
 
-        st.subheader(f"Detalhes do Anúncio: {selected_anuncio}")
-        img_metrica1, img_metrica2, img_metrica3, img_metrica4 = st.columns(4)
-        with img_metrica1:
-            st.metric(label="Total de Leads", value=df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'TOTAL DE LEADS'].values[0])
-        with img_metrica2:
-            st.metric(label="Total de Pesquisa", value=df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'TOTAL DE PESQUISA'].values[0])
-        with img_metrica3:
-            st.metric(label="Custo por Lead", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CUSTO POR LEAD'].values[0]:.2f}")
-        with img_metrica4:
-            st.metric(label="Preço Máximo", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'PREÇO MÁXIMO'].values[0]:.2f}")
         
-        img_metrica5, img_metrica6, img_metrica7, img_metrica8 = st.columns(4)
-        with img_metrica5:
-            st.metric(label="Diferença", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'DIFERENÇA'].values[0]:.2f}")
-        with img_metrica6:
-            st.metric(label="Margem", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'MARGEM'].values[0]:-.2%}")
-        with img_metrica7:
-            st.metric(label="Valor Usado", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'VALOR USADO'].values[0]:.2f}")
-        with img_metrica8:
-            st.metric(label="CPM", value=f"R$ {df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CPM'].values[0]:.2f}")
-
-        img_metrica9, img_metrica10, img_metrica11, img_metrica12 = st.columns(4)
-        with img_metrica9:
-            st.metric(label="Connect Rate", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CONNECT RATE'].values[0]:.2%}")
-        with img_metrica10:
-            st.metric(label="Conversão da Página", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'CONVERSAO PAG'].values[0]:.2%}")
-        with img_metrica11:
-            st.metric(label="Taxa de Resposta", value=f"{df_PORANUNCIO.loc[df_PORANUNCIO['ANUNCIO'] == selected_anuncio, 'TAXA DE RESPOSTA'].values[0]:.2%}")
-
-with tabs[2]:
+with tabs[3]:
     # Usando st.markdown com HTML para aumentar o tamanho do texto e adicionar um espaço
     st.markdown(
         """
-        <h1 style="font-size: 48px; text-align: center; margin-bottom: 40px;">Ranking de Hooks</h1>
+        <h1 style="font-size: 48px; text-align: center; margin-bottom: 40px;">Ranking de Hooks [VERSAO BETA]</h1>
         """,
         unsafe_allow_html=True
     )

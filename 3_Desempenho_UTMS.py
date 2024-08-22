@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
 from urllib.parse import unquote_plus
 
 def criar_grafico_combinations(df):
-    df_top10 = df.sort_values(by='counts', ascending=False).head(10)
+    df_top10 = df.sort_values(by='counts', ascending=False)
     df_top10 = df_top10.sort_values(by='counts', ascending=True)
 
     fig = go.Figure(go.Bar(
@@ -20,9 +19,9 @@ def criar_grafico_combinations(df):
     ))
 
     fig.update_layout(
-        title='Top 10 Combinações UTM Medium + UTM Source',
-        xaxis_title='Counts',
-        yaxis_title='Percurso',
+        title='Combinações UTM Medium + UTM Source',
+        xaxis_title='',
+        yaxis_title='',
         yaxis=dict(
             automargin=True,
             tickfont=dict(size=16),
@@ -30,9 +29,9 @@ def criar_grafico_combinations(df):
         xaxis=dict(
             tickfont=dict(size=20)
         ),
-        title_font=dict(size=20),
-        margin=dict(l=120, r=40, t=60, b=40),
-        height=500
+        title_font=dict(size=40, color='lightblue'),
+        margin=dict(l=120, r=40, t=120, b=40),
+        height=700
     )
 
     return fig
@@ -55,20 +54,22 @@ if 'sheets_loaded' in st.session_state and st.session_state.sheets_loaded:
     Combinations['Percurso'] = Combinations['CAP UTM_MEDIUM'] + ' - ' + Combinations['CAP UTM_SOURCE']
     top5_percurso = Combinations.head(5)[['Percurso', 'counts']]
 
+    st.markdown("<h2 style='text-align: center; font-size: 3.2vw; margin-bottom: 40px; margin-top: 40px; color: gold;hover-color: red'>Dashboard de UTMs</h2>", unsafe_allow_html=True)
+
     # Exibir os top 5 usando st.metric dentro de containers e colunas
-    st.subheader("Top 5 UTM Source")
+    st.markdown("""<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;'> Top 5 UTM Source</h2><style> h2:hover {{color: red;}}</style>""", unsafe_allow_html=True)
     with st.container(border=True):
         cols = st.columns(5)
         for col, (source, count) in zip(cols, top5_source.items()):
             col.metric(label=source, value=count)
 
-    st.subheader("Top 5 UTM Medium")
+    st.markdown("""<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;'> Top 5 UTM Medium</h2><style> h2:hover {{color: red;}}</style>""", unsafe_allow_html=True)
     with st.container(border=True):
         cols = st.columns(5)
         for col, (medium, count) in zip(cols, top5_medium.items()):
             col.metric(label=medium, value=count)
     
-    st.subheader("Top 5 Percurso")
+    st.markdown("""<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;'> Top 5 UTM Percurso</h2><style> h2:hover {{color: red;}}</style>""", unsafe_allow_html=True)
     with st.container(border=True):
         cols = st.columns(5)
         for col, (percurso, count) in zip(cols, top5_percurso.values):
