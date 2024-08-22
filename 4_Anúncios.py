@@ -274,7 +274,7 @@ df_agrupado = df_videos.groupby('ANUNCIO: NOME').agg(
 
 total_gasto = df_METAADS['VALOR USADO'].sum()
 total_leads = df_METAADS['LEADS'].sum()
-custo_por_lead = total_gasto / total_leads
+custo_por_lead = total_gasto / leads_totais
 melhor_margem = df_PORANUNCIO['MARGEM'].max()
 pior_margem = df_PORANUNCIO['MARGEM'].min()
 melhor_hook = df_PORANUNCIO['3'].max()
