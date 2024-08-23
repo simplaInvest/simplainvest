@@ -235,6 +235,21 @@ if not df_VENDAS.empty:
     df_EXIBICAO.rename(columns={'PATRIMONIO_x': 'PATRIMONIO'}, inplace=True)
     st.dataframe(df_EXIBICAO)
     df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
+
+
+for patrimonio in categorias_patrimonio:
+    with st.expander(patrimonio):
+        sub_df = df_EXIBICAO[df_EXIBICAO['PATRIMONIO'] == patrimonio]
+        
+        for index, row in sub_df.iterrows():
+            st.write(f"**Faixa Patrimonio x Renda Mensal:** {row['FAIXA PATRIMONIO x RENDA MENSAL']}")
+            st.write(f"**Leads:** {row['LEADS']}")
+            st.write(f"**Alunos:** {row['ALUNOS']}")
+            st.write(f"**Conversão:** {row['CONVERSÃO']}")
+            st.write("---")  # Linha divisória para separar os blocos
+
+
+
 else:
     tabela_empilhada = tabela_cruzada1_ordenada.stack().reset_index()
     tabela_empilhada.columns = ['PATRIMONIO', 'RENDA MENSAL', 'LEADS']
