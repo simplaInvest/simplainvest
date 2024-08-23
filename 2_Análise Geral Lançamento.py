@@ -224,7 +224,8 @@ if not df_VENDAS.empty:
     st.dataframe(tabela_final)
     st.dataframe(tabela_final_vendas)
     
-    tabela_combined = pd.merge(tabela_final, tabela_final_vendas, on='FAIXA PATRIMONIO x RENDA MENSAL', how='outer').fillna(0)
+    tabela_combined = pd.merge(tabela_final, tabela_final_vendas, on='FAIXA PATRIMONIO x RENDA MENSAL', how='outer')
+    tabela_combined[['LEADS', 'ALUNOS']] = tabela_combined[['LEADS', 'ALUNOS']].fillna(0)
     tabela_combined['CONVERSÃO'] = (tabela_combined['ALUNOS'] / tabela_combined['LEADS'])
     st.dataframe(tabela_combined)
     df_EXIBICAO = tabela_combined.copy()
