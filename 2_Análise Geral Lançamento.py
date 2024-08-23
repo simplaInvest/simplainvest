@@ -221,19 +221,19 @@ if not df_VENDAS.empty:
 
     tabela_final = tabela_empilhada[['FAIXA PATRIMONIO x RENDA MENSAL', 'LEADS', 'PATRIMONIO']]
     tabela_final_vendas = tabela_empilhada_vendas[['FAIXA PATRIMONIO x RENDA MENSAL', 'ALUNOS','PATRIMONIO']]
-    st.dataframe(tabela_final)
-    st.dataframe(tabela_final_vendas)
+    #st.dataframe(tabela_final)
+    #st.dataframe(tabela_final_vendas)
     
     tabela_combined = pd.merge(tabela_final, tabela_final_vendas, on='FAIXA PATRIMONIO x RENDA MENSAL', how='outer')
     tabela_combined[['LEADS', 'ALUNOS']] = tabela_combined[['LEADS', 'ALUNOS']].fillna(0)
     tabela_combined['CONVERSÃO'] = (tabela_combined['ALUNOS'] / tabela_combined['LEADS'])
-    st.dataframe(tabela_combined)
+    #st.dataframe(tabela_combined)
     df_EXIBICAO = tabela_combined.copy()
     df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO']*100
     df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
     df_EXIBICAO.drop(columns=['PATRIMONIO_y'], inplace=True)
     df_EXIBICAO.rename(columns={'PATRIMONIO_x': 'PATRIMONIO'}, inplace=True)
-    st.dataframe(df_EXIBICAO)
+    #st.dataframe(df_EXIBICAO)
     df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
 
 
