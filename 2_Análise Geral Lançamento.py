@@ -216,7 +216,7 @@ if not df_VENDAS.empty:
     tabela_empilhada.columns = ['PATRIMONIO', 'RENDA MENSAL', 'LEADS']
     tabela_empilhada_vendas.columns = ['PATRIMONIO', 'RENDA MENSAL', 'ALUNOS']
 
-    tabela_empilhada['FAIXA PATRIMONIO x RENDA MENSAL'] = tabela_empilhada['PATRIMONIO'].astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
+    tabela_empilhada['FAIXA PATRIMONIO x RENDA MENSAL'] = tabela_empilhada['PATRIMONIO'].copy().astype(str) + ' x ' + tabela_empilhada['RENDA MENSAL'].astype(str)
     tabela_empilhada_vendas['FAIXA PATRIMONIO x RENDA MENSAL'] = tabela_empilhada_vendas['PATRIMONIO'].astype(str) + ' x ' + tabela_empilhada_vendas['RENDA MENSAL'].astype(str)
 
     tabela_final = tabela_empilhada[['FAIXA PATRIMONIO x RENDA MENSAL', 'LEADS']]
@@ -224,6 +224,7 @@ if not df_VENDAS.empty:
 
     tabela_combined = pd.merge(tabela_final, tabela_final_vendas, on='FAIXA PATRIMONIO x RENDA MENSAL', how='outer').fillna(0)
     tabela_combined['CONVERSÃO'] = (tabela_combined['ALUNOS'] / tabela_combined['LEADS'])
+    st.dataframe(tabela_combined)
     df_EXIBICAO = tabela_combined.copy()
     df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO']*100
     df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
