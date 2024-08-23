@@ -231,6 +231,7 @@ if not df_VENDAS.empty:
     df_EXIBICAO = tabela_combined.copy()
     df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO']*100
     df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
+    st.dataframe(df_EXIBICAO)
     df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
 else:
     tabela_empilhada = tabela_cruzada1_ordenada.stack().reset_index()
