@@ -244,7 +244,7 @@ for patrimonio in categorias_patrimonio:
     for index, row in sub_df.iterrows():
         col1, col2, col3, col4 = st.columns([4, 2, 2, 2])
         with col1:
-            st.write(f"**Faixa:** {row['FAIXA']}")
+            st.write(f"**Faixa:** {row['FAIXA PATRIMONIO x RENDA MENSAL']}")
         with col2:
             st.write(f"**Leads:** {row['LEADS']}")
         with col3:
