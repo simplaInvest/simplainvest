@@ -237,21 +237,6 @@ if not df_VENDAS.empty:
     df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
 
 
-for patrimonio in categorias_patrimonio:
-    with st.expander(patrimonio):
-        sub_df = df_EXIBICAO[df_EXIBICAO['PATRIMONIO'] == patrimonio]
-        
-    for index, row in sub_df.iterrows():
-        col1, col2, col3, col4 = st.columns([4, 2, 2, 2])
-        with col1:
-            st.write(f"**Faixa:** {row['FAIXA PATRIMONIO x RENDA MENSAL']}")
-        with col2:
-            st.write(f"**Leads:** {row['LEADS']}")
-        with col3:
-            st.write(f"**Alunos:** {row['ALUNOS']}")
-        with col4:
-            st.write(f"**Conversão:** {row['CONVERSÃO']}")
-
 
 
 else:
