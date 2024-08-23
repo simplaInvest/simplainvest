@@ -243,6 +243,9 @@ else:
     df_EXIBICAO = tabela_combined.copy()
     df_EXIBICAO['% DO TOTAL DE LEADS'] = df_EXIBICAO['% DO TOTAL DE LEADS']*100
     df_EXIBICAO['% DO TOTAL DE LEADS'] = df_EXIBICAO['% DO TOTAL DE LEADS'].apply(lambda x: f"{x:.2f}%")
+    df_EXIBICAO.drop(columns=['PATRIMONIO_y'], inplace=True)
+    df.rename(columns={'PATRIMONIO_x': 'PATRIMONIO'}, inplace=True)
+
     df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
 
 tabela_combined['PATRIMONIO'] = pd.Categorical(
