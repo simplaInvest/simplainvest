@@ -39,6 +39,8 @@ if st.button("Continuar para Análise"):
     spreadsheet_central = lancamento + ' - CENTRAL DO UTM'
 
     # Inicializar `st.session_state` para `lancamento` e outros valores necessários
+    st.session_state.produto = produto
+    st.session_state.versao = versao
     st.session_state.lancamento = lancamento
     st.session_state.spreadsheet_central = spreadsheet_central
     

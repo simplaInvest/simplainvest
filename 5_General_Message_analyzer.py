@@ -102,6 +102,8 @@ st.title("Exibição de Dados do Airtable e Bitly")
 
     
 lancamento = st.session_state.lancamento
+produto = st.session_state.produto
+versao = st.session_state.versao
 
 
 try:
