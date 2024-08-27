@@ -287,7 +287,8 @@ anuncio_melhor_retencao = df_PORANUNCIO[df_PORANUNCIO['10'] == melhor_retencao][
 tabs = st.tabs(["Dashboard de Tráfego", "Top Anúncios", "Por Anuncio", "Ranking de hooks [VERSÃO BETA]"])
 
 with tabs[0]:
-    st.markdown("<h1 style='text-align: center; font-size: 3.2vw; margin-bottom: 40px; margin-top: 40px; color: gold';hover: red>Dashboard de Tráfego</h1>", unsafe_allow_html=True)
+    st.header("ababubleeeeeeeeeeeeeeeeeeeeee")
+    st.markdown("<h1 style='text-align: center; font-size: 3.2vw; margin-bottom: 40px; margin-top: 40px; color: gold';hover: red> iha Dashboard de Tráfego</h1>", unsafe_allow_html=True)
     st.divider()
 
     with st.container():
