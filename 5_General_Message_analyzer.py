@@ -16,6 +16,7 @@ def load_airtable_data(api_key, base_id, table_id, lancamento):
     return df
 
 # Função para obter o Group ID do Bitly
+@st.cache_data
 def get_bitly_group_id(access_token):
     headers = {
         "Authorization": f"Bearer {access_token}"
@@ -26,6 +27,7 @@ def get_bitly_group_id(access_token):
     return data['groups'][0]['guid']
 
 # Função para obter links do Bitly com paginação
+@st.cache_data
 def get_bitly_links(access_token, campaign_code, domain="bit.ly"):
     headers = {
         "Authorization": f"Bearer {access_token}"
@@ -95,57 +97,57 @@ def update_airtable_clicks(api_key, base_id, table_id, df_airtable):
                     st.error(f"Erro ao atualizar o registro {nome}: {e}")
 
 # Função principal
-def main():
-    st.title("Exibição de Dados do Airtable e Bitly")
 
-       
-    lancamento = st.session_state.lancamento
+st.title("Exibição de Dados do Airtable e Bitly")
+
     
+lancamento = st.session_state.lancamento
 
-    try:
-        # Chamar a função para obter links do Bitly
-        access_token_bitly = "84d69683f952b86bd62ea9f8c1cd3998ab7e8ba3"
-        with st.spinner('Carregando dados do Bitly...'):
-            campaign_code = f"{produto}.{str(versao).zfill(2)}"
-            df_bitly_links = get_bitly_links(access_token_bitly, campaign_code)
-            st.session_state.df_bitly_links = df_bitly_links
-            st.success("Dados do Bitly carregados com sucesso!")
+
+try:
+    # Chamar a função para obter links do Bitly
+    access_token_bitly = "84d69683f952b86bd62ea9f8c1cd3998ab7e8ba3"
+    with st.spinner('Carregando dados do Bitly...'):
+        campaign_code = f"{produto}.{str(versao).zfill(2)}"
+        df_bitly_links = get_bitly_links(access_token_bitly, campaign_code)
+        st.session_state.df_bitly_links = df_bitly_links
+        st.success("Dados do Bitly carregados com sucesso!")
+
+except Exception as e:
+    st.error(f"Erro ao carregar os dados do Bitly: {e}")
+
+try:
+    # Carregar dados do Airtable
+    api_key_airtable = "patprpIekfruKBiQc.290906f8b9dc7dfdfa4aa2641e7c10971ca1375bf52174d8d0b2f43969fae862"
+    base_id_airtable = "appfMl5wuWgZAPQ0g"
+    table_id_airtable = "tblFoPgpbbSAj7S9G"
     
-    except Exception as e:
-        st.error(f"Erro ao carregar os dados do Bitly: {e}")
+    with st.spinner('Carregando dados do Airtable...'):
+        df_airtable = load_airtable_data(api_key_airtable, base_id_airtable, table_id_airtable, lancamento)
+        df_airtable['Data'] = pd.to_datetime(df_airtable['Data'], errors='coerce')
+        df_airtable = df_airtable.sort_values(by='Data')
+        df_airtable['Data'] = df_airtable['Data'].dt.strftime('%d/%m/%Y %H:%M')
 
-    try:
-        # Carregar dados do Airtable
-        api_key_airtable = "patprpIekfruKBiQc.290906f8b9dc7dfdfa4aa2641e7c10971ca1375bf52174d8d0b2f43969fae862"
-        base_id_airtable = "appfMl5wuWgZAPQ0g"
-        table_id_airtable = "tblFoPgpbbSAj7S9G"
-        
-        with st.spinner('Carregando dados do Airtable...'):
-            df_airtable = load_airtable_data(api_key_airtable, base_id_airtable, table_id_airtable, lancamento)
-            df_airtable['Data'] = pd.to_datetime(df_airtable['Data'], errors='coerce')
-            df_airtable = df_airtable.sort_values(by='Data')
-            df_airtable['Data'] = df_airtable['Data'].dt.strftime('%d/%m/%Y %H:%M')
+        # Adicionar a coluna 'Número de Cliques'
+        df_airtable['Número de Cliques'] = df_airtable['Link parametrizado'].apply(
+            lambda link: st.session_state.df_bitly_links.loc[st.session_state.df_bitly_links['Link de Origem'] == link, 'Número de Cliques'].values[0]
+            if link in st.session_state.df_bitly_links['Link de Origem'].values else np.nan  # Usar NaN para valores não encontrados
+        ).astype(float)
 
-            # Adicionar a coluna 'Número de Cliques'
-            df_airtable['Número de Cliques'] = df_airtable['Link parametrizado'].apply(
-                lambda link: st.session_state.df_bitly_links.loc[st.session_state.df_bitly_links['Link de Origem'] == link, 'Número de Cliques'].values[0]
-                if link in st.session_state.df_bitly_links['Link de Origem'].values else np.nan  # Usar NaN para valores não encontrados
-            ).astype(float)
+        # Filtrar colunas desejadas e reordenar
+        colunas_desejadas = ["Lançamento", "Conteúdo", "Data", "Número de Cliques", "Nome", "Etapa", "Link parametrizado"]
+        df_airtable = df_airtable[colunas_desejadas]
+        st.session_state.df_airtable = df_airtable
 
-            # Filtrar colunas desejadas e reordenar
-            colunas_desejadas = ["Lançamento", "Conteúdo", "Data", "Número de Cliques", "Nome", "Etapa", "Link parametrizado"]
-            df_airtable = df_airtable[colunas_desejadas]
-            st.session_state.df_airtable = df_airtable
+        # Salvar chaves no session_state
+        st.session_state.api_key_airtable = api_key_airtable
+        st.session_state.base_id_airtable = base_id_airtable
+        st.session_state.table_id_airtable = table_id_airtable
 
-            # Salvar chaves no session_state
-            st.session_state.api_key_airtable = api_key_airtable
-            st.session_state.base_id_airtable = base_id_airtable
-            st.session_state.table_id_airtable = table_id_airtable
+        st.success("Dados do Airtable carregados com sucesso!")
 
-            st.success("Dados do Airtable carregados com sucesso!")
-
-    except Exception as e:
-        st.error(f"Erro ao carregar os dados do Airtable: {e}")
+except Exception as e:
+    st.error(f"Erro ao carregar os dados do Airtable: {e}")
 
 # Se os dados já foram carregados, mostrar o dataframe com o filtro
 if 'df_airtable' in st.session_state:
@@ -168,5 +170,3 @@ if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtabl
     except Exception as e:
         st.error(f"Erro ao atualizar cliques no Airtable: {e}")
 
-if __name__ == "__main__":
-    main()
