@@ -379,7 +379,8 @@ with tabs[0]:
         st.altair_chart(fig, use_container_width=True)
 
 
-with tabs[1]:     
+with tabs[1]:   
+    st.header("AHAHAHAHAHHAHAHAHAA")  
     if not df_VENDAS.empty:
         st.plotly_chart(heatmap)    
         st.plotly_chart(scttplt)            
