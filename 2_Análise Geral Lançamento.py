@@ -380,11 +380,7 @@ with tabs[0]:
 
 
 with tabs[1]:   
-    st.header("AHAHAHAHAHHAHAHAHAA")  
-    st.header("AHAHAHAHAHHAHAHAHAA")  
-    st.header("AHAHAHAHAHHAHAHAHAA")  
-    st.header("AHAHAHAHAHHAHAHAHAA")  
-    
+   
     if not df_VENDAS.empty:
         st.plotly_chart(heatmap)    
         st.plotly_chart(scttplt)            
