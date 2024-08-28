@@ -8,6 +8,7 @@ from pyairtable import Table
 
 
 # Função para carregar dados do Airtable usando pyairtable
+@st.cache_data
 def load_airtable_data(api_key, base_id, table_id, lancamento):
     table = Table(api_key, base_id, table_id)
     all_records = table.all()
