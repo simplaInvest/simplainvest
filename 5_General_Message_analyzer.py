@@ -191,7 +191,7 @@ with tabs[0]:
             st.dataframe(df_airtable)
 
     # Botão para atualizar cliques no Airtable
-    if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtable"):
+    if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtable", key="atualizar_novo"):
         try:
             with st.spinner('Atualizando cliques no Airtable...'):
                 update_airtable_clicks(st.session_state.api_key_airtable, st.session_state.base_id_airtable, st.session_state.table_id_airtable, st.session_state.df_airtable)
@@ -214,7 +214,7 @@ with tabs[1]:
             st.dataframe(df_airtable_antigo)
 
     # Botão para atualizar cliques no Airtable
-    if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtable"):
+    if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtable", key="atualizar_antigo"):
         try:
             with st.spinner('Atualizando cliques no Airtable...'):
                 update_airtable_clicks(st.session_state.api_key_airtable, st.session_state.base_id_airtable, st.session_state.table_id_airtable, st.session_state.df_airtable_antigo)
