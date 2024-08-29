@@ -187,7 +187,8 @@ with tabs[0]:
             if etapa_novo != 'Todas':
                 df_airtable = df_airtable[df_airtable['Etapa'] == etapa_novo]
 
-            st.dataframe(df_bitly_links)
+            with st.expander("bitlinks"):
+                st.dataframe(df_bitly_links)
             st.dataframe(df_airtable)
 
     # Botão para atualizar cliques no Airtable
@@ -209,8 +210,9 @@ with tabs[1]:
             df_airtable_antigo = st.session_state.df_airtable_antigo.copy()
             if etapa_antigo != 'Todas':
                 df_airtable_antigo = df_airtable_antigo[df_airtable_antigo['Etapa'] == etapa_antigo]
-
-            st.dataframe(df_bitly_links)
+            
+            with st.expander("bitlinks"):
+                st.dataframe(df_bitly_links)
             st.dataframe(df_airtable_antigo)
 
     # Botão para atualizar cliques no Airtable
