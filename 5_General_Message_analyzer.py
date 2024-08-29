@@ -17,7 +17,6 @@ def load_airtable_data(api_key, base_id, table_id, lancamento):
     return df
 
 # Função para obter o Group ID do Bitly
-@st.cache_data
 def get_bitly_group_id(access_token):
     headers = {
         "Authorization": f"Bearer {access_token}"
@@ -28,7 +27,6 @@ def get_bitly_group_id(access_token):
     return data['groups'][0]['guid']
 
 # Função para obter links do Bitly com paginação
-@st.cache_data
 def get_bitly_links(access_token, campaign_code, domain="bit.ly"):
     headers = {
         "Authorization": f"Bearer {access_token}"
@@ -162,6 +160,7 @@ if 'df_airtable' in st.session_state:
         if etapa != 'Todas':
             df_airtable = df_airtable[df_airtable['Etapa'] == etapa]
 
+        st.dataframe(df_bitly_links)
         st.dataframe(df_airtable)
 
 # Botão para atualizar cliques no Airtable
