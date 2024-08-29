@@ -217,7 +217,7 @@ with tabs[1]:
     if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtable", key="atualizar_antigo"):
         try:
             with st.spinner('Atualizando cliques no Airtable...'):
-                update_airtable_clicks(st.session_state.api_key_airtable, st.session_state.base_id_airtable, st.session_state.table_id_airtable, st.session_state.df_airtable_antigo)
+                update_airtable_clicks(st.session_state.api_key_airtable, st.session_state.base_id_airtable, st.session_state.table_id_airtable_antigo, st.session_state.df_airtable_antigo)
             st.success("Cliques atualizados no Airtable com sucesso!")
         except Exception as e:
             st.error(f"Erro ao atualizar cliques no Airtable: {e}")
