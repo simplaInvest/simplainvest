@@ -120,8 +120,10 @@ except Exception as e:
 try:
     # Carregar dados do Airtable
     api_key_airtable = "patprpIekfruKBiQc.290906f8b9dc7dfdfa4aa2641e7c10971ca1375bf52174d8d0b2f43969fae862"
-    base_id_airtable = "appfMl5wuWgZAPQ0g"
+    base_id_airtable = "appfMl5wuWgZAPQ0g"    
     table_id_airtable = "tblFoPgpbbSAj7S9G"
+    table_id_airtable_antigo = "tblUevuzSnFx5wp0f"
+
     
     with st.spinner('Carregando dados do Airtable...'):
         df_airtable = load_airtable_data(api_key_airtable, base_id_airtable, table_id_airtable, lancamento)
@@ -138,37 +140,84 @@ try:
         # Filtrar colunas desejadas e reordenar
         colunas_desejadas = ["Lançamento", "Conteúdo", "Data", "Número de Cliques", "Nome", "Etapa", "Link parametrizado"]
         df_airtable = df_airtable[colunas_desejadas]
-        st.session_state.df_airtable = df_airtable
+        st.session_state.df_airtable = df_airtable        
+
+        st.success("Dados do Airtable grupos Antigos carregados com sucesso!")
+
+    with st.spinner('Carregando dados do Airtable Antigos...'):
+
+        df_airtable_antigo = load_airtable_data(api_key_airtable, base_id_airtable, table_id_airtable_antigo, lancamento)
+        df_airtable_antigo['Data'] = pd.to_datetime(df_airtable_antigo['Data'], errors='coerce')
+        df_airtable_antigo = df_airtable_antigo.sort_values(by='Data')
+        df_airtable_antigo['Data'] = df_airtable_antigo['Data'].dt.strftime('%d/%m/%Y %H:%M')
+
+        # Adicionar a coluna 'Número de Cliques'
+        df_airtable_antigo['Número de Cliques'] = df_airtable_antigo['Link parametrizado'].apply(
+            lambda link: st.session_state.df_bitly_links.loc[st.session_state.df_bitly_links['Link de Origem'] == link, 'Número de Cliques'].values[0]
+            if link in st.session_state.df_bitly_links['Link de Origem'].values else np.nan  # Usar NaN para valores não encontrados
+        ).astype(float)
+
+        # Filtrar colunas desejadas e reordenar
+        colunas_desejadas = ["Lançamento", "Conteúdo", "Data", "Número de Cliques", "Nome", "Etapa", "Link parametrizado"]
+        df_airtable_antigo = df_airtable_antigo[colunas_desejadas]
+        st.session_state.df_airtable_antigo = df_airtable_antigo
 
         # Salvar chaves no session_state
         st.session_state.api_key_airtable = api_key_airtable
         st.session_state.base_id_airtable = base_id_airtable
         st.session_state.table_id_airtable = table_id_airtable
+        st.session_state.table_id_airtable_antigo = table_id_airtable_antigo
 
         st.success("Dados do Airtable carregados com sucesso!")
 
 except Exception as e:
-    st.error(f"Erro ao carregar os dados do Airtable: {e}")
+    st.error(f"Erro ao carregar os dados do Airtable: {e}")    
 
-# Se os dados já foram carregados, mostrar o dataframe com o filtro
-if 'df_airtable' in st.session_state:
-    # Filtro pela coluna 'Etapa'
-    etapa = st.selectbox('Filtrar por Etapa', ['Todas', 'Captação', 'Incomodação', 'Aquecimento', 'Perseguição', 'Pré-Matrícula', 'Vendas', 'Reabertura'], key='etapa')
 
-    if st.button("Filtrar"):
-        df_airtable = st.session_state.df_airtable.copy()
-        if etapa != 'Todas':
-            df_airtable = df_airtable[df_airtable['Etapa'] == etapa]
+tabs = st.tabs(["Grupos Novos, Grupos Antigos"])
 
-        st.dataframe(df_bitly_links)
-        st.dataframe(df_airtable)
+with tabs[0]:
+    # Se os dados já foram carregados, mostrar o dataframe com o filtro
+    if 'df_airtable' in st.session_state:
+        # Filtro pela coluna 'Etapa'
+        etapa = st.selectbox('Filtrar por Etapa', ['Todas', 'Captação', 'Incomodação', 'Aquecimento', 'Perseguição', 'Pré-Matrícula', 'Vendas', 'Reabertura'], key='etapa')
 
-# Botão para atualizar cliques no Airtable
-if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtable"):
-    try:
-        with st.spinner('Atualizando cliques no Airtable...'):
-            update_airtable_clicks(st.session_state.api_key_airtable, st.session_state.base_id_airtable, st.session_state.table_id_airtable, st.session_state.df_airtable)
-        st.success("Cliques atualizados no Airtable com sucesso!")
-    except Exception as e:
-        st.error(f"Erro ao atualizar cliques no Airtable: {e}")
+        if st.button("Filtrar"):
+            df_airtable = st.session_state.df_airtable.copy()
+            if etapa != 'Todas':
+                df_airtable = df_airtable[df_airtable['Etapa'] == etapa]
 
+            st.dataframe(df_bitly_links)
+            st.dataframe(df_airtable)
+
+    # Botão para atualizar cliques no Airtable
+    if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtable"):
+        try:
+            with st.spinner('Atualizando cliques no Airtable...'):
+                update_airtable_clicks(st.session_state.api_key_airtable, st.session_state.base_id_airtable, st.session_state.table_id_airtable, st.session_state.df_airtable)
+            st.success("Cliques atualizados no Airtable com sucesso!")
+        except Exception as e:
+            st.error(f"Erro ao atualizar cliques no Airtable: {e}")
+
+with tabs[1]:
+    # Se os dados já foram carregados, mostrar o dataframe com o filtro
+    if 'df_airtable' in st.session_state:
+        # Filtro pela coluna 'Etapa'
+        etapa = st.selectbox('Filtrar por Etapa', ['Todas', 'Captação', 'Incomodação', 'Aquecimento', 'Perseguição', 'Pré-Matrícula', 'Vendas', 'Reabertura'], key='etapa')
+
+        if st.button("Filtrar"):
+            df_airtable_antigo = st.session_state.df_airtable_antigo.copy()
+            if etapa != 'Todas':
+                df_airtable_antigo = df_airtable_antigo[df_airtable_antigo['Etapa'] == etapa]
+
+            st.dataframe(df_bitly_links)
+            st.dataframe(df_airtable_antigo)
+
+    # Botão para atualizar cliques no Airtable
+    if 'df_airtable' in st.session_state and st.button("Atualizar Cliques no Airtable"):
+        try:
+            with st.spinner('Atualizando cliques no Airtable...'):
+                update_airtable_clicks(st.session_state.api_key_airtable, st.session_state.base_id_airtable, st.session_state.table_id_airtable, st.session_state.df_airtable_antigo)
+            st.success("Cliques atualizados no Airtable com sucesso!")
+        except Exception as e:
+            st.error(f"Erro ao atualizar cliques no Airtable: {e}")
