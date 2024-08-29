@@ -180,12 +180,12 @@ with tabs[0]:
     # Se os dados já foram carregados, mostrar o dataframe com o filtro
     if 'df_airtable' in st.session_state:
         # Filtro pela coluna 'Etapa'
-        etapa = st.selectbox('Filtrar por Etapa', ['Todas', 'Captação', 'Incomodação', 'Aquecimento', 'Perseguição', 'Pré-Matrícula', 'Vendas', 'Reabertura'], key='etapa')
+        etapa_novo = st.selectbox('Filtrar por Etapa', ['Todas', 'Captação', 'Incomodação', 'Aquecimento', 'Perseguição', 'Pré-Matrícula', 'Vendas', 'Reabertura'], key='etapa')
 
         if st.button("Filtrar"):
             df_airtable = st.session_state.df_airtable.copy()
-            if etapa != 'Todas':
-                df_airtable = df_airtable[df_airtable['Etapa'] == etapa]
+            if etapa_novo != 'Todas':
+                df_airtable = df_airtable[df_airtable['Etapa'] == etapa_novo]
 
             st.dataframe(df_bitly_links)
             st.dataframe(df_airtable)
@@ -203,12 +203,12 @@ with tabs[1]:
     # Se os dados já foram carregados, mostrar o dataframe com o filtro
     if 'df_airtable' in st.session_state:
         # Filtro pela coluna 'Etapa'
-        etapa = st.selectbox('Filtrar por Etapa', ['Todas', 'Captação', 'Incomodação', 'Aquecimento', 'Perseguição', 'Pré-Matrícula', 'Vendas', 'Reabertura'], key='etapa')
+        etapa_antigo = st.selectbox('Filtrar por Etapa', ['Todas', 'Captação', 'Incomodação', 'Aquecimento', 'Perseguição', 'Pré-Matrícula', 'Vendas', 'Reabertura'], key='etapa')
 
         if st.button("Filtrar"):
             df_airtable_antigo = st.session_state.df_airtable_antigo.copy()
-            if etapa != 'Todas':
-                df_airtable_antigo = df_airtable_antigo[df_airtable_antigo['Etapa'] == etapa]
+            if etapa_antigo != 'Todas':
+                df_airtable_antigo = df_airtable_antigo[df_airtable_antigo['Etapa'] == etapa_antigo]
 
             st.dataframe(df_bitly_links)
             st.dataframe(df_airtable_antigo)
