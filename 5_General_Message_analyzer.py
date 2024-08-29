@@ -174,7 +174,7 @@ except Exception as e:
     st.error(f"Erro ao carregar os dados do Airtable: {e}")    
 
 
-tabs = st.tabs(["Grupos Novos, Grupos Antigos"])
+tabs = st.tabs(["Grupos Novos", "Grupos Antigos"])
 
 with tabs[0]:
     # Se os dados já foram carregados, mostrar o dataframe com o filtro
