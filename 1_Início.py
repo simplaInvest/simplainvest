@@ -48,7 +48,7 @@ if st.button("Continuar para Análise"):
     st.write(f"Planilha Central: {spreadsheet_central}")
 
     spreadsheet_captura = lancamento + ' - CENTRAL DO UTM'
-    spreadsheet_pesquisa = lancamento + ' - PESQUISA TRAFEGO (C2)'
+    spreadsheet_pesquisa = lancamento + ' - PESQUISA TRAFEGO'
     spreadsheet_copy = lancamento + ' - PESQUISA DE COPY'
     spreadsheet_grupos = lancamento + ' - GRUPOS DE WHATSAPP'
 
