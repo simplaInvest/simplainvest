@@ -17,6 +17,19 @@ def authenticate():
     client = gspread.authorize(creds)
     return client
 
+def make_unique(columns):
+    # Cria cabeçalhos únicos para evitar duplicidades
+    counts = {}
+    unique_columns = []
+    for col in columns:
+        if col in counts:
+            counts[col] += 1
+            unique_columns.append(f"{col}_{counts[col]}")
+        else:
+            counts[col] = 0
+            unique_columns.append(col)
+    return unique_columns
+
 def load_sheet(sheet_name, worksheet_name, chunk_size=10000):
     client = authenticate()
 
@@ -53,18 +66,6 @@ def load_sheet(sheet_name, worksheet_name, chunk_size=10000):
     return final_df
 
 
-# Função para aplicar estilos
-def color_rows(row):
-    colors = {
-        'Menos de R$5 mil': 'background-color: #660000', 
-        'Entre R$5 mil e R$20 mil': 'background-color: #8B1A1A', 
-        'Entre R$20 mil e R$100 mil': 'background-color: #8F6500', 
-        'Entre R$100 mil e R$250 mil': 'background-color: #445522', 
-        'Entre R$250 mil e R$500 mil': 'background-color: #556B22', 
-        'Entre R$500 mil e R$1 milhão': 'background-color: #000070', 
-        'Acima de R$1 milhão': 'background-color: #2F4F4F'  
-    }
-    return [colors.get(row['PATRIMONIO'], '')] * len(row)
 
 # Estilização das abas
 st.markdown(
@@ -82,43 +83,22 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-lancamento = "SC.11"
+lancamento = "SC.09"
 
 # Verifique se os dados foram carregados
-df_PESQUISA = st.session_state.df_PESQUISA.copy()
-df_CAPTURA = st.session_state.df_CAPTURA.copy()
-df_PREMATRICULA = st.session_state.df_PREMATRICULA.copy()
-df_VENDAS = st.session_state.df_VENDAS.copy()
-df_COPY = st.session_state.df_COPY.copy()
+df_PESQUISA = load_sheet( lancamento + ' - PESQUISA TRAFEGO', 'DADOS')
+df_CAPTURA = load_sheet(lancamento + ' - CENTRAL DO UTM', 'CAPTURA')
+df_VENDAS = load_sheet(lancamento + ' - CENTRAL DO UTM', 'VENDAS')
     
 
 # Calcular conversões
-total_copy = len(df_COPY)
+
 total_pesquisa = len(df_PESQUISA)
 total_captura = len(df_CAPTURA)
-total_prematricula = len(df_PREMATRICULA)
 total_vendas = len(df_VENDAS)
 
 conversao_pesquisa = (total_pesquisa / total_captura) * 100 if total_pesquisa > 0 else 0
-conversao_prematricula = (total_prematricula / total_captura) * 100 if total_captura > 0 else 0
-conversao_vendas = (total_vendas / total_captura) * 100 if total_prematricula > 0 else 0
-conversao_copy = (total_copy / total_captura) * 100 if total_vendas > 0 else 0
-
-
-df_CONTALEADS = df_CAPTURA.copy()
-df_CONTALEADS['CAP DATA_CAPTURA'] = pd.to_datetime(df_CONTALEADS['CAP DATA_CAPTURA']).dt.date
-#st.dataframe(df_CONTALEADS)
-df_CONTALEADS = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
-
-#df_CONTAGRUPOS['Data'] = pd.to_datetime(df_CONTAGRUPOS['Data']).dt.date
-#st.dataframe(df_CONTAGRUPOS)
-
-
-
-
-
-# Contar o número de membros por dia utilizando df_GRUPOS
-
+conversao_vendas = (total_vendas / total_captura) * 100 if total_vendas > 0 else 0
 
 # Criando tabelas cruzadas PATRIMONIO x RENDA
 categorias_patrimonio = [
@@ -159,16 +139,6 @@ if not df_VENDAS.empty:
     tabela_combined[['LEADS', 'ALUNOS']] = tabela_combined[['LEADS', 'ALUNOS']].fillna(0)
     tabela_combined['CONVERSÃO'] = (tabela_combined['ALUNOS'] / tabela_combined['LEADS'])
     #st.dataframe(tabela_combined)
-    df_EXIBICAO = tabela_combined.copy()
-    df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO']*100
-    df_EXIBICAO['CONVERSÃO'] = df_EXIBICAO['CONVERSÃO'].apply(lambda x: f"{x:.2f}%")
-    df_EXIBICAO.drop(columns=['PATRIMONIO_y'], inplace=True)
-    df_EXIBICAO.rename(columns={'PATRIMONIO_x': 'PATRIMONIO'}, inplace=True)
-    #st.dataframe(df_EXIBICAO)
-    df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
-
-
-
 
 else:
     tabela_empilhada = tabela_cruzada1_ordenada.stack().reset_index()
@@ -180,7 +150,6 @@ else:
     df_EXIBICAO = tabela_combined.copy()
     df_EXIBICAO['% DO TOTAL DE LEADS'] = df_EXIBICAO['% DO TOTAL DE LEADS']*100
     df_EXIBICAO['% DO TOTAL DE LEADS'] = df_EXIBICAO['% DO TOTAL DE LEADS'].apply(lambda x: f"{x:.2f}%")
-    df_EXIBICAO_STYLED = df_EXIBICAO.style.apply(color_rows, axis=1) 
 
 tabela_combined['PATRIMONIO'] = pd.Categorical(
     tabela_combined['FAIXA PATRIMONIO x RENDA MENSAL'].str.split(' x ').str[0],
@@ -195,92 +164,16 @@ tabela_combined['RENDA MENSAL'] = pd.Categorical(
 tabela_combined = tabela_combined.sort_values(by=['PATRIMONIO', 'RENDA MENSAL']).reset_index(drop=True)
 
     
-tabs = st.tabs(["Dados Gerais do Lançamento" , "Análises de Patrimônio e Renda", "Análise de Percurso dos Leads"])
+tabs = st.tabs(["Dados Gerais do Lançamento" , "Análises de Patrimônio e Renda"])
 
-#--------------------------------------------------------------------------#
-#Criando dados para o Heatmap e Scatterplot
-
-if not df_VENDAS.empty:
-    new_colorscale = [
-        [0.0, 'white'],      
-        [0.0001, 'green'],   
-        [0.25, 'yellow'],
-        [0.5, 'orange'],
-        [0.75, 'red'],
-        [1.0, 'purple']
-    ]
-
-    contagem = pd.crosstab(tabela_combined['PATRIMONIO'], tabela_combined['RENDA MENSAL'], values=tabela_combined['LEADS'], aggfunc='sum').fillna(0)
-    vendas = pd.crosstab(tabela_combined['PATRIMONIO'], tabela_combined['RENDA MENSAL'], values=tabela_combined['ALUNOS'], aggfunc='sum').fillna(0)
-    taxa_conversao = (vendas / contagem).fillna(0)
-
-    max_taxa_conversao = taxa_conversao.max().max()
-    max_valor = max_taxa_conversao + 0.05
-
-    crosstab = contagem.astype(int).astype(str) + ' Leads<br>' + vendas.astype(int).astype(str) + ' Alunos<br>' + (taxa_conversao * 100).round(2).astype(str) + '% Conversão'
-
-    heatmap = go.Figure(data=go.Heatmap(
-        z=taxa_conversao.values,
-        x=contagem.columns,
-        y=contagem.index,
-        text=crosstab.values,
-        texttemplate="%{text}",
-        textfont={"size": 14, "color": "black"},
-        colorscale=new_colorscale,  
-        zmin=0,
-        zmax=max_valor,
-        colorbar=dict(title='Taxa de Conversão', tickcolor='white')
-    ))
-
-    heatmap.update_layout(
-        title='Mapa de Calor: Patrimônio vs Renda com Taxa de Conversão',
-        xaxis=dict(title='Renda', showgrid=False),
-        yaxis=dict(title='Patrimônio', showgrid=False),
-        plot_bgcolor='rgba(0,0,0,0)',  
-        paper_bgcolor='rgba(0,0,0,0)',  
-        font=dict(color='white'),
-        coloraxis_colorbar=dict(title='Taxa de Conversão', tickcolor='white'),
-        autosize=False,
-        width=1200,  
-        height=900  
-    )
-
-    contagem_flat = contagem.stack().reset_index()
-    contagem_flat.columns = ['PATRIMONIO', 'RENDA MENSAL', 'LEADS']
-    vendas_flat = vendas.stack().reset_index()
-    vendas_flat.columns = ['PATRIMONIO', 'RENDA MENSAL', 'ALUNOS']
-    taxa_conversao_flat = taxa_conversao.stack().reset_index()
-    taxa_conversao_flat.columns = ['PATRIMONIO', 'RENDA MENSAL', 'TAXA_CONVERSAO']
-
-    scatter_df = contagem_flat.merge(vendas_flat, on=['PATRIMONIO', 'RENDA MENSAL']).merge(taxa_conversao_flat, on=['PATRIMONIO', 'RENDA MENSAL'])
-    size_scale = 100
-    scatter_df['size'] = np.log1p(scatter_df['LEADS']) * size_scale  
-
-    scttplt = px.scatter(
-        scatter_df,
-        x='RENDA MENSAL',
-        y='PATRIMONIO',
-        size='size',
-        color='TAXA_CONVERSAO',
-        color_continuous_scale=new_colorscale,
-        hover_data={'LEADS': True, 'ALUNOS': True, 'TAXA_CONVERSAO': True, 'size': False},
-        title='Scatterplot: Patrimônio vs Renda com Taxa de Conversão',
-        size_max=30
-    )
-
-    scttplt.update_layout(
-        xaxis=dict(title='Renda Mensal', showgrid=False),
-        yaxis=dict(title='Patrimônio', showgrid=False),
-        plot_bgcolor='rgba(0,0,0,0)',  
-        paper_bgcolor='rgba(0,0,0,0)',  
-        font=dict(color='white')
-    )
 
 #--------------------------------------------------------------------------#
 # Sessão de exibição dos dados e gráficos
 
 with tabs[0]:
     st.markdown("<h1 style='text-align: center; font-size: 3.2vw; margin-bottom: 40px; margin-top: 40px; color: gold;hover-color: red'>Dados Gerais do Lançamento</h1>", unsafe_allow_html=True)
+    st.title("LANÇAMENTO:")
+    st.subheader(lancamento)
     st.divider()
     with st.container(border=False):
         st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Métricas Gerais</h1>", unsafe_allow_html=True)
@@ -294,27 +187,14 @@ with tabs[0]:
         with ctcol4:
             st.metric("Vendas Totais", total_vendas)
         with ctcol5:
-            st.metric("Conversão Geral do Lançamento", f"{conversao_vendas:.2f}%")
+            st.metric("Conversão Geral do Lançamento", f'{conversao_vendas:.2f}%')
     
     st.divider()
    
-    fig = plot_leads_per_day_altair(df_CONTALEADS)
-    if fig:
-        st.altair_chart(fig, use_container_width=True)
-
-    
-
-    # Exibindo o gráfico usando Altair
-    fig = plot_group_members_per_day_altair(df_CONTAGRUPOS)
-    if fig:
-        st.altair_chart(fig, use_container_width=True)
-
 
 with tabs[1]:     
     if not df_VENDAS.empty:
-        st.plotly_chart(heatmap)    
-        st.plotly_chart(scttplt)            
-        st.dataframe(df_EXIBICAO_STYLED)  
+       st.write("lalala")
     
     st.subheader("CONVERSÃO POR FAIXA DE PATRIMONIO")
     col3, col4 = st.columns([3, 2])
@@ -415,47 +295,3 @@ with tabs[1]:
             st.pyplot(fig_renda)
 
     
-
-with tabs[2]:
-    if not df_VENDAS.empty:
-        df_vendas_copy = df_VENDAS.copy()
-        df_vendas_copy['CAP UTM_SOURCE'] = df_vendas_copy.apply(
-            lambda x: f"{x['CAP UTM_SOURCE']} {x['CAP UTM_MEDIUM']}" if x['CAP UTM_SOURCE'] == 'ig' else x['CAP UTM_SOURCE'],
-            axis=1
-        )
-        df_vendas_copy['PERCURSO'] = df_vendas_copy['CAP UTM_SOURCE'].astype(str) + ' > ' + \
-                                      df_vendas_copy['PM UTM_SOURCE'].astype(str) + ' > ' + \
-                                      df_vendas_copy['UTM_SOURCE'].astype(str)
-
-        percurso_counts = df_vendas_copy['PERCURSO'].value_counts().reset_index()
-        percurso_counts.columns = ['PERCURSO', 'COUNT']
-
-        top_20_percurso = percurso_counts.head(20)
-
-        st.subheader("Análise de Percurso de Leads")
-        col1, col2 = st.columns([3, 2])
-
-        with col1:
-            st.table(top_20_percurso)
-
-        top_5_percurso = top_20_percurso.head(5).sort_values(by='COUNT', ascending=True)
-
-        with col2:
-            fig, ax = plt.subplots()
-            colors = cm.Blues(np.linspace(0.4, 1, len(top_5_percurso)))
-            ax.barh(top_5_percurso['PERCURSO'], top_5_percurso['COUNT'], color=colors)
-            ax.set_xlabel('Count', color='#FFFFFF')
-            ax.set_ylabel('PERCURSO', color='#FFFFFF')
-            ax.set_title('Top 5 Percursos Mais Comuns', color='#FFFFFF')
-            ax.set_facecolor('none')
-            fig.patch.set_facecolor('none')
-            ax.spines['bottom'].set_color('#FFFFFF')
-            ax.spines['top'].set_color('#FFFFFF')
-            ax.spines['right'].set_color('#FFFFFF')
-            ax.spines['left'].set_color('#FFFFFF')
-            ax.tick_params(axis='x', colors='#FFFFFF')
-            ax.tick_params(axis='y', colors='#FFFFFF')
-            plt.tight_layout()
-            st.pyplot(fig)
-    else:
-        st.warning("Ainda não há vendas realizadas para executarmos a Análise de Percurso de Leads.")
