@@ -45,9 +45,10 @@ def get_bitly_group_id(access_token):
     return data['groups'][0]['guid']
 
 # Função para obter links do Bitly com paginação
-def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.br"):
+def get_bitly_links(access_token, campaign_code, domain="bit.ly"):
     headers = {
-        "Authorization": f"Bearer {access_token}"
+        "Authorization": f"Bearer {access_token}",
+        "X-Bitly-Api-Version": "2024-06-12"  # Cabeçalho necessário para obter dados de links editados
     }
     group_id = get_bitly_group_id(access_token)
     params = {
@@ -59,7 +60,7 @@ def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.
     url = f"https://api-ssl.bitly.com/v4/groups/{group_id}/bitlinks"
     page = 1
 
-    while url and page <= 2:  # Limitar a 2 páginas
+    while url and page <= 2:  # Limitar a 2 páginas (ou ajuste conforme necessário)
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
@@ -68,9 +69,8 @@ def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.
             break
 
         for link in data['links']:
-            # Certifique-se de que o título ou link contenha o código da campanha
             if campaign_code in link.get('title', '') or campaign_code in link.get('id', ''):
-                link_id = link['id']
+                link_id = link['id']  # Este é o bitlink_id no formato bit.ly/abc123
                 click_response = requests.get(f"https://api-ssl.bitly.com/v4/bitlinks/{link_id}/clicks/summary", headers=headers)
                 click_response.raise_for_status()
                 clicks_data = click_response.json()
@@ -83,8 +83,8 @@ def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.
                 # Adicionar os detalhes do link à lista
                 links.append({
                     "Nome": link['title'],
-                    "Link de Origem": link['long_url'],
-                    "Número de Cliques": clicks,
+                    "Link de Origem": link['long_url'],  # Link completo para exibição
+                    "Número de Cliques": clicks,         # Agora com os cliques corretos
                     "Data": data_match
                 })
 
@@ -94,6 +94,7 @@ def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.
         page += 1
 
     return pd.DataFrame(links)
+
 
 # Função para adicionar informações ao dataframe ranking
 def adicionar_informacoes(ranking, bitly_links):
