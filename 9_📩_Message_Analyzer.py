@@ -68,15 +68,19 @@ def get_bitly_links(access_token, campaign_code, domain="links.simplainvest.com.
             break
 
         for link in data['links']:
-            if 'title' in link and campaign_code in link['title'] and 'Vendas' in link['title']:
+            # Certifique-se de que o título ou link contenha o código da campanha
+            if campaign_code in link.get('title', '') or campaign_code in link.get('id', ''):
                 link_id = link['id']
                 click_response = requests.get(f"https://api-ssl.bitly.com/v4/bitlinks/{link_id}/clicks/summary", headers=headers)
                 click_response.raise_for_status()
                 clicks_data = click_response.json()
                 clicks = clicks_data.get('total_clicks', 0)
+
                 # Extrair a data do nome do link
-                match = re.search(r'\d{2}/\d{2} \d{2}:\d{2}', link['title'])
+                match = re.search(r'\d{2}/\d{2} \d{2}:\d{2}', link.get('title', ''))
                 data_match = match.group(0) if match else 'não informado'
+
+                # Adicionar os detalhes do link à lista
                 links.append({
                     "Nome": link['title'],
                     "Link de Origem": link['long_url'],
