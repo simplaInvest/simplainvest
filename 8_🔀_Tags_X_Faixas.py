@@ -4,7 +4,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 
-
+# vai corinthians
 # Função para carregar a planilha e a aba 'TAGS'
 def load_sheet(sheet_name, worksheet_name):
     scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
