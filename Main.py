@@ -21,7 +21,8 @@ if 'sheets_loaded' in st.session_state:
             st.Page("4_Anúncios.py", title="🔎 Anuncios"),       
             st.Page("3_Desempenho_UTMS.py", title="🌐 Desempenho UTMS"),
             st.Page("5_General_Message_analyzer.py", title="📩 Message Analyzer"),
-            st.Page("98_Tester.py", title = "anunciosss")
+            st.Page("98_Tester.py", title = "anunciosss"),
+            st.Page("6_Analise_Dinamica.py", title = '🧭 Análise dinâmica')
         ]
     }   
 
