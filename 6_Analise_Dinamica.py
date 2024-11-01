@@ -77,6 +77,7 @@ copy_ei20_cleaned['Por último, qual sua experiência com investimentos?'].repla
     'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : 'Profissional'
     }, inplace=True)
 
+filtered_trafego_ei20.fillna('Não Informado')
 ######################################################################################################
 
 st.title('Painel de análise dinâmica dos leads')
@@ -85,9 +86,16 @@ st.divider()
 
 st.header('Dados ausentes')
 st.write(missing_data_summary.set_index('Variável'))
-st.write(f'Total de leads que preencheram a pesquisa de tráfego: {trafego_ei20.shape[0]}')
-st.write(f'Total de leads que preencheram a pesquisa de copy: {copy_ei20_cleaned.shape[0]}')
-st.write(f'Taxa e preenchimento da pesquisa de copy: {round((copy_ei20_cleaned.shape[0]/trafego_ei20.shape[0])*100, 2)}%')
+st.divider()
+with st.container(border=False):
+        st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Métricas Gerais</h1>", unsafe_allow_html=True)
+        ctcol1, ctcol2, ctcol3= st.columns([1, 1, 1])
+        with ctcol1:
+            st.metric("Total de leads que preencheram a pesquisa de tráfego:", trafego_ei20.shape[0])
+        with ctcol2:
+            st.metric("Total de leads que preencheram a pesquisa de copy:", copy_ei20_cleaned.shape[0])
+        with ctcol3:
+            st.metric("Taxa e preenchimento da pesquisa de copy", f"{round((copy_ei20_cleaned.shape[0]/trafego_ei20.shape[0])*100, 2)}%")        
 st.divider()
 
 st.header('Gráficos')
@@ -205,7 +213,7 @@ def graf_civil():
                      'Namorando',
                      'Casado(a)',
                      'Divorciado(a)',
-                     'Não informado'
+                     'Não Informado'
                      ]
     cor = 'green'
     titulo = f'{var}'
@@ -242,7 +250,7 @@ def graf_exp():
                      'Iniciante',
                      'Intermediário',
                      'Profissional',
-                     'Não informado'
+                     'Não Informado'
                      ]
     cor = 'green'
     titulo = f'{var}'
@@ -274,8 +282,8 @@ def graf_exp():
     st.pyplot(plt)
 
 def graf_renda():
-    var = 'Renda Mensal'
-    classes_order = ['Não informado',
+    var = 'RENDA MENSAL'
+    classes_order = ['Não Informado',
                      'Acima de R$20.000',
                      'Entre R$10.000 e R$20.000',
                      'Entre R$5.000 e R$10.000',
@@ -287,7 +295,7 @@ def graf_renda():
     titulo = f'{var}'
 
     # Contagem dos valores e reindexação para garantir a ordem invertida
-    variavel_data = data[var].value_counts().reindex(classes_order)
+    variavel_data = trafego_ei20[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
     # Criando o gráfico com ordem invertida
@@ -311,9 +319,9 @@ def graf_renda():
     st.pyplot(plt)
 
 def graf_patrim():
-    var = 'Patrimônio Total'
+    var = 'PATRIMONIO'
     classes_order = [
-    'Não informado',
+    'Não Informado',
     'Acima de R$1 milhão',
     'Entre R$500 mil e R$1 milhão',
     'Entre R$250 mil e R$500 mil',
@@ -327,7 +335,7 @@ def graf_patrim():
     titulo = f'{var}'
 
     # Contagem dos valores e reindexação para garantir a ordem invertida
-    variavel_data = data[var].value_counts().reindex(classes_order)
+    variavel_data = trafego_ei20[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
     # Criando o gráfico com ordem invertida
