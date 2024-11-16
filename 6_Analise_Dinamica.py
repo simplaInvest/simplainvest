@@ -95,7 +95,7 @@ with st.container(border=False):
         with ctcol2:
             st.metric("Total de leads que preencheram a pesquisa de copy:", copy_ei20_cleaned.shape[0])
         with ctcol3:
-            st.metric("Taxa e preenchimento da pesquisa de copy", f"{round((copy_ei20_cleaned.shape[0]/trafego_ei20.shape[0])*100, 2)}%")        
+            st.metric("Taxa e preenchimento da pesquisa de copy", f"{round((copy_ei20_cleaned.shape[0]/trafego_ei20.shape[0])*100, 2)}%")
 st.divider()
 
 st.header('Gráficos')
@@ -528,6 +528,7 @@ with tab1:
     with col1:
         graf_sexo()
         graf_civil()
+        graf_idade()
     with col2:
         graf_exp()
         graf_filhos()
