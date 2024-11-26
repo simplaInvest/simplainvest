@@ -1,39 +1,105 @@
-import pandas as pd
-import matplotlib.pyplot as plt  
-import numpy as np
-import seaborn as sns
-from sklearn.preprocessing import LabelEncoder
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS as stopwords
 import streamlit as st
-import matplotlib.pyplot as plt
-from sklearn.feature_extraction.text import CountVectorizer
 import pandas as pd
+import numpy as np
+import altair as alt
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import plotly.graph_objects as go
+import plotly.express as px
+import seaborn as sns
 import re
+from sklearn.feature_extraction.text import CountVectorizer
 
-active_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
+captura_ei = st.session_state.get('df_CAPTURA', pd.DataFrame())
+trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
 copy_ei = st.session_state.get('df_COPY', pd.DataFrame())
 
-trafego_ei = active_ei[['EMAIL','RENDA MENSAL', 'PATRIMONIO']]
+st.title('Pesquisa de Copy')
+st.write('Selecione os filtros abaixo para personalizar a visualização dos dados')
 
-copy_ei['Email'] = copy_ei['LIBERE A FERRAMENTA: Digite o e-mail que usou ao fazer sua inscrição no MPI']
-copy_ei = copy_ei.drop('LIBERE A FERRAMENTA: Digite o e-mail que usou ao fazer sua inscrição no MPI', axis =1)
-
-# Passo 1: Criar um novo dataframe com emails em comum entre 'trafego_ei' e 'copy_ei'
-filtered_trafego_ei = trafego_ei[trafego_ei['EMAIL'].isin(copy_ei['Email'])]
-
-# Renomeando as colunas para facilitar o merge posterior
-filtered_trafego_ei = filtered_trafego_ei.rename(columns={
-    'RENDA MENSAL': 'Renda Mensal',
-    'PATRIMONIO': 'Patrimônio Total',
-    'EMAIL' : 'Email'
+# Data Cleaning
+copy_ei['Qual seu estado civil atual?'] = copy_ei['Qual seu estado civil atual?'].str.lower()
+copy_ei['Qual seu estado civil atual?'] = copy_ei['Qual seu estado civil atual?'].replace({
+    'união estável': 'união estável',
+    'união estavel': 'união estável',
+    'casada somente no religioso': 'casado(a)',
+    'ajuntando': 'morando juntos',
+    'amaseado': 'morando juntos',
+    'amasiado': 'morando juntos',
+    'só junto': 'morando juntos',
+    'moro junto': 'morando juntos',
+    'união estavel': 'união estável',
+    'viúva': 'viúvo(a)',
+    'viuva': 'viúvo(a)',
+    'viúvo': 'viúvo(a)'
 })
+copy_ei['Qual sua idade?'] = pd.to_numeric(copy_ei['Qual sua idade?'], errors='coerce')
+copy_ei['Email'] = copy_ei['LIBERE A FERRAMENTA: Digite o e-mail que usou ao fazer sua inscrição no MPI']
+copy_ei = copy_ei.drop('LIBERE A FERRAMENTA: Digite o e-mail que usou ao fazer sua inscrição no MPI', axis = 1)
+trafego_ei.rename(columns={'EMAIL': 'Email'}, inplace=True)
 
-# Passo 2: Mesclar os dados no dataframe 'copy_ei' para adicionar as novas colunas
-copy_ei = copy_ei.merge(filtered_trafego_ei[['Email','Renda Mensal', 'Patrimônio Total']], on='Email', how='left')
 
-# Step 1: Remove the 'utm' columns from the dataframe
-columns_to_drop = [col for col in copy_ei.columns if 'utm' in col]
-copy_ei_cleaned = copy_ei.drop(columns=columns_to_drop)
+gender_options = ['TODOS'] + ['Masculino', 'Feminino', 'Outro']
+children_options = ['TODOS'] + list(copy_ei['Você tem filhos?'].dropna().unique())
+marital_status_options = ['TODOS'] + ['casado(a)', 'solteiro(a)', 'divorciado(a)', 'namorando', 'viúvo(a)']
+investment_experience_options = [
+    'TODOS',
+    'Totalmente iniciante',
+    'Iniciante',
+    'Intermediário',
+    'Profissional'
+]
+
+# Filter columns layout
+col1, col2, col3, col4 = st.columns(4)
+
+# Gender filter
+gender_filter = col1.multiselect("Sexo", gender_options, default='TODOS')
+
+# Children filter
+children_filter = col2.multiselect("Filhos", children_options, default='TODOS')
+
+# Marital Status filter
+marital_status_filter = col3.multiselect("Estado civil", marital_status_options, default='TODOS')
+
+# Investment Experience filter
+investment_experience_filter = col4.multiselect(
+    "Experiência",
+    investment_experience_options,
+    default='TODOS'
+)
+
+# Age range slider
+age_min = int(copy_ei['Qual sua idade?'].min())
+age_max = int(copy_ei['Qual sua idade?'].max())
+age_range = st.slider("Selecione a faixa etária:", min_value=age_min, max_value=age_max, value=(age_min, age_max))
+
+# Mesclar os dataframes com base na coluna Email
+copy_ei = copy_ei.merge(trafego_ei[['Email', 'RENDA MENSAL']], on='Email', how='left')
+copy_ei = copy_ei.merge(trafego_ei[['Email', 'PATRIMONIO']], on='Email', how='left')
+
+# Filtering logic
+filtered_copy_ei = copy_ei.copy()
+
+if 'TODOS' not in gender_filter:
+    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Qual seu sexo?'].isin(gender_filter)]
+
+if 'TODOS' not in children_filter:
+    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Você tem filhos?'].isin(children_filter)]
+
+if 'TODOS' not in marital_status_filter:
+    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Qual seu estado civil atual?'].isin(marital_status_filter)]
+
+if 'TODOS' not in investment_experience_filter:
+    filtered_copy_ei = filtered_copy_ei[
+        filtered_copy_ei['Por último, qual sua experiência com investimentos?']
+        .str.contains('|'.join(investment_experience_filter), na=False)
+    ]
+
+filtered_copy_ei = filtered_copy_ei[
+    (filtered_copy_ei['Qual sua idade?'] >= age_range[0]) &
+    (filtered_copy_ei['Qual sua idade?'] <= age_range[1])
+]
 
 # Closed-ended response columns: categorical responses or choices
 closed_ended_columns = [
@@ -42,8 +108,8 @@ closed_ended_columns = [
     "Qual sua idade?", 
     "Qual seu estado civil atual?", 
     "Você já investe seu dinheiro atualmente?", 
-    "Renda Mensal", 
-    "Patrimônio Total"
+    "RENDA MENSAL", 
+    "PATRIMONIO"
 ]
 
 # Open-ended response columns: free-text responses
@@ -52,11 +118,13 @@ open_ended_columns = [
     "Como você imagina a vida que está buscando?", 
     "Quais são os principais obstáculos que te impedem de viver essa vida hoje? ", 
     ]
+###############################################################################################################################
 
-# Calculate the total number of responses in the dataframe
-total_responses = copy_ei_cleaned.shape[0]
+st.divider()
 
-copy_ei_cleaned = copy_ei_cleaned.fillna('Não Informado')
+total_responses = filtered_copy_ei.shape[0]
+
+copy_ei_cleaned = filtered_copy_ei.fillna('Não Informado')
 copy_ei_cleaned = copy_ei_cleaned.replace('', 'Não Informado')
 
 # Prepare the columns for the new dataframe
@@ -70,19 +138,6 @@ missing_data_summary = pd.DataFrame({
     'Número de informações deixadas em branco': num_na_values[0],
     'Proporção em relação ao total de respostas da pesquisa': proportion_na_values
 })
-
-copy_ei_cleaned['Por último, qual sua experiência com investimentos?'].replace({
-    'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante', 'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
-    'Intermediário. Já invisto, até fiz outros cursos de investimentos, mas sinto que falta alguma coisa.' : 'Intermediário', 
-    'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : 'Profissional'
-    }, inplace=True)
-
-filtered_trafego_ei.fillna('Não Informado')
-######################################################################################################
-
-st.title('Painel de análise dinâmica dos leads')
-st.write('Neste painel você encontra um resumo dos dados coletados na pesquisa de Copy do lançamento selecionado. Estes dados são atualizados em tempo real.')
-st.divider()
 
 st.header('Dados ausentes')
 st.write(missing_data_summary.set_index('Variável'))
@@ -118,7 +173,7 @@ def graf_sexo():
 
     # Criando o gráfico
     plt.figure(figsize=(10, 5))
-    ax = variavel_data.plot(kind='bar', color=cor, width=0.6, ylim=(0, 1.1 * variavel_data.max()), edgecolor='black')
+    ax = variavel_data.plot(kind='bar', color=cor, width=0.6, edgecolor='black')
 
     # Adicionando os valores e porcentagens no topo de cada barra
     for p in ax.patches:
@@ -187,7 +242,7 @@ def graf_filhos():
 
     # Criando o gráfico
     plt.figure(figsize=(10, 5))
-    ax = variavel_data.plot(kind='bar', color=cor, width=0.6, ylim=(0, 1.1 * variavel_data.max()), edgecolor='black')
+    ax = variavel_data.plot(kind='bar', color=cor, width=0.6, edgecolor='black')
 
     # Adicionando os valores e porcentagens no topo de cada barra
     for p in ax.patches:
@@ -224,7 +279,7 @@ def graf_civil():
 
     # Criando o gráfico
     plt.figure(figsize=(10, 5))
-    ax = variavel_data.plot(kind='bar', color=cor, width=0.6, ylim=(0, 1.1 * variavel_data.max()), edgecolor='black')
+    ax = variavel_data.plot(kind='bar', color=cor, width=0.6, edgecolor='black')
 
     # Adicionando os valores e porcentagens no topo de cada barra
     for p in ax.patches:
@@ -261,7 +316,7 @@ def graf_exp():
 
     # Criando o gráfico
     plt.figure(figsize=(10, 5))
-    ax = variavel_data.plot(kind='bar', color=cor, width=0.6, ylim=(0, 1.1 * variavel_data.max()), edgecolor='black')
+    ax = variavel_data.plot(kind='bar', color=cor, width=0.6, edgecolor='black')
 
     # Adicionando os valores e porcentagens no topo de cada barra
     for p in ax.patches:
@@ -477,7 +532,7 @@ def plot_confusion_matrix_renda_patrimonio(data):
         None: Displays the confusion matrix plot.
     """
     # Filter out rows with 'Não informado' in either 'Renda Mensal' or 'Patrimônio Total'
-    filtered_data = data[(data['Renda Mensal'] != 'Não informado') & (data['Patrimônio Total'] != 'Não informado')]
+    filtered_data = data[(data['RENDA MENSAL'] != 'Não informado') & (data['PATRIMONIO'] != 'Não informado')]
 
     # Define the order of categories from smallest to largest for both 'Renda Mensal' and 'Patrimônio Total'
     renda_order = [
@@ -491,8 +546,8 @@ def plot_confusion_matrix_renda_patrimonio(data):
 
     # Create a crosstab (confusion matrix) for 'Renda Mensal' vs 'Patrimônio Total'
     confusion_matrix = pd.crosstab(
-        filtered_data['Renda Mensal'], filtered_data['Patrimônio Total'],
-        rownames=['Renda Mensal'], colnames=['Patrimônio Total']
+        filtered_data['RENDA MENSAL'], filtered_data['PATRIMONIO'],
+        rownames=['RENDA MENSAL'], colnames=['PATRIMONIO']
     ).reindex(index=renda_order, columns=patrimonio_order, fill_value=0)
 
     # Calculate the total instances for proportion calculation

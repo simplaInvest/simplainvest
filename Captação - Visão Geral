@@ -1,0 +1,324 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import altair as alt
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import plotly.graph_objects as go
+import plotly.express as px
+
+captura_ei = st.session_state.get('df_CAPTURA', pd.DataFrame())
+trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
+copy_ei = st.session_state.get('df_COPY', pd.DataFrame())
+whatsapp_ei = st.session_state.get('df_GRUPOS', pd.DataFrame())
+df_VENDAS = st.session_state.get('df_VENDAS', pd.DataFrame())
+
+# Cacheamento para Gráficos
+@st.cache_data
+def plot_group_members_per_day_altair(df):
+    # Verify if the DataFrame is not empty
+    if df.empty:
+        st.warning("No data available for group entries.")
+        return None
+
+    # Create the line chart with Altair
+    line_chart = alt.Chart(df).mark_line(point=True).encode(
+        x=alt.X('Date:T', title='Date', axis=alt.Axis(labelAngle=0, format="%d %B (%a)")),
+        y=alt.Y('Members:Q', title='Number of Members'),
+        tooltip=['Date:T', 'Members:Q']
+    )
+
+    # Add text labels above the points
+    text_chart = alt.Chart(df).mark_text(
+        align='center',
+        baseline='bottom',
+        color = 'lightblue',
+        dy=-10  # Adjust the vertical position of the text
+    ).encode(
+        x='Date:T',
+        y='Members:Q',
+        text=alt.Text('Members:Q', format=',')
+    )
+
+    # Combine the charts
+    chart = (line_chart + text_chart).properties(
+        title='',
+        width=600,
+        height=400
+    )
+
+    return chart
+
+@st.cache_data
+def plot_leads_per_day_altair(df_CONTALEADS):
+    # Verificar se o DataFrame não está vazio
+    if df_CONTALEADS.empty:
+        st.warning("Os dados de Leads por Dia estão vazios.")
+        return None
+
+    # Criar o gráfico de linhas com Altair
+    line_chart = alt.Chart(df_CONTALEADS).mark_line(point=True).encode(
+        x=alt.X('CAP DATA_CAPTURA:T', title='Data', axis=alt.Axis(labelAngle=-0, format="%d %B (%a)")),
+        y=alt.Y('EMAIL:Q', title=''),
+        tooltip=['CAP DATA_CAPTURA:T', 'EMAIL:Q']
+    )
+
+    # Adicionar valores como texto acima dos pontos
+    text_chart = alt.Chart(df_CONTALEADS).mark_text(
+        align='center',
+        baseline='bottom',
+        dy=-10,  # Ajusta a posição vertical do texto
+        color='lightblue'  # Define a cor do texto
+    ).encode(
+        x='CAP DATA_CAPTURA:T',
+        y='EMAIL:Q',
+        text=alt.Text('EMAIL:Q', format=',')  # Exibe o número formatado
+    )
+
+    # Combinar os gráficos
+    chart = (line_chart + text_chart).properties(
+        title='',
+        width=600,
+        height=400
+    ).configure_axis(
+        grid=False,
+        labelColor='white',
+        titleColor='white'
+    ).configure_view(
+        strokeWidth=0
+    ).configure_title(
+        color='white'
+    ).configure(background='rgba(0,0,0,0)')
+
+    return chart
+
+@st.cache_data
+def plot_utm_source_counts_altair(df, column_name='UTM_SOURCE'):
+    """
+    Função para gerar um gráfico de barras horizontais com a contagem de cada classe em uma coluna específica.
+    
+    Parâmetros:
+        df (DataFrame): O DataFrame contendo os dados.
+        column_name (str): O nome da coluna a ser analisada.
+        
+    Retorna:
+        alt.Chart: Um gráfico Altair pronto para ser exibido.
+    """
+    # Contar as ocorrências de cada classe na coluna especificada
+    class_counts = df[column_name].value_counts().reset_index()
+    class_counts.columns = [column_name, 'Count']
+    
+    # Ordenar as classes em ordem decrescente de frequência
+    class_counts = class_counts.sort_values(by='Count', ascending=False)
+    
+    # Criar o gráfico de barras horizontais
+    chart = alt.Chart(class_counts).mark_bar().encode(
+        x=alt.X('Count:Q', title='Contagem'),
+        y=alt.Y(f'{column_name}:N', sort='-x', title='Classe'),
+        tooltip=['Count', f'{column_name}']
+    ).properties(
+        title=f'',
+        width=600,
+        height=400
+    )
+
+    # Adicionar os valores no topo das barras
+    text = alt.Chart(class_counts).mark_text(
+        align='left',
+        baseline='middle',
+        color = 'lightblue',
+        dx=3  # Deslocamento horizontal
+    ).encode(
+        x=alt.X('Count:Q'),
+        y=alt.Y(f'{column_name}:N', sort='-x'),
+        text='Count:Q'
+    )
+
+    # Combinar o gráfico de barras e os valores
+    return chart + text
+
+@st.cache_data
+def plot_utm_medium_pie_chart(df, column_name='UTM_MEDIUM', classes_to_include=None):
+    """
+    Função para gerar um gráfico de pizza comparando os valores filtrados de uma coluna específica.
+
+    Parâmetros:
+        df (DataFrame): O DataFrame contendo os dados.
+        column_name (str): O nome da coluna a ser analisada.
+        classes_to_include (list): Lista de classes a serem incluídas no gráfico.
+
+    Retorna:
+        alt.Chart: Um gráfico Altair pronto para ser exibido.
+    """
+    if classes_to_include is None:
+        classes_to_include = ['organico', 'pago', 'indefinido']
+    
+    # Filtrar os valores para incluir apenas as classes desejadas
+    filtered_df = df[df[column_name].isin(classes_to_include)]
+    
+    # Contar as ocorrências de cada classe
+    class_counts = filtered_df[column_name].value_counts().reset_index()
+    class_counts.columns = [column_name, 'Count']
+    
+    # Calcular a porcentagem de cada classe
+    total = class_counts['Count'].sum()
+    class_counts['Percentage'] = (class_counts['Count'] / total * 100).round(2)
+    
+    # Criar o gráfico de pizza
+    pie_chart = alt.Chart(class_counts).mark_arc(innerRadius=50).encode(
+        theta=alt.Theta(field='Count', type='quantitative'),
+        color=alt.Color(
+            field=column_name,
+            type='nominal',
+            scale=alt.Scale(scheme='blues'),  # Usar tons de azul
+            legend=alt.Legend(title="Classe")
+        ),
+        tooltip=[
+            alt.Tooltip(f'{column_name}:N', title='Classe'),
+            alt.Tooltip('Count:Q', title='Contagem'),
+            alt.Tooltip('Percentage:Q', title='Porcentagem', format='.2f')
+        ]
+    ).properties(
+        title=f'',
+        width=400,
+        height=400
+    )
+    
+    # Adicionar os valores em porcentagem no gráfico
+    text = alt.Chart(class_counts).mark_text(radius=120, size=14).encode(
+        theta=alt.Theta(field='Count', type='quantitative'),
+        text=alt.Text('Percentage:Q', format='.1f'),
+        color=alt.value('black')
+    )
+    
+    return pie_chart + text
+
+# Função para estilizar e exibir gráficos com fundo transparente e letras brancas
+def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
+    fig = go.Figure(data=[
+        go.Bar(x=[x[0]], y=[y[0]], marker_color=colors[0]),
+        go.Bar(x=[x[1]], y=[y[1]], marker_color=colors[1])
+    ])
+    
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',  
+        paper_bgcolor='rgba(0,0,0,0)',  
+        font=dict(color='white'),  
+        title=dict(text=title, x=0.5, font=dict(size=20, color='white')),
+        xaxis=dict(showgrid=False, tickfont=dict(color='white')),
+        yaxis=dict(showgrid=False, tickfont=dict(color='white')),
+        margin=dict(l=0, r=0, t=40, b=40)
+    )
+    return fig
+
+st.title('Captação - Visão Geral')
+st.divider()
+
+# Layout em quatro colunas
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.subheader("Captura")
+    st.metric(label="Total", value=f"{captura_ei.shape[0]}")
+
+with col2:
+    st.subheader("Tráfego")
+    st.metric(label="Total", value=f"{trafego_ei.shape[0]}")
+    st.metric(label="Conversão", value=f"{round(trafego_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
+
+with col3:
+    st.subheader("Copy")
+    st.metric(label="Total", value=f"{copy_ei.shape[0]}")
+    st.metric(label="Conversão", value=f"{round(copy_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
+
+with col4:
+    st.subheader("WhatsApp")
+    st.metric(label="Total", value=f"{whatsapp_ei.shape[0]}")
+    st.metric(label="Conversão", value=f"{round(whatsapp_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
+
+st.divider()
+
+
+df_CONTALEADS = captura_ei.copy()
+df_CONTALEADS['CAP DATA_CAPTURA'] = pd.to_datetime(df_CONTALEADS['CAP DATA_CAPTURA']).dt.date
+df_CONTALEADS = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
+
+# Add 'Entry' and 'Exit' columns based on the 'Evento' column
+if 'Data' in whatsapp_ei.columns:
+    if whatsapp_ei['Data'].dtype == 'object':  # Apenas se ainda for texto
+        whatsapp_ei['Data'] = whatsapp_ei['Data'].str.replace(' às ', ' ')
+        whatsapp_ei['Data'] = pd.to_datetime(whatsapp_ei['Data'], format='%d/%m/%Y %H:%M:%S', errors='coerce')
+
+whatsapp_ei['Entry'] = whatsapp_ei['Evento'].str.contains("Entrou", na=False).astype(int)
+whatsapp_ei['Exit'] = whatsapp_ei['Evento'].str.contains("Saiu", na=False).astype(int)
+
+# Group by date and calculate cumulative sums for entries and exits
+daily_activity = whatsapp_ei.groupby(whatsapp_ei['Data'].dt.date)[['Entry', 'Exit']].sum().reset_index()
+
+# Rename the grouped date column for clarity
+daily_activity.rename(columns={'Data': 'Date'}, inplace=True)
+
+# Calculate cumulative members
+daily_activity['Members'] = daily_activity['Entry'].cumsum() - daily_activity['Exit'].cumsum()
+
+st.subheader('Leads por dia')
+fig = plot_leads_per_day_altair(df_CONTALEADS)
+if fig:
+    st.altair_chart(fig, use_container_width=True)
+
+st.subheader('Número de pessoas no grupo')
+fig = plot_group_members_per_day_altair(daily_activity)
+if fig:
+    st.altair_chart(fig, use_container_width=True)
+
+col1, col2 = st.columns([3, 2])
+with col1:
+    st.subheader("Análise de UTM_SOURCE")
+    chart = plot_utm_source_counts_altair(captura_ei, column_name='UTM_SOURCE')
+    st.altair_chart(chart, use_container_width=True)
+
+with col2:  
+    st.subheader("Gráfico de Pizza para UTM_MEDIUM")
+    chart = plot_utm_medium_pie_chart(captura_ei, column_name='UTM_MEDIUM')
+    st.altair_chart(chart, use_container_width=True)
+
+st.divider()
+
+df_vendas_copy = df_VENDAS.copy()
+df_vendas_copy['CAP UTM_SOURCE'] = df_vendas_copy.apply(
+    lambda x: f"{x['CAP UTM_SOURCE']} {x['CAP UTM_MEDIUM']}" if x['CAP UTM_SOURCE'] == 'ig' else x['CAP UTM_SOURCE'],
+    axis=1
+       )
+df_vendas_copy['PERCURSO'] = df_vendas_copy['CAP UTM_SOURCE'].astype(str) + ' > ' + \
+                            df_vendas_copy['PM UTM_SOURCE'].astype(str) + ' > ' + \
+                            df_vendas_copy['UTM_SOURCE'].astype(str)
+
+percurso_counts = df_vendas_copy['PERCURSO'].value_counts().reset_index()
+percurso_counts.columns = ['PERCURSO', 'COUNT']
+
+top_20_percurso = percurso_counts.head(20)
+
+col1, col2 = st.columns([2, 2])
+
+with col1:
+    st.table(top_20_percurso)
+
+top_5_percurso = top_20_percurso.head(5).sort_values(by='COUNT', ascending=True)
+
+with col2:
+    fig, ax = plt.subplots()
+    colors = cm.Blues(np.linspace(0.4, 1, len(top_5_percurso)))
+    ax.barh(top_5_percurso['PERCURSO'], top_5_percurso['COUNT'], color=colors)
+    ax.set_xlabel('Count', color='#FFFFFF')
+    ax.set_ylabel('PERCURSO', color='#FFFFFF')
+    ax.set_title('Top 5 Percursos Mais Comuns', color='#FFFFFF')
+    ax.set_facecolor('none')
+    fig.patch.set_facecolor('none')
+    ax.spines['bottom'].set_color('#FFFFFF')
+    ax.spines['top'].set_color('#FFFFFF')
+    ax.spines['right'].set_color('#FFFFFF')
+    ax.spines['left'].set_color('#FFFFFF')
+    ax.tick_params(axis='x', colors='#FFFFFF')
+    ax.tick_params(axis='y', colors='#FFFFFF')
+    plt.tight_layout()
+    st.pyplot(fig)

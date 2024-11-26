@@ -51,12 +51,27 @@ def plot_group_members_per_day_altair(df_CONTAGRUPOS):
         st.warning("Os dados de contagem de membros estão vazios.")
         return None
 
-    # Criar o gráfico usando Altair
-    chart = alt.Chart(df_CONTAGRUPOS).mark_line(point=True).encode(
+    # Criar o gráfico de linhas com Altair
+    line_chart = alt.Chart(df_CONTAGRUPOS).mark_line(point=True).encode(
         x=alt.X('Date:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
         y=alt.Y('Members:Q', title='Número de Membros'),
         tooltip=['Date:T', 'Members:Q']
-    ).properties(
+    )
+
+    # Adicionar valores como texto acima dos pontos
+    text_chart = alt.Chart(df_CONTAGRUPOS).mark_text(
+        align='center',
+        baseline='bottom',
+        color = 'lightblue',
+        dy=-10  # Ajusta a posição vertical do texto
+    ).encode(
+        x='Date:T',
+        y='Members:Q',
+        text=alt.Text('Members:Q', format=',')  # Exibe o número formatado
+    )
+
+    # Combinar os gráficos
+    chart = (line_chart + text_chart).properties(
         title='Número de Membros no Grupo por Dia',
         width=600,
         height=400
@@ -79,12 +94,27 @@ def plot_leads_per_day_altair(df_CONTALEADS):
         st.warning("Os dados de Leads por Dia estão vazios.")
         return None
 
-    # Criar o gráfico usando Altair
-    fig = alt.Chart(df_CONTALEADS).mark_line(point=True).encode(
+    # Criar o gráfico de linhas com Altair
+    line_chart = alt.Chart(df_CONTALEADS).mark_line(point=True).encode(
         x=alt.X('CAP DATA_CAPTURA:T', title='Data', axis=alt.Axis(labelAngle=-45, format="%d %B (%a)")),
         y=alt.Y('EMAIL:Q', title='Número de Leads'),
         tooltip=['CAP DATA_CAPTURA:T', 'EMAIL:Q']
-    ).properties(
+    )
+
+    # Adicionar valores como texto acima dos pontos
+    text_chart = alt.Chart(df_CONTALEADS).mark_text(
+        align='center',
+        baseline='bottom',
+        dy=-10,  # Ajusta a posição vertical do texto
+        color='lightblue'  # Define a cor do texto
+    ).encode(
+        x='CAP DATA_CAPTURA:T',
+        y='EMAIL:Q',
+        text=alt.Text('EMAIL:Q', format=',')  # Exibe o número formatado
+    )
+
+    # Combinar os gráficos
+    chart = (line_chart + text_chart).properties(
         title='Leads por Dia',
         width=600,
         height=400
@@ -97,8 +127,9 @@ def plot_leads_per_day_altair(df_CONTALEADS):
     ).configure_title(
         color='white'
     ).configure(background='rgba(0,0,0,0)')
-    
-    return fig
+
+    return chart
+
 
 # Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
