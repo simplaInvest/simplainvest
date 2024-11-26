@@ -23,9 +23,10 @@ pages = {
 if 'sheets_loaded' in st.session_state:
     pages_after_load = {
         'ANALISES': [
-            st.Page("Captação - Visão Geral", title = "Captação - Visão Geral"),
-            st.Page("trafego.py", title = "Pesquisa de Tráfego"),
-            st.Page("copy_1.py", title = "Pesquisa de Copy"),
+            st.Page("Captação - Visão Geral", title = "📊 Captação - Visão Geral"),
+            st.Page("trafego.py", title = "🔎 Pesquisa de Tráfego"),
+            st.Page("copy_1.py", title = "👤 Pesquisa de Copy"),
+            st.Page("whatsapp.py", title = "📞 Grupos de Whatsapp"),
             st.Page("2_Análise Geral Lançamento.py", title="📊 Análise Geral Lançamento"),
             st.Page("4_Anúncios.py", title="🔎 Anuncios"),
             st.Page("3_Desempenho_UTMS.py", title="🌐 Desempenho UTMS"),
