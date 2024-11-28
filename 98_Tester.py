@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.express as px
-<<<<<<< HEAD
 
 
 
@@ -31,7 +30,7 @@ df_result = df_result.drop(columns=['ANUNCIO'])
 
 # Mostrar o dataframe resultante
 st.dataframe(df_result)
-=======
+
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -109,7 +108,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-lancamento = "SC.09"
+lancamento = "SC.20"
 
 # Verifique se os dados foram carregados
 df_PESQUISA = load_sheet( lancamento + ' - PESQUISA TRAFEGO', 'DADOS')
@@ -321,4 +320,4 @@ with tabs[1]:
             st.pyplot(fig_renda)
 
     
->>>>>>> 45671b67a222272122103e97596c0234aff477a2
+
