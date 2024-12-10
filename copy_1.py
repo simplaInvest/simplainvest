@@ -13,6 +13,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 captura_ei = st.session_state.get('df_CAPTURA', pd.DataFrame())
 trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
 copy_ei = st.session_state.get('df_COPY', pd.DataFrame())
+prematricula_ei = st.session_state.get('df_PREMATRICULA', pd.DataFrame())
+vendas_ei = st.session_state.get('df_VENDAS', pd.DataFrame())
 
 st.title('Pesquisa de Copy')
 st.write('Selecione os filtros abaixo para personalizar a visualização dos dados')
@@ -34,9 +36,6 @@ copy_ei['Qual seu estado civil atual?'] = copy_ei['Qual seu estado civil atual?'
     'viúvo': 'viúvo(a)'
 })
 copy_ei['Qual sua idade?'] = pd.to_numeric(copy_ei['Qual sua idade?'], errors='coerce')
-copy_ei['Email'] = copy_ei['LIBERE A FERRAMENTA: Digite o e-mail que usou ao fazer sua inscrição no MPI']
-copy_ei = copy_ei.drop('LIBERE A FERRAMENTA: Digite o e-mail que usou ao fazer sua inscrição no MPI', axis = 1)
-trafego_ei.rename(columns={'EMAIL': 'Email'}, inplace=True)
 
 
 gender_options = ['TODOS'] + ['Masculino', 'Feminino', 'Outro']
@@ -75,8 +74,8 @@ age_max = int(copy_ei['Qual sua idade?'].max())
 age_range = st.slider("Selecione a faixa etária:", min_value=age_min, max_value=age_max, value=(age_min, age_max))
 
 # Mesclar os dataframes com base na coluna Email
-copy_ei = copy_ei.merge(trafego_ei[['Email', 'RENDA MENSAL']], on='Email', how='left')
-copy_ei = copy_ei.merge(trafego_ei[['Email', 'PATRIMONIO']], on='Email', how='left')
+copy_ei = copy_ei.merge(trafego_ei[['EMAIL', 'RENDA MENSAL']], on='EMAIL', how='left')
+copy_ei = copy_ei.merge(trafego_ei[['EMAIL', 'PATRIMONIO']], on='EMAIL', how='left')
 
 # Filtering logic
 filtered_copy_ei = copy_ei.copy()
@@ -100,6 +99,18 @@ filtered_copy_ei = filtered_copy_ei[
     (filtered_copy_ei['Qual sua idade?'] >= age_range[0]) &
     (filtered_copy_ei['Qual sua idade?'] <= age_range[1])
 ]
+
+prematricula_filter = st.checkbox("Pré-matrícula")
+
+# Aplicar o filtro de pré-matrícula se a opção estiver marcada
+if prematricula_filter:
+    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['EMAIL'].isin(prematricula_ei['EMAIL'].str.lower())]
+
+vendas_filter = st.checkbox("Venda")
+
+# Aplicar o filtro de pré-matrícula se a opção estiver marcada
+if vendas_filter:
+    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['EMAIL'].isin(vendas_ei['EMAIL'].str.lower())]
 
 # Closed-ended response columns: categorical responses or choices
 closed_ended_columns = [
@@ -128,8 +139,8 @@ copy_ei_cleaned = filtered_copy_ei.fillna('Não Informado')
 copy_ei_cleaned = copy_ei_cleaned.replace('', 'Não Informado')
 
 # Prepare the columns for the new dataframe
-variable_names = copy_ei_cleaned.drop(['Token', 'Email', 'Submitted At', 'Qual seu Whatsapp para receber suporte?'], axis = 1).columns
-num_na_values = (copy_ei_cleaned.drop(['Token', 'Email', 'Submitted At', 'Qual seu Whatsapp para receber suporte?'], axis = 1) == 'Não Informado').sum().reset_index()
+variable_names = copy_ei_cleaned.drop(['Token', 'EMAIL', 'Submitted At', 'Qual seu Whatsapp para receber suporte?'], axis = 1).columns
+num_na_values = (copy_ei_cleaned.drop(['Token', 'EMAIL', 'Submitted At', 'Qual seu Whatsapp para receber suporte?'], axis = 1) == 'Não Informado').sum().reset_index()
 proportion_na_values = (num_na_values[0] / total_responses * 100).round(2)
 
 # Create the new dataframe with the required columns
@@ -146,11 +157,11 @@ with st.container(border=False):
         st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Métricas Gerais</h1>", unsafe_allow_html=True)
         ctcol1, ctcol2, ctcol3= st.columns([1, 1, 1])
         with ctcol1:
-            st.metric("Total de leads que preencheram a pesquisa de tráfego:", trafego_ei.shape[0])
+            st.metric("Total de leads CAPTURA:", captura_ei.shape[0])
         with ctcol2:
             st.metric("Total de leads que preencheram a pesquisa de copy:", copy_ei_cleaned.shape[0])
         with ctcol3:
-            st.metric("Taxa e preenchimento da pesquisa de copy", f"{round((copy_ei_cleaned.shape[0]/trafego_ei.shape[0])*100, 2)}%")
+            st.metric("Taxa De preenchimento da pesquisa de copy", f"{round((copy_ei_cleaned.shape[0]/captura_ei.shape[0])*100, 2)}%")
 st.divider()
 
 st.header('Gráficos')
@@ -264,10 +275,10 @@ def graf_filhos():
 
 def graf_civil():
     var = 'Qual seu estado civil atual?'
-    classes_order = ['Solteiro(a)',
-                     'Namorando',
-                     'Casado(a)',
-                     'Divorciado(a)',
+    classes_order = ['solteiro(a)',
+                     'namorando',
+                     'casado(a)',
+                     'divorciado(a)',
                      'Não Informado'
                      ]
     cor = 'green'
@@ -301,6 +312,12 @@ def graf_civil():
 
 def graf_exp():
     var = 'Por último, qual sua experiência com investimentos?'
+    data[var] = data[var].replace({
+        'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante',
+        'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
+        'Intermediário. Já invisto, até fiz outros cursos de investimentos, mas sinto que falta alguma coisa.' : 'Intermediário',
+        'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : ' Profissional'
+})
     classes_order = ['Totalmente Iniciante',
                      'Iniciante',
                      'Intermediário',
@@ -350,7 +367,7 @@ def graf_renda():
     titulo = f'{var}'
 
     # Contagem dos valores e reindexação para garantir a ordem invertida
-    variavel_data = trafego_ei[var].value_counts().reindex(classes_order)
+    variavel_data = data[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
     # Criando o gráfico com ordem invertida
@@ -390,7 +407,7 @@ def graf_patrim():
     titulo = f'{var}'
 
     # Contagem dos valores e reindexação para garantir a ordem invertida
-    variavel_data = trafego_ei[var].value_counts().reindex(classes_order)
+    variavel_data = data[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
     # Criando o gráfico com ordem invertida

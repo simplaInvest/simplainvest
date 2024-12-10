@@ -9,6 +9,9 @@ import plotly.express as px
 
 captura_ei = st.session_state.get('df_CAPTURA', pd.DataFrame())
 trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
+trafego_ei.rename(columns={'EMAIL': 'EMAIL'}, inplace=True)
+prematricula_ei = st.session_state.get('df_PREMATRICULA', pd.DataFrame())
+vendas_ei = st.session_state.get('df_VENDAS', pd.DataFrame())
 
 st.title('Pesquisa de tráfego')
 # Configurar os filtros com multiselect
@@ -112,6 +115,18 @@ else:
                 value=f"{patrimonio_acima_selecionado.shape[0]}  "
                       f"({round((patrimonio_acima_selecionado.shape[0] / filtered_trafego_ei.shape[0]) * 100, 2)}%)"
             )
+
+        prematricula_filter = st.checkbox("Pré-matrícula")
+
+        # Aplicar o filtro de pré-matrícula se a opção estiver marcada
+        if prematricula_filter:
+            filtered_trafego_ei = filtered_trafego_ei[filtered_trafego_ei['EMAIL'].isin(prematricula_ei['EMAIL'].str.lower())]
+
+        vendas_filter = st.checkbox("Venda")
+
+        # Aplicar o filtro de pré-matrícula se a opção estiver marcada
+        if vendas_filter:
+            filtered_trafego_ei = filtered_trafego_ei[filtered_trafego_ei['EMAIL'].isin(vendas_ei['EMAIL'].str.lower())]
 
         st.divider()
 

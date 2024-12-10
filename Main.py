@@ -27,12 +27,14 @@ if 'sheets_loaded' in st.session_state:
             st.Page("trafego.py", title = "🔎 Pesquisa de Tráfego"),
             st.Page("copy_1.py", title = "👤 Pesquisa de Copy"),
             st.Page("whatsapp.py", title = "📞 Grupos de Whatsapp"),
-            st.Page("2_Análise Geral Lançamento.py", title="📊 Análise Geral Lançamento"),
-            st.Page("4_Anúncios.py", title="🔎 Anuncios"),
-            st.Page("3_Desempenho_UTMS.py", title="🌐 Desempenho UTMS"),
-            st.Page("5_General_Message_analyzer.py", title="📩 Message Analyzer"),
+            st.Page("prematricula.py", title = "✅ Pré-Matrícula"),
+            st.Page("vendas.py", title = "Central de Vendas"),
+            st.Page("2_Análise Geral Lançamento.py", title=" Análise Geral Lançamento"),
+            st.Page("4_Anúncios.py", title="Anuncios"),
+            st.Page("3_Desempenho_UTMS.py", title="Desempenho UTMS"),
+            st.Page("5_General_Message_analyzer.py", title="Message Analyzer"),
             st.Page("98_Tester.py", title="anunciosss"),
-            st.Page("6_Analise_Dinamica.py", title="🧭 Análise dinâmica")
+            st.Page("6_Analise_Dinamica.py", title="Análise dinâmica")
         ]
     }
     pages = pages_after_load

@@ -204,7 +204,7 @@ def calculate_stay_duration_and_plot_histogram(df):
 
     # Gráfico de barras
     bars = base.mark_bar(color='skyblue').properties(
-        title='Distribuição de Tempo de Permanência nos Grupos (em dias)',
+        title='',
         width=800,
         height=400
     )
@@ -268,7 +268,7 @@ fig = plot_ratio_per_day(daily_activity)
 if fig:
     st.altair_chart(fig, use_container_width=True)
 
-st.subheader('Proporção de saídas em relação a entradaspor dia')
+st.subheader('Distribuição de Tempo de Permanência nos Grupos (em dias)')
 fig = calculate_stay_duration_and_plot_histogram(whatsapp_ei)
 if fig:
     st.altair_chart(fig, use_container_width=True)
