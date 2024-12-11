@@ -11,7 +11,7 @@ import seaborn as sns
 captura_ei_vendas = st.session_state.get('df_CAPTURA', pd.DataFrame()).copy()
 trafego_ei_vendas = st.session_state.get('df_PESQUISA', pd.DataFrame()).copy()
 copy_ei_vendas = st.session_state.get('df_COPY', pd.DataFrame()).copy()
-copy_ei_vendas['Por último, qual sua experiência com investimentos?'] = copy_ei_vendas['Por último, qual sua experiência com investimentos?'].replace({
+copy_ei_vendas['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'] = copy_ei_vendas['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'].replace({
         'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante',
         'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
         'Intermediário. Já invisto, até fiz outros cursos de investimentos, mas sinto que falta alguma coisa.' : 'Intermediário',
@@ -20,7 +20,7 @@ copy_ei_vendas['Por último, qual sua experiência com investimentos?'] = copy_e
 whatsapp_ei_vendas = st.session_state.get('df_GRUPOS', pd.DataFrame()).copy()
 prematricula_ei_vendas = st.session_state.get('df_PREMATRICULA', pd.DataFrame()).copy()
 vendas_ei_vendas = st.session_state.get('df_VENDAS', pd.DataFrame()).copy()
-
+versao_ei = st.session_state.get('versao')
 captura_ei_vendas['Vendas'] = captura_ei_vendas['EMAIL'].isin(vendas_ei_vendas['EMAIL'].str.lower()).astype(int)
 trafego_ei_vendas['Vendas'] = trafego_ei_vendas['EMAIL'].isin(vendas_ei_vendas['EMAIL'].str.lower()).astype(int)
 copy_ei_vendas['Vendas'] = copy_ei_vendas['EMAIL'].isin(vendas_ei_vendas['EMAIL'].str.lower()).astype(int)
@@ -335,71 +335,71 @@ with tab2:
                         'Profissional',
                         'Não Informado'
                         ]
-        fig_xp = plot_taxa_conversao(copy_ei_vendas, 'Por último, qual sua experiência com investimentos?')
+        fig_xp = plot_taxa_conversao(copy_ei_vendas, 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
         st.plotly_chart(fig_xp)
+        if int(versao_ei) >= 20:
+            def plot_taxa_conversao_por_faixa_etaria(dataframe, intervalo=5):
+                """
+                Plota a taxa de conversão por faixa etária.
 
-        def plot_taxa_conversao_por_faixa_etaria(dataframe, intervalo=5):
-            """
-            Plota a taxa de conversão por faixa etária.
+                Parâmetros:
+                - dataframe: pd.DataFrame, o dataframe contendo os dados.
+                - intervalo: int, tamanho dos intervalos de idade (padrão: 5 anos).
 
-            Parâmetros:
-            - dataframe: pd.DataFrame, o dataframe contendo os dados.
-            - intervalo: int, tamanho dos intervalos de idade (padrão: 5 anos).
+                Retorna:
+                - fig: plotly.graph_objects.Figure, o gráfico gerado.
+                """
+                # Remover valores nulos e converter para numérico
+                dataframe = dataframe.dropna(subset=['Qual sua idade?'])
+                dataframe['Qual sua idade?'] = pd.to_numeric(dataframe['Qual sua idade?'], errors='coerce')
+                dataframe = dataframe.dropna(subset=['Qual sua idade?'])
 
-            Retorna:
-            - fig: plotly.graph_objects.Figure, o gráfico gerado.
-            """
-            # Remover valores nulos e converter para numérico
-            dataframe = dataframe.dropna(subset=['Qual sua idade?'])
-            dataframe['Qual sua idade?'] = pd.to_numeric(dataframe['Qual sua idade?'], errors='coerce')
-            dataframe = dataframe.dropna(subset=['Qual sua idade?'])
-
-            # Criar faixas de idade
-            dataframe['Faixa de Idade'] = pd.cut(
-                dataframe['Qual sua idade?'],
-                bins=range(int(dataframe['Qual sua idade?'].min()), int(dataframe['Qual sua idade?'].max()) + intervalo, intervalo),
-                right=False
-            )
-
-            # Calcular a taxa de conversão por faixa etária
-            taxa_conversao = (
-                dataframe.groupby('Faixa de Idade')['Vendas']
-                .mean()
-                .reset_index()
-                .rename(columns={'Vendas': 'Taxa de Conversão'})
-            )
-            taxa_conversao['Taxa de Conversão (%)'] = taxa_conversao['Taxa de Conversão'] * 100
-
-            # Criar o gráfico de barras verticais
-            taxa_conversao['Faixa de Idade'] = taxa_conversao['Faixa de Idade'].astype(str)  # Converter Interval para string
-            fig = px.bar(
-                taxa_conversao,
-                x='Faixa de Idade',
-                y='Taxa de Conversão (%)',
-                title="Taxa de Conversão por Faixa Etária",
-                labels={"Taxa de Conversão (%)": "Taxa de Conversão (%)", "Faixa de Idade": "Idade"}
-            )
-
-            # Adicionar valores acima das barras
-            for i, row in taxa_conversao.iterrows():
-                fig.add_annotation(
-                    x=row['Faixa de Idade'],
-                    y=row['Taxa de Conversão (%)'],
-                    text=f"{row['Taxa de Conversão (%)']:.2f}%",
-                    showarrow=False,
-                    font=dict(size=12),
-                    align='center',
-                    yanchor = 'bottom'
+                # Criar faixas de idade
+                dataframe['Faixa de Idade'] = pd.cut(
+                    dataframe['Qual sua idade?'],
+                    bins=range(int(dataframe['Qual sua idade?'].min()), int(dataframe['Qual sua idade?'].max()) + intervalo, intervalo),
+                    right=False
                 )
 
-            fig.update_layout(
-                xaxis_title="Faixa de Idade",
-                yaxis_title="Taxa de Conversão (%)"
-            )
-            return fig
+                # Calcular a taxa de conversão por faixa etária
+                taxa_conversao = (
+                    dataframe.groupby('Faixa de Idade')['Vendas']
+                    .mean()
+                    .reset_index()
+                    .rename(columns={'Vendas': 'Taxa de Conversão'})
+                )
+                taxa_conversao['Taxa de Conversão (%)'] = taxa_conversao['Taxa de Conversão'] * 100
 
-        fig_histograma_idade = plot_taxa_conversao_por_faixa_etaria(copy_ei_vendas)
-        st.plotly_chart(fig_histograma_idade)
+                # Criar o gráfico de barras verticais
+                taxa_conversao['Faixa de Idade'] = taxa_conversao['Faixa de Idade'].astype(str)  # Converter Interval para string
+                fig = px.bar(
+                    taxa_conversao,
+                    x='Faixa de Idade',
+                    y='Taxa de Conversão (%)',
+                    title="Taxa de Conversão por Faixa Etária",
+                    labels={"Taxa de Conversão (%)": "Taxa de Conversão (%)", "Faixa de Idade": "Idade"}
+                )
+
+                # Adicionar valores acima das barras
+                for i, row in taxa_conversao.iterrows():
+                    fig.add_annotation(
+                        x=row['Faixa de Idade'],
+                        y=row['Taxa de Conversão (%)'],
+                        text=f"{row['Taxa de Conversão (%)']:.2f}%",
+                        showarrow=False,
+                        font=dict(size=12),
+                        align='center',
+                        yanchor = 'bottom'
+                    )
+
+                fig.update_layout(
+                    xaxis_title="Faixa de Idade",
+                    yaxis_title="Taxa de Conversão (%)"
+                )
+                return fig
+
+            fig_histograma_idade = plot_taxa_conversao_por_faixa_etaria(copy_ei_vendas)
+            st.plotly_chart(fig_histograma_idade)
 
 
 st.divider()

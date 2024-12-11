@@ -10,45 +10,46 @@ import seaborn as sns
 import re
 from sklearn.feature_extraction.text import CountVectorizer
 
-st.title('Grupos de Whatsapp')
+st.title('Pré-Matrícula')
 
 captura_ei = st.session_state.get('df_CAPTURA', pd.DataFrame())
 trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
 copy_ei = st.session_state.get('df_COPY', pd.DataFrame())
 whatsapp_ei = st.session_state.get('df_GRUPOS', pd.DataFrame())
 prematricula_ei = st.session_state.get('df_PREMATRICULA', pd.DataFrame())
+versao_ei = st.session_state.get('versao')
 
 # Configurar os filtros com multiselect
-columns_to_filter = ['CAP UTM_TERM', 'CAP UTM_CAMPAIGN', 'CAP UTM_SOURCE', 'CAP UTM_MEDIUM', 'CAP UTM_ADSET']
+columns_to_filter = ['PM UTM_TERM', 'PM UTM_CAMPAIGN', 'PM UTM_SOURCE', 'PM UTM_MEDIUM', 'PM UTM_ADSET']
 
 # Criar os filtros lado a lado
 filters = {}
 col1, col2, col3, col4, col5 = st.columns(len(columns_to_filter))
 
 with col1:
-    unique_terms = list(prematricula_ei['CAP UTM_TERM'].unique())
+    unique_terms = list(prematricula_ei['PM UTM_TERM'].unique())
     unique_terms.insert(0, 'TODOS')
-    filters['CAP UTM_TERM'] = st.multiselect("CAP UTM_TERM", unique_terms, default="TODOS")
+    filters['PM UTM_TERM'] = st.multiselect("PM UTM_TERM", unique_terms, default="TODOS")
 
 with col2:
-    unique_campaigns = list(prematricula_ei['CAP UTM_CAMPAIGN'].unique())
+    unique_campaigns = list(prematricula_ei['PM UTM_CAMPAIGN'].unique())
     unique_campaigns.insert(0, 'TODOS')
-    filters['CAP UTM_CAMPAIGN'] = st.multiselect("CAP UTM_CAMPAIGN", unique_campaigns, default="TODOS")
+    filters['PM UTM_CAMPAIGN'] = st.multiselect("PM UTM_CAMPAIGN", unique_campaigns, default="TODOS")
 
 with col3:
-    unique_sources = list(prematricula_ei['CAP UTM_SOURCE'].unique())
+    unique_sources = list(prematricula_ei['PM UTM_SOURCE'].unique())
     unique_sources.insert(0, 'TODOS')
-    filters['CAP UTM_SOURCE'] = st.multiselect("CAP UTM_SOURCE", unique_sources, default="TODOS")
+    filters['PM UTM_SOURCE'] = st.multiselect("PM UTM_SOURCE", unique_sources, default="TODOS")
 
 with col4:
-    unique_mediums = list(prematricula_ei['CAP UTM_MEDIUM'].unique())
+    unique_mediums = list(prematricula_ei['PM UTM_MEDIUM'].unique())
     unique_mediums.insert(0, 'TODOS')
-    filters['CAP UTM_MEDIUM'] = st.multiselect("CAP UTM_MEDIUM", unique_mediums, default="TODOS")
+    filters['PM UTM_MEDIUM'] = st.multiselect("PM UTM_MEDIUM", unique_mediums, default="TODOS")
 
 with col5:
-    unique_adsets = list(prematricula_ei['CAP UTM_ADSET'].unique())
+    unique_adsets = list(prematricula_ei['PM UTM_ADSET'].unique())
     unique_adsets.insert(0, 'TODOS')
-    filters['CAP UTM_ADSET'] = st.multiselect("CAP UTM_ADSET", unique_adsets, default="TODOS")
+    filters['PM UTM_ADSET'] = st.multiselect("PM UTM_ADSET", unique_adsets, default="TODOS")
     
 
 # Verificar se os filtros estão vazios
@@ -69,9 +70,10 @@ else:
         st.divider()
 
 # Convertendo colunas de data para datetime, se necessário
+filtered_prematricula_ei['PM DATA_CAPTURA'] = pd.to_datetime(filtered_prematricula_ei['PM DATA_CAPTURA'], errors='coerce')
 filtered_prematricula_ei['CAP DATA_CAPTURA'] = pd.to_datetime(filtered_prematricula_ei['CAP DATA_CAPTURA'], errors='coerce')
 
-# Função para criar o gráfico de linhas de CAP DATA_CAPTURA
+# Função para criar o gráfico de linhas de PM DATA_CAPTURA
 @st.cache_data
 def grafico_linhas_cap_data_captura(df, start_date, end_date):
     # Convertendo start_date e end_date para datetime
@@ -79,8 +81,12 @@ def grafico_linhas_cap_data_captura(df, start_date, end_date):
     end_date = pd.to_datetime(end_date)
 
     # Filtrar dados com base no intervalo de tempo
-    filtered_df = df[(df['CAP DATA_CAPTURA'] >= start_date) & (df['CAP DATA_CAPTURA'] <= end_date)]
-    df_grouped = filtered_df['CAP DATA_CAPTURA'].dt.date.value_counts().reset_index()
+    if int(versao_ei) == 20:
+        filtered_df = df[(df['CAP DATA_CAPTURA'] >= start_date) & (df['CAP DATA_CAPTURA'] <= end_date)]
+        df_grouped = filtered_df['CAP DATA_CAPTURA'].dt.date.value_counts().reset_index()
+    else:
+        filtered_df = df[(df['PM DATA_CAPTURA'] >= start_date) & (df['PM DATA_CAPTURA'] <= end_date)]
+        df_grouped = filtered_df['PM DATA_CAPTURA'].dt.date.value_counts().reset_index()
     df_grouped.columns = ['Data', 'Contagem']
     df_grouped.sort_values(by='Data', inplace=True)
 
@@ -106,7 +112,7 @@ def grafico_linhas_cap_data_captura(df, start_date, end_date):
 
     # Combinar os gráficos
     chart = (line_chart + text_chart).properties(
-        title='Gráfico de Linhas - CAP DATA_CAPTURA'
+        title='Gráfico de Linhas - DATA_CAPTURA'
     )
 
     return chart
@@ -114,13 +120,13 @@ def grafico_linhas_cap_data_captura(df, start_date, end_date):
 # Função para criar o gráfico de barras horizontais para UTM_SOURCE
 @st.cache_data
 def grafico_barras_horizontais_utm_source(df):
-    df_grouped = df['CAP UTM_SOURCE'].value_counts().reset_index()
-    df_grouped.columns = ['CAP UTM_SOURCE', 'Contagem']
+    df_grouped = df['PM UTM_SOURCE'].value_counts().reset_index()
+    df_grouped.columns = ['PM UTM_SOURCE', 'Contagem']
 
     chart = alt.Chart(df_grouped).mark_bar(color='lightblue').encode(
         x=alt.X('Contagem:Q', title='Número de Ocorrências'),
-        y=alt.Y('CAP UTM_SOURCE:N', sort='-x', title='Fonte'),
-        tooltip=['CAP UTM_SOURCE', 'Contagem']
+        y=alt.Y('PM UTM_SOURCE:N', sort='-x', title='Fonte'),
+        tooltip=['PM UTM_SOURCE', 'Contagem']
     ).properties(
         title='Gráfico de Barras Horizontais - UTM_SOURCE'
     )
@@ -130,15 +136,15 @@ def grafico_barras_horizontais_utm_source(df):
 @st.cache_data
 def grafico_pizza_utm_medium(df):
     # Agrupar dados por UTM_MEDIUM
-    df_grouped = df['UTM_MEDIUM'].value_counts(normalize=True).reset_index()
-    df_grouped.columns = ['UTM_MEDIUM', 'Proporção']
+    df_grouped = df['PM UTM_MEDIUM'].value_counts(normalize=True).reset_index()
+    df_grouped.columns = ['PM UTM_MEDIUM', 'Proporção']
     df_grouped['Proporção (%)'] = (df_grouped['Proporção'] * 100).round(2)  # Convertendo para porcentagem
 
     # Criar o gráfico de pizza
     chart = alt.Chart(df_grouped).mark_arc().encode(
         theta=alt.Theta(field='Proporção', type='quantitative', title='Proporção'),
-        color=alt.Color(field='UTM_MEDIUM', type='nominal', title='Medium'),
-        tooltip=['UTM_MEDIUM', alt.Tooltip('Proporção (%)', format='.2f')]
+        color=alt.Color(field='PM UTM_MEDIUM', type='nominal', title='Medium'),
+        tooltip=['PM UTM_MEDIUM', alt.Tooltip('Proporção (%)', format='.2f')]
     ).properties(
         title='Gráfico de Pizza - UTM_MEDIUM'
     )
@@ -171,26 +177,26 @@ tab1, tab2 = st.tabs(["Origens","Tráfego"])
 
 with tab1:
     st.subheader('Captação')
+    if int(versao_ei) >= 20:
+        # Preparar os dados para o slider
+        min_date = pd.to_datetime(filtered_prematricula_ei['CAP DATA_CAPTURA'].min()).date()
+        max_date = pd.to_datetime(filtered_prematricula_ei['CAP DATA_CAPTURA'].max()).date()
 
-    # Preparar os dados para o slider
-    min_date = pd.to_datetime(filtered_prematricula_ei['CAP DATA_CAPTURA'].min()).date()
-    max_date = pd.to_datetime(filtered_prematricula_ei['CAP DATA_CAPTURA'].max()).date()
+        # Criar o slider para selecionar o intervalo de tempo
+        start_date, end_date = st.slider(
+            "Selecione o intervalo de tempo:",
+            min_value=min_date,
+            max_value=max_date,
+            value=(min_date, max_date),  # Valores iniciais
+            format="YYYY-MM-DD"
+        )
 
-    # Criar o slider para selecionar o intervalo de tempo
-    start_date, end_date = st.slider(
-        "Selecione o intervalo de tempo:",
-        min_value=min_date,
-        max_value=max_date,
-        value=(min_date, max_date),  # Valores iniciais
-        format="YYYY-MM-DD"
-    )
+        start_date = pd.to_datetime(start_date)
+        end_date = pd.to_datetime(end_date)
 
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date)
-
-    fig = grafico_linhas_cap_data_captura(filtered_prematricula_ei, start_date, end_date)
-    if fig:
-        st.altair_chart(fig, use_container_width=True)
+        fig = grafico_linhas_cap_data_captura(filtered_prematricula_ei, start_date, end_date)
+        if fig:
+            st.altair_chart(fig, use_container_width=True)
 
     st.subheader('Source')
     fig = grafico_barras_horizontais_utm_source(filtered_prematricula_ei)
@@ -233,6 +239,10 @@ with tab2:
             'Acima de R$20.000'
         ]
 
+    if 'PATRIMONIO_y' or 'RENDA MENSAL_y' in filtered_prematricula_ei.columns:
+        filtered_prematricula_ei = filtered_prematricula_ei.rename(columns={"PATRIMONIO_y": "PATRIMONIO"})
+        filtered_prematricula_ei = filtered_prematricula_ei.rename(columns={"RENDA MENSAL_y": "RENDA MENSAL"})
+    
     # Contagem de valores por patrimônio
     patrimonio_counts = filtered_prematricula_ei['PATRIMONIO'].value_counts().reindex(patrimonio_order, fill_value=0).reset_index()
     patrimonio_counts.columns = ['PATRIMONIO', 'count']

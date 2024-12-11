@@ -15,13 +15,14 @@ trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
 copy_ei = st.session_state.get('df_COPY', pd.DataFrame())
 prematricula_ei = st.session_state.get('df_PREMATRICULA', pd.DataFrame())
 vendas_ei = st.session_state.get('df_VENDAS', pd.DataFrame())
+versao_ei = st.session_state.get('versao')
 
 st.title('Pesquisa de Copy')
 st.write('Selecione os filtros abaixo para personalizar a visualização dos dados')
 
 # Data Cleaning
-copy_ei['Qual seu estado civil atual?'] = copy_ei['Qual seu estado civil atual?'].str.lower()
-copy_ei['Qual seu estado civil atual?'] = copy_ei['Qual seu estado civil atual?'].replace({
+copy_ei['Qual sua situação amorosa hoje?'] = copy_ei['Qual sua situação amorosa hoje?'].str.lower()
+copy_ei['Qual sua situação amorosa hoje?'] = copy_ei['Qual sua situação amorosa hoje?'].replace({
     'união estável': 'união estável',
     'união estavel': 'união estável',
     'casada somente no religioso': 'casado(a)',
@@ -68,10 +69,12 @@ investment_experience_filter = col4.multiselect(
     default='TODOS'
 )
 
-# Age range slider
-age_min = int(copy_ei['Qual sua idade?'].min())
-age_max = int(copy_ei['Qual sua idade?'].max())
-age_range = st.slider("Selecione a faixa etária:", min_value=age_min, max_value=age_max, value=(age_min, age_max))
+
+if int(versao_ei) >= 20:
+    # Age range slider
+    age_min = int(copy_ei['Qual sua idade?'].min())
+    age_max = int(copy_ei['Qual sua idade?'].max())
+    age_range = st.slider("Selecione a faixa etária:", min_value=age_min, max_value=age_max, value=(age_min, age_max))
 
 # Mesclar os dataframes com base na coluna Email
 copy_ei = copy_ei.merge(trafego_ei[['EMAIL', 'RENDA MENSAL']], on='EMAIL', how='left')
@@ -84,21 +87,23 @@ if 'TODOS' not in gender_filter:
     filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Qual seu sexo?'].isin(gender_filter)]
 
 if 'TODOS' not in children_filter:
-    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Você tem filhos?'].isin(children_filter)]
+    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Você tem filhos?'].dropna().isin(children_filter)]
 
 if 'TODOS' not in marital_status_filter:
-    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Qual seu estado civil atual?'].isin(marital_status_filter)]
+    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Qual sua situação amorosa hoje?'].isin(marital_status_filter)]
 
 if 'TODOS' not in investment_experience_filter:
     filtered_copy_ei = filtered_copy_ei[
-        filtered_copy_ei['Por último, qual sua experiência com investimentos?']
+        filtered_copy_ei['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?']
         .str.contains('|'.join(investment_experience_filter), na=False)
     ]
 
-filtered_copy_ei = filtered_copy_ei[
-    (filtered_copy_ei['Qual sua idade?'] >= age_range[0]) &
-    (filtered_copy_ei['Qual sua idade?'] <= age_range[1])
-]
+
+if int(versao_ei) >= 20:
+    filtered_copy_ei = filtered_copy_ei[
+        (filtered_copy_ei['Qual sua idade?'] >= age_range[0]) &
+        (filtered_copy_ei['Qual sua idade?'] <= age_range[1])
+    ]
 
 prematricula_filter = st.checkbox("Pré-matrícula")
 
@@ -117,17 +122,47 @@ closed_ended_columns = [
     "Qual seu sexo?", 
     "Você tem filhos?", 
     "Qual sua idade?", 
-    "Qual seu estado civil atual?", 
+    "Qual sua situação amorosa hoje?", 
     "Você já investe seu dinheiro atualmente?", 
     "RENDA MENSAL", 
     "PATRIMONIO"
 ]
 
 # Open-ended response columns: free-text responses
-open_ended_columns = [
-    "Porque você quer a começar a investir?", 
-    "Como você imagina a vida que está buscando?", 
-    "Quais são os principais obstáculos que te impedem de viver essa vida hoje? ", 
+
+if int(versao_ei) == 20:
+    open_ended_columns = [
+        "Por que você quer aprender a investir?", 
+        "Como você imagina a vida que está buscando?", 
+        "Quais são os principais obstáculos que te impedem de viver essa vida hoje? ", 
+        ]
+if int(versao_ei) == 19:
+    open_ended_columns = [
+        'Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?',
+        'O que precisa acontecer para você acreditar que é uma pessoa bem-sucedida?',
+        'Por que você quer aprender a investir?',
+        'O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?'
+        ]
+if int(versao_ei) == 18:
+    open_ended_columns = [
+        'Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?',
+        'O que precisa acontecer para você acreditar que é uma pessoa bem-sucedida?',
+        'Por que você quer aprender a investir?',
+        'O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?'
+    ]
+if int(versao_ei) == 17:
+    open_ended_columns = [
+        'Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?',
+        'O que precisa acontecer para você acreditar que é uma pessoa bem-sucedida?',
+        'Por que você quer aprender a investir?',
+        'O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?'
+    ]
+if int(versao_ei) == 16:
+    open_ended_columns = [
+        'Qual é o maior desafio que você enfrenta hoje para investir melhor o seu dinheiro?',
+        'Como você imagina a sua vida se dinheiro não fosse um problema ou um limitador?',
+        'Por que decidiu participar do Curso Gratuito: Invista em 4 dias?',
+        'Se você tivesse uma hora para conversar pessoalmente comigo (Rufino), qual pergunta sobre investimentos, finanças ou vida, você me faria?'
     ]
 ###############################################################################################################################
 
@@ -139,8 +174,8 @@ copy_ei_cleaned = filtered_copy_ei.fillna('Não Informado')
 copy_ei_cleaned = copy_ei_cleaned.replace('', 'Não Informado')
 
 # Prepare the columns for the new dataframe
-variable_names = copy_ei_cleaned.drop(['Token', 'EMAIL', 'Submitted At', 'Qual seu Whatsapp para receber suporte?'], axis = 1).columns
-num_na_values = (copy_ei_cleaned.drop(['Token', 'EMAIL', 'Submitted At', 'Qual seu Whatsapp para receber suporte?'], axis = 1) == 'Não Informado').sum().reset_index()
+variable_names = copy_ei_cleaned.columns
+num_na_values = (copy_ei_cleaned == 'Não Informado').sum().reset_index()
 proportion_na_values = (num_na_values[0] / total_responses * 100).round(2)
 
 # Create the new dataframe with the required columns
@@ -204,39 +239,40 @@ def graf_sexo():
     plt.tight_layout()
     st.pyplot(plt)
 
-def graf_idade():
-    # Convertendo para valores numéricos, substituindo não numéricos por NaN
-    data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
-    
-    # Removendo valores NaN
-    idade_data = data['Qual sua idade?'].dropna()
-    # Definindo o intervalo de idades e criando os bins que começam em 0 com intervalos de 5 anos
-    idade_max = data['Qual sua idade?'].max()
-    bins = np.arange(0, idade_max + 5, 5)
+if int(versao_ei) >= 20:
+    def graf_idade():
+        # Convertendo para valores numéricos, substituindo não numéricos por NaN
+        data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
+        
+        # Removendo valores NaN
+        idade_data = data['Qual sua idade?'].dropna()
+        # Definindo o intervalo de idades e criando os bins que começam em 0 com intervalos de 5 anos
+        idade_max = data['Qual sua idade?'].max()
+        bins = np.arange(0, idade_max + 5, 5)
 
-    # Calculando média e desvio-padrão
-    media_idade = data['Qual sua idade?'].mean()
-    desvio_padrao = data['Qual sua idade?'].std()
+        # Calculando média e desvio-padrão
+        media_idade = data['Qual sua idade?'].mean()
+        desvio_padrao = data['Qual sua idade?'].std()
 
-    # Plotando o histograma com os novos bins
-    plt.figure(figsize=(15, 6))
-    counts, edges, _ = plt.hist(data['Qual sua idade?'], bins=bins, color='green', edgecolor='black')
+        # Plotando o histograma com os novos bins
+        plt.figure(figsize=(15, 6))
+        counts, edges, _ = plt.hist(data['Qual sua idade?'], bins=bins, color='green', edgecolor='black')
 
-    # Adicionando o valor de cada bin no topo de cada barra
-    for i in range(len(counts)):
-        plt.text((edges[i] + edges[i+1]) / 2, counts[i] + 1, f"{int(counts[i])}", ha='center', va='bottom')
+        # Adicionando o valor de cada bin no topo de cada barra
+        for i in range(len(counts)):
+            plt.text((edges[i] + edges[i+1]) / 2, counts[i] + 1, f"{int(counts[i])}", ha='center', va='bottom')
 
-    # Ajustando as marcas do eixo x para que correspondam aos intervalos de 5 anos
-    plt.xticks(bins, rotation=0)
+        # Ajustando as marcas do eixo x para que correspondam aos intervalos de 5 anos
+        plt.xticks(bins, rotation=0)
 
-    # Adicionando título, legenda e rótulos
-    plt.title('Distribuição da Idade dos Respondentes')
-    plt.xlabel('Idade')
-    plt.ylabel('Frequência')
-    plt.legend()
+        # Adicionando título, legenda e rótulos
+        plt.title('Distribuição da Idade dos Respondentes')
+        plt.xlabel('Idade')
+        plt.ylabel('Frequência')
+        plt.legend()
 
-    # Exibindo o gráfico com valores de média e desvio-padrão no eixo x
-    st.pyplot(plt)
+        # Exibindo o gráfico com valores de média e desvio-padrão no eixo x
+        st.pyplot(plt)
 
 def graf_filhos():
     var = 'Você tem filhos?'
@@ -248,7 +284,7 @@ def graf_filhos():
     titulo = f'{var}'
 
     # Contagem dos valores e reindexação para garantir a ordem
-    variavel_data = data[var].value_counts().reindex(classes_order)
+    variavel_data = data[var].dropna().value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
     # Criando o gráfico
@@ -274,7 +310,7 @@ def graf_filhos():
     st.pyplot(plt)
 
 def graf_civil():
-    var = 'Qual seu estado civil atual?'
+    var = 'Qual sua situação amorosa hoje?'
     classes_order = ['solteiro(a)',
                      'namorando',
                      'casado(a)',
@@ -311,7 +347,7 @@ def graf_civil():
     st.pyplot(plt)
 
 def graf_exp():
-    var = 'Por último, qual sua experiência com investimentos?'
+    var = 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'
     data[var] = data[var].replace({
         'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante',
         'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
@@ -430,46 +466,47 @@ def graf_patrim():
     plt.tight_layout()
     st.pyplot(plt)
 
-def graf_invest():
-    # Access the specified column and transform it into a single string
-    investment_column_string = ' '.join(data['Você já investe seu dinheiro atualmente?'].dropna().astype(str))
-    from collections import Counter
+if int(versao_ei) >= 20:
+    def graf_invest():
+        # Access the specified column and transform it into a single string
+        investment_column_string = ' '.join(data['Você já investe seu dinheiro atualmente?'].dropna().astype(str))
+        from collections import Counter
 
-    # Define the list of investment categories to count in the string
-    investment_classes = [
-        'Ainda não invisto',
-        'Poupança',
-        'Renda Fixa (CDB, Tesouro direto, LCIs, LCAs)',
-        'Renda Variável (Ações, Fundos imobiliários)',
-        'Investimentos estrangeiros (Stocks, ETFs REITs)',
-        'Previdência'
-    ]
+        # Define the list of investment categories to count in the string
+        investment_classes = [
+            'Ainda não invisto',
+            'Poupança',
+            'Renda Fixa (CDB, Tesouro direto, LCIs, LCAs)',
+            'Renda Variável (Ações, Fundos imobiliários)',
+            'Investimentos estrangeiros (Stocks, ETFs REITs)',
+            'Previdência'
+        ]
 
-    # Count occurrences of each category in the single string created earlier
-    investment_counts = {category: investment_column_string.count(category) for category in investment_classes}
+        # Count occurrences of each category in the single string created earlier
+        investment_counts = {category: investment_column_string.count(category) for category in investment_classes}
 
-    # Create a DataFrame from the counts
-    investment_counts_df = pd.DataFrame(list(investment_counts.items()), columns=['Tipo de Investimento', 'Contagem'])
+        # Create a DataFrame from the counts
+        investment_counts_df = pd.DataFrame(list(investment_counts.items()), columns=['Tipo de Investimento', 'Contagem'])
 
-    # Calculate the total count of instances in the original dataframe
-    total_instances = len(data)
+        # Calculate the total count of instances in the original dataframe
+        total_instances = len(data)
 
-    # Generate the horizontal bar chart with values and percentages on top of each bar
-    plt.figure(figsize=(10, 6))
-    bars = plt.barh(investment_counts_df['Tipo de Investimento'], investment_counts_df['Contagem'], color='green',
-                    edgecolor = 'black')
+        # Generate the horizontal bar chart with values and percentages on top of each bar
+        plt.figure(figsize=(10, 6))
+        bars = plt.barh(investment_counts_df['Tipo de Investimento'], investment_counts_df['Contagem'], color='green',
+                        edgecolor = 'black')
 
-    # Add the count and percentage labels to the bars
-    for bar, count in zip(bars, investment_counts_df['Contagem']):
-        percent = (count / total_instances) * 100
-        plt.text(bar.get_width() + 1, bar.get_y() + bar.get_height() / 2, f'{count} ({percent:.1f}%)', va='center')
+        # Add the count and percentage labels to the bars
+        for bar, count in zip(bars, investment_counts_df['Contagem']):
+            percent = (count / total_instances) * 100
+            plt.text(bar.get_width() + 1, bar.get_y() + bar.get_height() / 2, f'{count} ({percent:.1f}%)', va='center')
 
-    # Labeling
-    plt.xlabel('Contagem')
-    plt.title('Frequência de cada Tipo de Investimento com Proporção')
-    plt.gca().invert_yaxis()  # Invert the y-axis for a more intuitive reading order
+        # Labeling
+        plt.xlabel('Contagem')
+        plt.title('Frequência de cada Tipo de Investimento com Proporção')
+        plt.gca().invert_yaxis()  # Invert the y-axis for a more intuitive reading order
 
-    st.pyplot(plt)
+        st.pyplot(plt)
 
 stopwords_portugues = [
     'a', 'à', 'ao', 'aos', 'aquela', 'aquelas', 'aquele', 'aqueles', 'aquilo',
@@ -600,10 +637,12 @@ with tab1:
     with col1:
         graf_sexo()
         graf_civil()
-        graf_idade()
+        if int(versao_ei) >= 20:
+            graf_idade()
     with col2:
         graf_exp()
-        graf_filhos()
+        if int(versao_ei) >= 20:
+            graf_filhos()
 
 # Aba 2: Informações Financeiras
 with tab2:
@@ -611,7 +650,8 @@ with tab2:
     
     col3, col4 = st.columns(2)
     with col3:
-        graf_invest()
+        if int(versao_ei) >= 20:
+            graf_invest()
         graf_patrim()
     with col4:
         graf_renda()
@@ -626,3 +666,4 @@ with tab3:
     
     st.subheader("Principais Bigramas")
     plot_top_bigrams_by_column(data, open_ended_columns)
+

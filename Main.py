@@ -28,7 +28,7 @@ if 'sheets_loaded' in st.session_state:
             st.Page("copy_1.py", title = "👤 Pesquisa de Copy"),
             st.Page("whatsapp.py", title = "📞 Grupos de Whatsapp"),
             st.Page("prematricula.py", title = "✅ Pré-Matrícula"),
-            st.Page("vendas.py", title = "Central de Vendas"),
+            st.Page("vendas.py", title = "💸 Central de Vendas"),
             st.Page("2_Análise Geral Lançamento.py", title=" Análise Geral Lançamento"),
             st.Page("4_Anúncios.py", title="Anuncios"),
             st.Page("3_Desempenho_UTMS.py", title="Desempenho UTMS"),
