@@ -10,14 +10,28 @@ import seaborn as sns
 import re
 from sklearn.feature_extraction.text import CountVectorizer
 
+from libs.data_loader import K_CENTRAL_CAPTURA, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, get_df
+
+# Carregar informações sobre lançamento selecionado
+PRODUTO = st.session_state["PRODUTO"]
+VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+
+# Carregar DataFrames para lançamento selecionado
+DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+whatsapp_entradas = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo']
+whatsapp_saidas = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Saiu do grupo']
+
+#------------------------------------------------------------
+#      INÍCIO DO LAYOUT
+#------------------------------------------------------------
+
+st.caption("CAPTAÇÃO > GRUPOS DE WHATSAPP")
 st.title('Grupos de Whatsapp')
 
-captura_ei = st.session_state.get('df_CAPTURA', pd.DataFrame())
-trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
-copy_ei = st.session_state.get('df_COPY', pd.DataFrame())
-whatsapp_ei = st.session_state.get('df_GRUPOS', pd.DataFrame())
-whatsapp_entradas = whatsapp_ei[whatsapp_ei['Evento'] == 'Entrou no grupo']
-whatsapp_saidas = whatsapp_ei[whatsapp_ei['Evento'] == 'Saiu do grupo']
+#------------------------------------------------------------
+#      01. DUMMY SECTION
+#------------------------------------------------------------
 
 @st.cache_data
 def plot_group_members_per_day_altair(df):
@@ -221,11 +235,11 @@ def calculate_stay_duration_and_plot_histogram(df):
 
     return bars + text
 
-whatsapp_ei['Entry'] = whatsapp_ei['Evento'].str.contains("Entrou", na=False).astype(int)
-whatsapp_ei['Exit'] = whatsapp_ei['Evento'].str.contains("Saiu", na=False).astype(int)
+DF_GRUPOS_WPP['Entry'] = DF_GRUPOS_WPP['Evento'].str.contains("Entrou", na=False).astype(int)
+DF_GRUPOS_WPP['Exit'] = DF_GRUPOS_WPP['Evento'].str.contains("Saiu", na=False).astype(int)
 
 # Group by date and calculate cumulative sums for entries and exits
-daily_activity = whatsapp_ei.groupby(whatsapp_ei['Data'].dt.date)[['Entry', 'Exit']].sum().reset_index()
+daily_activity = DF_GRUPOS_WPP.groupby(DF_GRUPOS_WPP['Data'].dt.date)[['Entry', 'Exit']].sum().reset_index()
 
 # Rename the grouped date column for clarity
 daily_activity.rename(columns={'Data': 'Date'}, inplace=True)
@@ -238,7 +252,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader("Captura")
-    st.metric(label = '', value=f"{captura_ei.shape[0]}")
+    st.metric(label = '', value=f"{DF_CENTRAL_CAPTURA.shape[0]}")
 
 with col2:
     st.subheader("Whatsapp")
@@ -246,7 +260,7 @@ with col2:
 
 with col3:
     st.subheader("Conversão")
-    st.metric(label = '', value=f"{round((whatsapp_entradas.shape[0]/captura_ei.shape[0])*100, 2)}%")
+    st.metric(label = '', value=f"{round((whatsapp_entradas.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%")
 
 st.subheader('Número de pessoas no grupo')
 fig = plot_group_members_per_day_altair(daily_activity)
@@ -269,6 +283,6 @@ if fig:
     st.altair_chart(fig, use_container_width=True)
 
 st.subheader('Distribuição de Tempo de Permanência nos Grupos (em dias)')
-fig = calculate_stay_duration_and_plot_histogram(whatsapp_ei)
+fig = calculate_stay_duration_and_plot_histogram(DF_GRUPOS_WPP)
 if fig:
     st.altair_chart(fig, use_container_width=True)

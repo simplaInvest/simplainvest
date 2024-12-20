@@ -41,8 +41,6 @@ def processa_dados_grupos(df_GRUPOS):
 
     return df_GRUPOS
 
-
-
 # Cacheamento para Gráficos
 @st.cache_data
 def plot_group_members_per_day_altair(df_CONTAGRUPOS):
@@ -129,7 +127,6 @@ def plot_leads_per_day_altair(df_CONTALEADS):
     ).configure(background='rgba(0,0,0,0)')
 
     return chart
-
 
 # Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):

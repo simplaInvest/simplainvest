@@ -10,19 +10,35 @@ import seaborn as sns
 import re
 from sklearn.feature_extraction.text import CountVectorizer
 
-captura_ei = st.session_state.get('df_CAPTURA', pd.DataFrame())
-trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
-copy_ei = st.session_state.get('df_COPY', pd.DataFrame())
-prematricula_ei = st.session_state.get('df_PREMATRICULA', pd.DataFrame())
-vendas_ei = st.session_state.get('df_VENDAS', pd.DataFrame())
-versao_ei = st.session_state.get('versao')
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, get_df
 
+# Carregar informações sobre lançamento selecionado
+PRODUTO = st.session_state["PRODUTO"]
+VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+
+# Carregar DataFrames para lançamento selecionado
+DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+DF_CENTRAL_PREMATRICULA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_PRE_MATRICULA)
+DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
+DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+
+#------------------------------------------------------------
+#      INÍCIO DO LAYOUT
+#------------------------------------------------------------
+
+st.caption("CAPTAÇÃO > PESQUISA DE COPY")
 st.title('Pesquisa de Copy')
+
+#------------------------------------------------------------
+#      01. DUMMY SECTION
+#------------------------------------------------------------
+
 st.write('Selecione os filtros abaixo para personalizar a visualização dos dados')
 
 # Data Cleaning
-copy_ei['Qual sua situação amorosa hoje?'] = copy_ei['Qual sua situação amorosa hoje?'].str.lower()
-copy_ei['Qual sua situação amorosa hoje?'] = copy_ei['Qual sua situação amorosa hoje?'].replace({
+DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].str.lower()
+DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].replace({
     'união estável': 'união estável',
     'união estavel': 'união estável',
     'casada somente no religioso': 'casado(a)',
@@ -36,11 +52,10 @@ copy_ei['Qual sua situação amorosa hoje?'] = copy_ei['Qual sua situação amor
     'viuva': 'viúvo(a)',
     'viúvo': 'viúvo(a)'
 })
-copy_ei['Qual sua idade?'] = pd.to_numeric(copy_ei['Qual sua idade?'], errors='coerce')
-
+DF_PCOPY_DADOS['Qual sua idade?'] = pd.to_numeric(DF_PCOPY_DADOS['Qual sua idade?'], errors='coerce')
 
 gender_options = ['TODOS'] + ['Masculino', 'Feminino', 'Outro']
-children_options = ['TODOS'] + list(copy_ei['Você tem filhos?'].dropna().unique())
+children_options = ['TODOS'] + list(DF_PCOPY_DADOS['Você tem filhos?'].dropna().unique())
 marital_status_options = ['TODOS'] + ['casado(a)', 'solteiro(a)', 'divorciado(a)', 'namorando', 'viúvo(a)']
 investment_experience_options = [
     'TODOS',
@@ -70,52 +85,52 @@ investment_experience_filter = col4.multiselect(
 )
 
 
-if int(versao_ei) >= 20:
+if int(VERSAO_PRINCIPAL) >= 20:
     # Age range slider
-    age_min = int(copy_ei['Qual sua idade?'].min())
-    age_max = int(copy_ei['Qual sua idade?'].max())
+    age_min = int(DF_PCOPY_DADOS['Qual sua idade?'].min())
+    age_max = int(DF_PCOPY_DADOS['Qual sua idade?'].max())
     age_range = st.slider("Selecione a faixa etária:", min_value=age_min, max_value=age_max, value=(age_min, age_max))
 
 # Mesclar os dataframes com base na coluna Email
-copy_ei = copy_ei.merge(trafego_ei[['EMAIL', 'RENDA MENSAL']], on='EMAIL', how='left')
-copy_ei = copy_ei.merge(trafego_ei[['EMAIL', 'PATRIMONIO']], on='EMAIL', how='left')
+DF_PCOPY_DADOS = DF_PCOPY_DADOS.merge(DF_PTRAFEGO_DADOS[['EMAIL', 'RENDA MENSAL']], on='EMAIL', how='left')
+DF_PCOPY_DADOS = DF_PCOPY_DADOS.merge(DF_PTRAFEGO_DADOS[['EMAIL', 'PATRIMONIO']], on='EMAIL', how='left')
 
 # Filtering logic
-filtered_copy_ei = copy_ei.copy()
+filtered_DF_PCOPY_DADOS = DF_PCOPY_DADOS.copy()
 
 if 'TODOS' not in gender_filter:
-    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Qual seu sexo?'].isin(gender_filter)]
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['Qual seu sexo?'].isin(gender_filter)]
 
 if 'TODOS' not in children_filter:
-    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Você tem filhos?'].dropna().isin(children_filter)]
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['Você tem filhos?'].dropna().isin(children_filter)]
 
 if 'TODOS' not in marital_status_filter:
-    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['Qual sua situação amorosa hoje?'].isin(marital_status_filter)]
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].isin(marital_status_filter)]
 
 if 'TODOS' not in investment_experience_filter:
-    filtered_copy_ei = filtered_copy_ei[
-        filtered_copy_ei['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?']
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[
+        filtered_DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?']
         .str.contains('|'.join(investment_experience_filter), na=False)
     ]
 
 
-if int(versao_ei) >= 20:
-    filtered_copy_ei = filtered_copy_ei[
-        (filtered_copy_ei['Qual sua idade?'] >= age_range[0]) &
-        (filtered_copy_ei['Qual sua idade?'] <= age_range[1])
+if int(VERSAO_PRINCIPAL) >= 20:
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[
+        (filtered_DF_PCOPY_DADOS['Qual sua idade?'] >= age_range[0]) &
+        (filtered_DF_PCOPY_DADOS['Qual sua idade?'] <= age_range[1])
     ]
 
 prematricula_filter = st.checkbox("Pré-matrícula")
 
 # Aplicar o filtro de pré-matrícula se a opção estiver marcada
 if prematricula_filter:
-    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['EMAIL'].isin(prematricula_ei['EMAIL'].str.lower())]
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
 
 vendas_filter = st.checkbox("Venda")
 
 # Aplicar o filtro de pré-matrícula se a opção estiver marcada
 if vendas_filter:
-    filtered_copy_ei = filtered_copy_ei[filtered_copy_ei['EMAIL'].isin(vendas_ei['EMAIL'].str.lower())]
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
 
 # Closed-ended response columns: categorical responses or choices
 closed_ended_columns = [
@@ -130,34 +145,34 @@ closed_ended_columns = [
 
 # Open-ended response columns: free-text responses
 
-if int(versao_ei) == 20:
+if int(VERSAO_PRINCIPAL) == 20:
     open_ended_columns = [
         "Por que você quer aprender a investir?", 
         "Como você imagina a vida que está buscando?", 
         "Quais são os principais obstáculos que te impedem de viver essa vida hoje? ", 
         ]
-if int(versao_ei) == 19:
+if int(VERSAO_PRINCIPAL) == 19:
     open_ended_columns = [
         'Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?',
         'O que precisa acontecer para você acreditar que é uma pessoa bem-sucedida?',
         'Por que você quer aprender a investir?',
         'O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?'
         ]
-if int(versao_ei) == 18:
+if int(VERSAO_PRINCIPAL) == 18:
     open_ended_columns = [
         'Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?',
         'O que precisa acontecer para você acreditar que é uma pessoa bem-sucedida?',
         'Por que você quer aprender a investir?',
         'O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?'
     ]
-if int(versao_ei) == 17:
+if int(VERSAO_PRINCIPAL) == 17:
     open_ended_columns = [
         'Qual é a sua maior motivação? O que te faz levantar da cama todos os dias?',
         'O que precisa acontecer para você acreditar que é uma pessoa bem-sucedida?',
         'Por que você quer aprender a investir?',
         'O que precisa acontecer na Semana do Investidor Iniciante pra você dizer que "valeu a pena"?'
     ]
-if int(versao_ei) == 16:
+if int(VERSAO_PRINCIPAL) == 16:
     open_ended_columns = [
         'Qual é o maior desafio que você enfrenta hoje para investir melhor o seu dinheiro?',
         'Como você imagina a sua vida se dinheiro não fosse um problema ou um limitador?',
@@ -168,14 +183,14 @@ if int(versao_ei) == 16:
 
 st.divider()
 
-total_responses = filtered_copy_ei.shape[0]
+total_responses = filtered_DF_PCOPY_DADOS.shape[0]
 
-copy_ei_cleaned = filtered_copy_ei.fillna('Não Informado')
-copy_ei_cleaned = copy_ei_cleaned.replace('', 'Não Informado')
+DF_PCOPY_DADOS_cleaned = filtered_DF_PCOPY_DADOS.fillna('Não Informado')
+DF_PCOPY_DADOS_cleaned = DF_PCOPY_DADOS_cleaned.replace('', 'Não Informado')
 
 # Prepare the columns for the new dataframe
-variable_names = copy_ei_cleaned.columns
-num_na_values = (copy_ei_cleaned == 'Não Informado').sum().reset_index()
+variable_names = DF_PCOPY_DADOS_cleaned.columns
+num_na_values = (DF_PCOPY_DADOS_cleaned == 'Não Informado').sum().reset_index()
 proportion_na_values = (num_na_values[0] / total_responses * 100).round(2)
 
 # Create the new dataframe with the required columns
@@ -192,16 +207,16 @@ with st.container(border=False):
         st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Métricas Gerais</h1>", unsafe_allow_html=True)
         ctcol1, ctcol2, ctcol3= st.columns([1, 1, 1])
         with ctcol1:
-            st.metric("Total de leads CAPTURA:", captura_ei.shape[0])
+            st.metric("Total de leads CAPTURA:", DF_CENTRAL_CAPTURA.shape[0])
         with ctcol2:
-            st.metric("Total de leads que preencheram a pesquisa de copy:", copy_ei_cleaned.shape[0])
+            st.metric("Total de leads que preencheram a pesquisa de copy:", DF_PCOPY_DADOS_cleaned.shape[0])
         with ctcol3:
-            st.metric("Taxa De preenchimento da pesquisa de copy", f"{round((copy_ei_cleaned.shape[0]/captura_ei.shape[0])*100, 2)}%")
+            st.metric("Taxa De preenchimento da pesquisa de copy", f"{round((DF_PCOPY_DADOS_cleaned.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%")
 st.divider()
 
 st.header('Gráficos')
 
-data = copy_ei_cleaned
+data = DF_PCOPY_DADOS_cleaned
 
 def graf_sexo():
     var = 'Qual seu sexo?'
@@ -239,7 +254,7 @@ def graf_sexo():
     plt.tight_layout()
     st.pyplot(plt)
 
-if int(versao_ei) >= 20:
+if int(VERSAO_PRINCIPAL) >= 20:
     def graf_idade():
         # Convertendo para valores numéricos, substituindo não numéricos por NaN
         data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
@@ -466,7 +481,7 @@ def graf_patrim():
     plt.tight_layout()
     st.pyplot(plt)
 
-if int(versao_ei) >= 20:
+if int(VERSAO_PRINCIPAL) >= 20:
     def graf_invest():
         # Access the specified column and transform it into a single string
         investment_column_string = ' '.join(data['Você já investe seu dinheiro atualmente?'].dropna().astype(str))
@@ -637,11 +652,11 @@ with tab1:
     with col1:
         graf_sexo()
         graf_civil()
-        if int(versao_ei) >= 20:
+        if int(VERSAO_PRINCIPAL) >= 20:
             graf_idade()
     with col2:
         graf_exp()
-        if int(versao_ei) >= 20:
+        if int(VERSAO_PRINCIPAL) >= 20:
             graf_filhos()
 
 # Aba 2: Informações Financeiras
@@ -650,7 +665,7 @@ with tab2:
     
     col3, col4 = st.columns(2)
     with col3:
-        if int(versao_ei) >= 20:
+        if int(VERSAO_PRINCIPAL) >= 20:
             graf_invest()
         graf_patrim()
     with col4:

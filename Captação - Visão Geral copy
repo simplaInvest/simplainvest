@@ -211,30 +211,38 @@ def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
     )
     return fig
 
-st.title('Captação - Visão Geral')
-st.divider()
 
-# Layout em quatro colunas
-col1, col2, col3, col4 = st.columns(4)
+#____________________________
 
-with col1:
-    st.subheader("Captura")
-    st.metric(label="Total", value=f"{captura_ei.shape[0]}")
+#      COMEÇO DO LAYOUT
+#____________________________
 
-with col2:
-    st.subheader("Tráfego")
-    st.metric(label="Total", value=f"{trafego_ei.shape[0]}")
-    st.metric(label="Conversão", value=f"{round(trafego_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
 
-with col3:
-    st.subheader("Copy")
-    st.metric(label="Total", value=f"{copy_ei.shape[0]}")
-    st.metric(label="Conversão", value=f"{round(copy_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
+st.subheader("CAPTAÇÃO")
+st.title('Visão Geral')
 
-with col4:
-    st.subheader("WhatsApp")
-    st.metric(label="Total", value=f"{whatsapp_ei.shape[0]}")
-    st.metric(label="Conversão", value=f"{round(whatsapp_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
+# 01 - KEY METRICS
+with st.container(border=True):
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.subheader("Captura")
+        st.metric(label="Total", value=f"{captura_ei.shape[0]}")
+
+    with col2:
+        st.subheader("Tráfego")
+        st.metric(label="Total", value=f"{trafego_ei.shape[0]}")
+        st.metric(label="Conversão", value=f"{round(trafego_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
+
+    with col3:
+        st.subheader("Copy")
+        st.metric(label="Total", value=f"{copy_ei.shape[0]}")
+        st.metric(label="Conversão", value=f"{round(copy_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
+
+    with col4:
+        st.subheader("WhatsApp")
+        st.metric(label="Total", value=f"{whatsapp_ei.shape[0]}")
+        st.metric(label="Conversão", value=f"{round(whatsapp_ei.shape[0]/captura_ei.shape[0] * 100, 2)}%", delta="")
 
 st.divider()
 
