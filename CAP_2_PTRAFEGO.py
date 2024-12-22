@@ -67,9 +67,12 @@ with cols_filters[4]:
     unique_adsets.insert(0, 'TODOS')
     filters['UTM_ADSET'] = st.multiselect("**Conjuntos** *(utm_adset)*", unique_adsets, default="TODOS")
 
+#------------------------------------------------------------
+#      02. RESUMO
+#------------------------------------------------------------
+
 # Filtrar os dados com base nos filtros selecionados
 filtered_DF_PTRAFEGO_DADOS = DF_PTRAFEGO_DADOS.copy()
-
 
 for column, selected_values in filters.items():
     if "TODOS" not in selected_values:
@@ -81,73 +84,82 @@ if filtered_DF_PTRAFEGO_DADOS.empty:
 else:
     st.divider()
 
-    # Métrica de total de respostas
-    col1, col2 = st.columns(2)
-    with col1:
+    # 02.A: FILTROS POR ETAPA
+    cols_resumo = st.columns(3)
+    with cols_resumo[0]:
+        options = ["Captação", "Pré-matrícula", "Vendas"]
+        filters_etapas = st.segmented_control(
+            label="Filtros por etapa:", options=options, selection_mode="multi", default=["Captação"]
+        )
+        if filters_etapas is not None:
+            if "Captação" in filters_etapas:
+                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_CAPTURA['EMAIL'].str.lower())]
+            if "Pré-matrícula" in filters_etapas:
+                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
+            if "Vendas" in filters_etapas:
+                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
+    
+    # 02.B: MÉTRICAS PRINCIPAIS
+    with cols_resumo[1]:
         st.metric(
             label="Respostas da pesquisa:",
             value=f"{filtered_DF_PTRAFEGO_DADOS.shape[0]}  ({round((filtered_DF_PTRAFEGO_DADOS.shape[0] / DF_CENTRAL_CAPTURA.shape[0]) * 100, 2)}%)"
         )
 
-    # Selectbox e métrica condicionada
+    # 02.C: MÉTRICAS PRINCIPAIS
     patrimonio_options = [
-        'Mais de 5 mil',
-        'Mais de 20 mil',
-        'Mais de 100 mil',
-        'Mais de 250 mil',
-        'Mais de 500 mil',
-        'Mais de 1 milhão'
+        'Acima de 5 mil',
+        'Acima de 20 mil',
+        'Acima de 100 mil',
+        'Acima de 250 mil',
+        'Acima de 500 mil',
+        'Acima de 1 milhão'
     ]
-
     patrimonio_mapping = {
-        'Mais de 5 mil': ['Entre R$5 mil e R$20 mil',
+        'Acima de 5 mil': ['Entre R$5 mil e R$20 mil',
                             'Entre R$20 mil e R$100 mil',
                             'Entre R$100 mil e R$250 mil',
                             'Entre R$250 mil e R$500 mil',
                             'Entre R$500 mil e R$1 milhão',
                             'Acima de R$1 milhão'],
-        'Mais de 20 mil': ['Entre R$20 mil e R$100 mil',
+        'Acima de 20 mil': ['Entre R$20 mil e R$100 mil',
                             'Entre R$100 mil e R$250 mil',
                             'Entre R$250 mil e R$500 mil',
                             'Entre R$500 mil e R$1 milhão',
                             'Acima de R$1 milhão'],
-        'Mais de 100 mil': ['Entre R$100 mil e R$250 mil',
+        'Acima de 100 mil': ['Entre R$100 mil e R$250 mil',
                             'Entre R$250 mil e R$500 mil',
                             'Entre R$500 mil e R$1 milhão',
                             'Acima de R$1 milhão'],
-        'Mais de 250 mil': ['Entre R$250 mil e R$500 mil',
+        'Acima de 250 mil': ['Entre R$250 mil e R$500 mil',
                             'Entre R$500 mil e R$1 milhão',
                             'Acima de R$1 milhão'],
-        'Mais de 500 mil': ['Entre R$500 mil e R$1 milhão',
+        'Acima de 500 mil': ['Entre R$500 mil e R$1 milhão',
                             'Acima de R$1 milhão'],
-        'Mais de 1 milhão': ['Acima de R$1 milhão']
+        'Acima de 1 milhão': ['Acima de R$1 milhão']
     }
 
-    with col2:
-        selected_patrimonio = st.selectbox("Selecione o intervalo de patrimônio:", patrimonio_options)
-        patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
-            filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])
-        ]
-        st.metric(
-            label=f'Patrimônio {selected_patrimonio}:',
-            value=f"{patrimonio_acima_selecionado.shape[0]}  "
-                    f"({round((patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2)}%)"
-        )
+    with cols_resumo[2]:
+        cols_patrimonio_selector = st.columns(2)
+        with cols_patrimonio_selector[0]:
+            selected_patrimonio = st.selectbox("Selecione o intervalo de patrimônio:", patrimonio_options)
+            patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+                filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])
+            ]
+        with cols_patrimonio_selector[1]:
+            st.metric(
+                label=f'{selected_patrimonio}:',
+                value=f"{patrimonio_acima_selecionado.shape[0]}  "
+                        f"({round((patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+            )
 
-    prematricula_filter = st.checkbox("Pré-matrícula")
+st.divider()
 
-    # Aplicar o filtro de pré-matrícula se a opção estiver marcada
-    if prematricula_filter:
-        filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
+#------------------------------------------------------------
+#      03. GRÁFICOS DE BARRAS & DATAFRAME
+#------------------------------------------------------------
 
-    vendas_filter = st.checkbox("Venda")
-
-    # Aplicar o filtro de pré-matrícula se a opção estiver marcada
-    if vendas_filter:
-        filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
-
-    st.divider()
-
+# DEFINE ORDEM DAS FAIXAS
 patrimonio_order = [
         'Menos de R$5 mil',
         'Entre R$5 mil e R$20 mil',
@@ -157,7 +169,6 @@ patrimonio_order = [
         'Entre R$500 mil e R$1 milhão',
         'Acima de R$1 milhão'
     ]
-
 renda_order = [
         'Menos de R$1.500',
         'Entre R$1.500 e R$2.500',
@@ -167,70 +178,94 @@ renda_order = [
         'Acima de R$20.000'
     ]
 
-# Contagem de valores por patrimônio
-patrimonio_counts = filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].value_counts().reindex(patrimonio_order, fill_value=0).reset_index()
-patrimonio_counts.columns = ['PATRIMONIO', 'count']
+# CRIA GRÁFICO DE DISTRIBUIÇÃO EM BARRA HORIZONTAL
+def create_distribution_chart(data, category_col, order_list, color='lightblue', title=''):
+    # Create counts DataFrame
+    counts_df = data[category_col].value_counts().reindex(order_list, fill_value=0).reset_index()
+    counts_df.columns = [category_col, 'count']
+    
+    # Calculate percentages
+    total = counts_df['count'].sum()
+    counts_df['percentage'] = (counts_df['count'] / total * 100).round(1)
+    counts_df['label'] = counts_df.apply(
+        lambda x: f"{int(x['count'])} ({x['percentage']:.1f}%)", axis=1
+    )
+    
+    # Create bar chart
+    base_chart = alt.Chart(counts_df).mark_bar(color=color).encode(
+        y=alt.Y(f'{category_col}:N', sort=order_list, title=''),
+        x=alt.X('count:Q', title='Quantidade de Pessoas'),
+        tooltip=[f'{category_col}:N', 'count:Q', 'percentage:Q']
+    ).properties(
+        width=600,
+        height=400,
+        title=title
+    )
+    
+    # Add text labels
+    text_chart = base_chart.mark_text(
+        align='left',
+        baseline='middle',
+        color=color,
+        dx=3
+    ).encode(
+        text=alt.Text('label:N')
+    )
+    
+    return base_chart + text_chart, counts_df
 
-# Criar gráfico de barras horizontais para patrimônio
-patrimonio_chart = alt.Chart(patrimonio_counts).mark_bar().encode(
-    y=alt.Y('PATRIMONIO:N', sort=patrimonio_order, title='Faixa de Patrimônio'),
-    x=alt.X('count:Q', title='Quantidade de Pessoas'),
-    tooltip=['PATRIMONIO:N', 'count:Q']
-).properties(
-    title='Distribuição por Patrimônio',
-    width=600,
-    height=400
-)
-
-# Adicionar os valores ao lado das barras
-patrimonio_text = alt.Chart(patrimonio_counts).mark_text(
-    align='left',
-    baseline='middle',
-    color = 'lightblue',
-    dx=3  # deslocamento horizontal
-).encode(
-    y=alt.Y('PATRIMONIO:N', sort=patrimonio_order),
-    x=alt.X('count:Q'),
-    text=alt.Text('count:Q')
-)
-
-# Combinar o gráfico e os valores
-final_patrimonio_chart = patrimonio_chart + patrimonio_text
-
-# Contagem de valores por renda mensal
-renda_counts = filtered_DF_PTRAFEGO_DADOS['RENDA MENSAL'].value_counts().reindex(renda_order, fill_value=0).reset_index()
-renda_counts.columns = ['RENDA MENSAL', 'count']
-
-# Criar gráfico de barras horizontais para renda
-renda_chart = alt.Chart(renda_counts).mark_bar(color='lightgreen').encode(
-    y=alt.Y('RENDA MENSAL:N', sort=renda_order, title='Faixa de Renda Mensal'),
-    x=alt.X('count:Q', title='Quantidade de Pessoas'),
-    tooltip=['RENDA MENSAL:N', 'count:Q']
-).properties(
-    title='Distribuição por Renda Mensal',
-    width=600,
-    height=400
-)
-
-# Adicionar os valores ao lado das barras
-renda_text = alt.Chart(renda_counts).mark_text(
-    align='left',
-    baseline='middle',
-    color = 'lightgreen',
-    dx=3  # deslocamento horizontal
-).encode(
-    y=alt.Y('RENDA MENSAL:N', sort=renda_order),
-    x=alt.X('count:Q'),
-    text=alt.Text('count:Q')
-)
-
-# Combinar o gráfico e os valores
-final_renda_chart = renda_chart + renda_text
+# CONFIGURAÇÕES DOS GRÁFICOS
+CHART_CONFIG = {
+    'patrimonio': {
+        'column': 'PATRIMONIO',
+        'color': 'lightblue',
+        'title': '',
+        'display_name': 'Patrimônio'
+    },
+    'renda': {
+        'column': 'RENDA MENSAL',
+        'color': 'lightgreen',
+        'title': '',
+        'display_name': 'Renda'
+    }
+}
 
 col1, col2 = st.columns(2)
+
+# 03.A: PATRIMÔNIO
 with col1:
-    final_patrimonio_chart
-    st.dataframe(filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].value_counts().reindex(patrimonio_order), use_container_width = True)
+    st.subheader("Patrimônio")
+    patrimonio_chart, patrimonio_df = create_distribution_chart(
+        filtered_DF_PTRAFEGO_DADOS,
+        CHART_CONFIG['patrimonio']['column'],
+        patrimonio_order,
+        CHART_CONFIG['patrimonio']['color'],
+        CHART_CONFIG['patrimonio']['title']
+    )
+    st.altair_chart(patrimonio_chart)
+    st.dataframe(
+        patrimonio_df[['PATRIMONIO', 'count']].rename(
+            columns={'PATRIMONIO': 'Patrimônio', 'count': 'Quantidade'}
+        ),
+        use_container_width=True,
+        hide_index=True
+    )
+
+# 03.B: RENDA MENSAL
 with col2:
-    final_renda_chart 
-    st.dataframe(filtered_DF_PTRAFEGO_DADOS['RENDA MENSAL'].value_counts().reindex(renda_order), use_container_width = True)
+    st.subheader("Renda mensal")
+    renda_chart, renda_df = create_distribution_chart(
+        filtered_DF_PTRAFEGO_DADOS,
+        CHART_CONFIG['renda']['column'],
+        renda_order,
+        CHART_CONFIG['renda']['color'],
+        CHART_CONFIG['renda']['title']
+    )
+    renda_chart
+    st.dataframe(
+        renda_df[['RENDA MENSAL', 'count']].rename(
+            columns={'RENDA MENSAL': 'Renda mensal', 'count': 'Quantidade'}
+        ),
+        use_container_width=True,
+        hide_index=True
+    )
