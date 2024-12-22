@@ -16,7 +16,7 @@ with st.container(border=True):
     with cols[0]:
         PRODUTO = st.radio('Produto', ['Eu Investidor', 'Simpla Club'], horizontal=True)
     with cols[1]:
-        VERSAO_PRINCIPAL = st.selectbox('Versão', list(range(1, 31)))
+        VERSAO_PRINCIPAL = st.selectbox('Versão', list(reversed(range(1, 22))))
 
     if st.button('Continuar', use_container_width=True):
         if PRODUTO is not None and VERSAO_PRINCIPAL is not None:
