@@ -10,14 +10,31 @@ import seaborn as sns
 import re
 from sklearn.feature_extraction.text import CountVectorizer
 
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, get_df
+
+# Carregar informações sobre lançamento selecionado
+PRODUTO = st.session_state["PRODUTO"]
+VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+
+# Carregar DataFrames para lançamento selecionado
+DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+DF_CENTRAL_PREMATRICULA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_PRE_MATRICULA)
+DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
+DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+
+#------------------------------------------------------------
+#      INÍCIO DO LAYOUT
+#------------------------------------------------------------
+
+st.caption("CAPTAÇÃO > PRÉ-MATRÍCULA")
 st.title('Pré-Matrícula')
 
-captura_ei = st.session_state.get('df_CAPTURA', pd.DataFrame())
-trafego_ei = st.session_state.get('df_PESQUISA', pd.DataFrame())
-copy_ei = st.session_state.get('df_COPY', pd.DataFrame())
-whatsapp_ei = st.session_state.get('df_GRUPOS', pd.DataFrame())
-prematricula_ei = st.session_state.get('df_PREMATRICULA', pd.DataFrame())
-versao_ei = st.session_state.get('versao')
+
+#------------------------------------------------------------
+#      01. FILTROS
+#------------------------------------------------------------
 
 # Configurar os filtros com multiselect
 columns_to_filter = ['PM UTM_TERM', 'PM UTM_CAMPAIGN', 'PM UTM_SOURCE', 'PM UTM_MEDIUM', 'PM UTM_ADSET']
@@ -27,51 +44,51 @@ filters = {}
 col1, col2, col3, col4, col5 = st.columns(len(columns_to_filter))
 
 with col1:
-    unique_terms = list(prematricula_ei['PM UTM_TERM'].unique())
+    unique_terms = list(DF_CENTRAL_PREMATRICULA['PM UTM_TERM'].unique())
     unique_terms.insert(0, 'TODOS')
     filters['PM UTM_TERM'] = st.multiselect("PM UTM_TERM", unique_terms, default="TODOS")
 
 with col2:
-    unique_campaigns = list(prematricula_ei['PM UTM_CAMPAIGN'].unique())
+    unique_campaigns = list(DF_CENTRAL_PREMATRICULA['PM UTM_CAMPAIGN'].unique())
     unique_campaigns.insert(0, 'TODOS')
     filters['PM UTM_CAMPAIGN'] = st.multiselect("PM UTM_CAMPAIGN", unique_campaigns, default="TODOS")
 
 with col3:
-    unique_sources = list(prematricula_ei['PM UTM_SOURCE'].unique())
+    unique_sources = list(DF_CENTRAL_PREMATRICULA['PM UTM_SOURCE'].unique())
     unique_sources.insert(0, 'TODOS')
     filters['PM UTM_SOURCE'] = st.multiselect("PM UTM_SOURCE", unique_sources, default="TODOS")
 
 with col4:
-    unique_mediums = list(prematricula_ei['PM UTM_MEDIUM'].unique())
+    unique_mediums = list(DF_CENTRAL_PREMATRICULA['PM UTM_MEDIUM'].unique())
     unique_mediums.insert(0, 'TODOS')
     filters['PM UTM_MEDIUM'] = st.multiselect("PM UTM_MEDIUM", unique_mediums, default="TODOS")
 
 with col5:
-    unique_adsets = list(prematricula_ei['PM UTM_ADSET'].unique())
+    unique_adsets = list(DF_CENTRAL_PREMATRICULA['PM UTM_ADSET'].unique())
     unique_adsets.insert(0, 'TODOS')
     filters['PM UTM_ADSET'] = st.multiselect("PM UTM_ADSET", unique_adsets, default="TODOS")
     
 
 # Verificar se os filtros estão vazios
-if prematricula_ei.empty:
+if DF_CENTRAL_PREMATRICULA.empty:
     st.warning("Selecione um filtro para visualizar os dados.")
 else:
     # Filtrar os dados com base nos filtros selecionados
-    filtered_prematricula_ei = prematricula_ei.copy()
+    filtered_DF_CENTRAL_PREMATRICULA = DF_CENTRAL_PREMATRICULA.copy()
 
     for column, selected_values in filters.items():
         if "TODOS" not in selected_values:
-            filtered_prematricula_ei = filtered_prematricula_ei[filtered_prematricula_ei[column].isin(selected_values)]
+            filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA[column].isin(selected_values)]
 
     # Verificar se o DataFrame filtrado está vazio
-    if filtered_prematricula_ei.empty:
+    if filtered_DF_CENTRAL_PREMATRICULA.empty:
         st.warning("Nenhum dado encontrado com os filtros selecionados.")
     else:
         st.divider()
 
 # Convertendo colunas de data para datetime, se necessário
-filtered_prematricula_ei['PM DATA_CAPTURA'] = pd.to_datetime(filtered_prematricula_ei['PM DATA_CAPTURA'], errors='coerce')
-filtered_prematricula_ei['CAP DATA_CAPTURA'] = pd.to_datetime(filtered_prematricula_ei['CAP DATA_CAPTURA'], errors='coerce')
+filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'] = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'], errors='coerce')
+filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'] = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'], errors='coerce')
 
 # Função para criar o gráfico de linhas de PM DATA_CAPTURA
 @st.cache_data
@@ -81,7 +98,7 @@ def grafico_linhas_cap_data_captura(df, start_date, end_date):
     end_date = pd.to_datetime(end_date)
 
     # Filtrar dados com base no intervalo de tempo
-    if int(versao_ei) == 20:
+    if int(VERSAO_PRINCIPAL) == 20:
         filtered_df = df[(df['CAP DATA_CAPTURA'] >= start_date) & (df['CAP DATA_CAPTURA'] <= end_date)]
         df_grouped = filtered_df['CAP DATA_CAPTURA'].dt.date.value_counts().reset_index()
     else:
@@ -152,24 +169,24 @@ def grafico_pizza_utm_medium(df):
     return chart
 
 # dataframes com os que responderam às pesquisa de trafego e copy
-pm_traf = filtered_prematricula_ei[filtered_prematricula_ei['EMAIL'].isin(trafego_ei['EMAIL'])]
-pm_copy = filtered_prematricula_ei[filtered_prematricula_ei['EMAIL'].isin(copy_ei['EMAIL'])]
+pm_traf = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PTRAFEGO_DADOS['EMAIL'])]
+pm_copy = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PCOPY_DADOS['EMAIL'])]
 
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric(label="Total", value=filtered_prematricula_ei.shape[0])
+    st.metric(label="Total", value=filtered_DF_CENTRAL_PREMATRICULA.shape[0])
     st.metric(label = "Com pesquisa", value = pm_traf.shape[0])
     st.metric(label= 'Com copy', value = pm_copy.shape[0])
 
 with col2:
-    st.metric(label='Conversão', value = round((filtered_prematricula_ei.shape[0]/captura_ei.shape[0])*100, 2))
-    st.metric(label='Proporção em relação ao total de pré-matrículas', value = round((pm_traf.shape[0]/prematricula_ei.shape[0])*100, 2))
-    st.metric(label='Proporção em relação ao total de pré-matrículas', value = round((pm_copy.shape[0]/prematricula_ei.shape[0])*100, 2))
+    st.metric(label='Conversão', value = round((filtered_DF_CENTRAL_PREMATRICULA.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2))
+    st.metric(label='Proporção em relação ao total de pré-matrículas', value = round((pm_traf.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2))
+    st.metric(label='Proporção em relação ao total de pré-matrículas', value = round((pm_copy.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2))
 
 with col3:
-    st.metric(label='Proporção do filtro em relação ao total', value = round((filtered_prematricula_ei.shape[0]/prematricula_ei.shape[0])*100, 2))
+    st.metric(label='Proporção do filtro em relação ao total', value = round((filtered_DF_CENTRAL_PREMATRICULA.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2))
 
 st.divider()
 
@@ -177,10 +194,10 @@ tab1, tab2 = st.tabs(["Origens","Tráfego"])
 
 with tab1:
     st.subheader('Captação')
-    if int(versao_ei) >= 20:
+    if int(VERSAO_PRINCIPAL) >= 20:
         # Preparar os dados para o slider
-        min_date = pd.to_datetime(filtered_prematricula_ei['CAP DATA_CAPTURA'].min()).date()
-        max_date = pd.to_datetime(filtered_prematricula_ei['CAP DATA_CAPTURA'].max()).date()
+        min_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'].min()).date()
+        max_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'].max()).date()
 
         # Criar o slider para selecionar o intervalo de tempo
         start_date, end_date = st.slider(
@@ -194,27 +211,27 @@ with tab1:
         start_date = pd.to_datetime(start_date)
         end_date = pd.to_datetime(end_date)
 
-        fig = grafico_linhas_cap_data_captura(filtered_prematricula_ei, start_date, end_date)
+        fig = grafico_linhas_cap_data_captura(filtered_DF_CENTRAL_PREMATRICULA, start_date, end_date)
         if fig:
             st.altair_chart(fig, use_container_width=True)
 
     st.subheader('Source')
-    fig = grafico_barras_horizontais_utm_source(filtered_prematricula_ei)
+    fig = grafico_barras_horizontais_utm_source(filtered_DF_CENTRAL_PREMATRICULA)
     if fig:
         st.altair_chart(fig, use_container_width=True)
 
     st.subheader('Medium')
-    fig = grafico_pizza_utm_medium(filtered_prematricula_ei)
+    fig = grafico_pizza_utm_medium(filtered_DF_CENTRAL_PREMATRICULA)
     if fig:
         st.altair_chart(fig, use_container_width=True)
 
 with tab2:
-    filtered_prematricula_ei['EMAIL'] = filtered_prematricula_ei['EMAIL'].str.lower()
-    trafego_ei['EMAIL'] = trafego_ei['EMAIL'].str.lower()
+    filtered_DF_CENTRAL_PREMATRICULA['EMAIL'] = filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower()
+    DF_PTRAFEGO_DADOS['EMAIL'] = DF_PTRAFEGO_DADOS['EMAIL'].str.lower()
 
     # Realizar o merge com base na coluna de EMAIL
-    filtered_prematricula_ei = filtered_prematricula_ei.merge(
-        trafego_ei[['EMAIL', 'RENDA MENSAL', 'PATRIMONIO']],  # Colunas para juntar
+    filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA.merge(
+        DF_PTRAFEGO_DADOS[['EMAIL', 'RENDA MENSAL', 'PATRIMONIO']],  # Colunas para juntar
         left_on='EMAIL',  # Coluna no dataframe base
         right_on='EMAIL',  # Coluna no dataframe de origem
         how='left'  # Merge à esquerda para manter todas as linhas do dataframe base
@@ -239,12 +256,12 @@ with tab2:
             'Acima de R$20.000'
         ]
 
-    if 'PATRIMONIO_y' or 'RENDA MENSAL_y' in filtered_prematricula_ei.columns:
-        filtered_prematricula_ei = filtered_prematricula_ei.rename(columns={"PATRIMONIO_y": "PATRIMONIO"})
-        filtered_prematricula_ei = filtered_prematricula_ei.rename(columns={"RENDA MENSAL_y": "RENDA MENSAL"})
+    if 'PATRIMONIO_y' or 'RENDA MENSAL_y' in filtered_DF_CENTRAL_PREMATRICULA.columns:
+        filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA.rename(columns={"PATRIMONIO_y": "PATRIMONIO"})
+        filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA.rename(columns={"RENDA MENSAL_y": "RENDA MENSAL"})
     
     # Contagem de valores por patrimônio
-    patrimonio_counts = filtered_prematricula_ei['PATRIMONIO'].value_counts().reindex(patrimonio_order, fill_value=0).reset_index()
+    patrimonio_counts = filtered_DF_CENTRAL_PREMATRICULA['PATRIMONIO'].value_counts().reindex(patrimonio_order, fill_value=0).reset_index()
     patrimonio_counts.columns = ['PATRIMONIO', 'count']
 
     # Criar gráfico de barras horizontais para patrimônio
@@ -274,7 +291,7 @@ with tab2:
     final_patrimonio_chart = patrimonio_chart + patrimonio_text
 
     # Contagem de valores por renda mensal
-    renda_counts = filtered_prematricula_ei['RENDA MENSAL'].value_counts().reindex(renda_order, fill_value=0).reset_index()
+    renda_counts = filtered_DF_CENTRAL_PREMATRICULA['RENDA MENSAL'].value_counts().reindex(renda_order, fill_value=0).reset_index()
     renda_counts.columns = ['RENDA MENSAL', 'count']
 
     # Criar gráfico de barras horizontais para renda
@@ -306,9 +323,9 @@ with tab2:
     col1, col2 = st.columns(2)
     with col1:
         final_patrimonio_chart
-        st.dataframe(filtered_prematricula_ei['PATRIMONIO'].value_counts().reindex(patrimonio_order), use_container_width = True)
+        st.dataframe(filtered_DF_CENTRAL_PREMATRICULA['PATRIMONIO'].value_counts().reindex(patrimonio_order), use_container_width = True)
     with col2:
         final_renda_chart 
-        st.dataframe(filtered_prematricula_ei['RENDA MENSAL'].value_counts().reindex(renda_order), use_container_width = True)
+        st.dataframe(filtered_DF_CENTRAL_PREMATRICULA['RENDA MENSAL'].value_counts().reindex(renda_order), use_container_width = True)
 
 

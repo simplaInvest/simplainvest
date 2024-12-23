@@ -108,6 +108,7 @@ else:
 
     # 02.C: MÉTRICAS PRINCIPAIS
     patrimonio_options = [
+        'Todos',
         'Acima de 5 mil',
         'Acima de 20 mil',
         'Acima de 100 mil',
@@ -116,6 +117,13 @@ else:
         'Acima de 1 milhão'
     ]
     patrimonio_mapping = {
+        'Todos': [  'Menos de R$5 mil',
+                    'Entre R$5 mil e R$20 mil',
+                    'Entre R$20 mil e R$100 mil',
+                    'Entre R$100 mil e R$250 mil',
+                    'Entre R$250 mil e R$500 mil',
+                    'Entre R$500 mil e R$1 milhão',
+                    'Acima de R$1 milhão'],
         'Acima de 5 mil': ['Entre R$5 mil e R$20 mil',
                             'Entre R$20 mil e R$100 mil',
                             'Entre R$100 mil e R$250 mil',
@@ -139,6 +147,38 @@ else:
         'Acima de 1 milhão': ['Acima de R$1 milhão']
     }
 
+    renda_options = [
+            'Todos',
+            'Acima de R$1.500',
+            'Acima de R$2.500',
+            'Acima de R$5.000',
+            'Acima de R$10.000',
+            'Acima de R$20.000'
+        ]
+    renda_mapping = {
+            'Todos': ['Até R$1.500',
+                        'Entre R$1.500 e R$2.500',
+                        'Entre R$2.500 e R$5.000',
+                        'Entre R$5.000 e R$10.000',
+                        'Entre R$10.000 e R$20.000',
+                        'Acima de R$20.000'],
+            'Acima de R$1.500': ['Entre R$1.500 e R$2.500',
+                                'Entre R$2.500 e R$5.000',
+                                'Entre R$5.000 e R$10.000',
+                                'Entre R$10.000 e R$20.000',
+                                'Acima de R$20.000'],
+            'Acima de R$2.500': ['Entre R$2.500 e R$5.000',
+                                'Entre R$5.000 e R$10.000',
+                                'Entre R$10.000 e R$20.000',
+                                'Acima de R$20.000'],
+            'Acima de R$5.000': ['Entre R$5.000 e R$10.000',
+                                'Entre R$10.000 e R$20.000',
+                                'Acima de R$20.000'],
+            'Acima de R$10.000': ['Entre R$10.000 e R$20.000',
+                                'Acima de R$20.000'],
+            'Acima de R$20.000': ['Acima de R$20.000']
+        }
+    
     with cols_resumo[2]:
         cols_patrimonio_selector = st.columns(2)
         with cols_patrimonio_selector[0]:
@@ -146,12 +186,32 @@ else:
             patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
                 filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])
             ]
+            selected_renda = st.selectbox('Selecione o intervalo de renda:', renda_options)
+            renda_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+                filtered_DF_PTRAFEGO_DADOS['RENDA MENSAL'].isin(renda_mapping[selected_renda])
+            ]
+
+            renda_patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+                (filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])) &
+                (filtered_DF_PTRAFEGO_DADOS['RENDA MENSAL'].isin(renda_mapping[selected_renda]))
+            ]
+
         with cols_patrimonio_selector[1]:
             st.metric(
                 label=f'{selected_patrimonio}:',
                 value=f"{patrimonio_acima_selecionado.shape[0]}  "
                         f"({round((patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
             )
+            st.metric(
+                    label=f'{selected_renda}:',
+                    value=f"{renda_acima_selecionado.shape[0]}  "
+                            f"({round((renda_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+                )
+        st.metric(
+                    label=f'Patrimônio {selected_patrimonio} e Renda {selected_renda}:',
+                    value=f"{renda_patrimonio_acima_selecionado.shape[0]}  "
+                            f"({round((renda_patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+                )
 
 st.divider()
 
