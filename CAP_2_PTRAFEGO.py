@@ -87,18 +87,20 @@ else:
     # 02.A: FILTROS POR ETAPA
     cols_resumo = st.columns(3)
     with cols_resumo[0]:
-        options = ["Captação", "Pré-matrícula", "Vendas"]
-        filters_etapas = st.segmented_control(
-            label="Filtros por etapa:", options=options, selection_mode="multi", default=["Captação"]
-        )
-        if filters_etapas is not None:
-            if "Captação" in filters_etapas:
-                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_CAPTURA['EMAIL'].str.lower())]
-            if "Pré-matrícula" in filters_etapas:
-                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
-            if "Vendas" in filters_etapas:
-                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
-    
+        col1, col2 = st.columns(2)
+        with col1:
+            options = ["Captação", "Pré-matrícula", "Vendas"]
+            filters_etapas = st.multiselect(
+                label="Filtros por etapa:", options=options, default=["Captação"]
+            )
+            if filters_etapas is not None:
+                if "Captação" in filters_etapas:
+                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_CAPTURA['EMAIL'].str.lower())]
+                if "Pré-matrícula" in filters_etapas:
+                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
+                if "Vendas" in filters_etapas:
+                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
+        
     # 02.B: MÉTRICAS PRINCIPAIS
     with cols_resumo[1]:
         st.metric(
