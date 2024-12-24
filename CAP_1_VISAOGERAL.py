@@ -259,8 +259,9 @@ with st.container(border=True):
 
     with col_whatsapp:
         st.subheader("WhatsApp")
-        st.metric(label="Total", value=f"{DF_GRUPOS_WPP.shape[0]}")
-        st.metric(label="Conversão", value=f"{round(DF_GRUPOS_WPP.shape[0]/DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%", delta="")
+        wpp_members = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo']
+        st.metric(label="Total", value=f"{wpp_members.shape[0]}")
+        st.metric(label="Conversão", value=f"{round(wpp_members.shape[0]/DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%", delta="")
 
 st.divider()
 
