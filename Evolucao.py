@@ -198,16 +198,16 @@ def gerar_barras_empilhadas(dataframe, colunas_renda, title):
             #font=dict(color='black'),  # Cor do texto
             buttons=list([
                 dict(
-                    label="Valores Absolutos",
-                    method="update",
-                    args=[{"visible": [True]*len(colunas_renda) + [False]*len(colunas_renda)},
-                          {"yaxis": {"title": "Quantidade"}}]
-                ),
-                dict(
                     label="Porcentagem",
                     method="update",
                     args=[{"visible": [False]*len(colunas_renda) + [True]*len(colunas_renda)},
                           {"yaxis": {"title": "Proporção (%)", "range": [0, 100]}}]
+                ),
+                dict(
+                    label="Valores Absolutos",
+                    method="update",
+                    args=[{"visible": [True]*len(colunas_renda) + [False]*len(colunas_renda)},
+                          {"yaxis": {"title": "Quantidade"}}]
                 )
             ])
         )

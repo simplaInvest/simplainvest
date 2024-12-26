@@ -5,7 +5,7 @@ import altair as alt
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, get_df
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
@@ -22,6 +22,9 @@ with status:
 
     st.write("Carregando Pesquisa de Tráfego > Dados...")
     DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+
+    st.write("Carregando Pesquisa de Tráfego > Meta ADS...")
+    DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
 
     st.write("Carregando Pesquisa de Copy > Dados...")
     DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
@@ -256,7 +259,7 @@ st.title('Visão Geral')
 #      01. KEY METRICS
 #------------------------------------------------------------
 with st.container(border=True):
-    col_captura, col_trafego, col_copy, col_whatsapp = st.columns(4)
+    col_captura, col_trafego, col_copy, col_whatsapp, col_cpl = st.columns(5)
 
     with col_captura:
         st.subheader("Captura")
@@ -277,8 +280,11 @@ with st.container(border=True):
         wpp_members = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo']
         st.metric(label="Total", value=f"{wpp_members.shape[0]}")
         st.metric(label="Conversão", value=f"{round(wpp_members.shape[0]/DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%", delta="")
-
-st.divider()
+    
+    with col_cpl:
+        st.subheader('CPL')
+        st.metric(label = 'CPL Geral', value = f'{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].str.replace(',', '').astype(float).sum()/DF_CENTRAL_CAPTURA.shape[0],2)}')
+        st.metric(label = 'CPL Trafego', value = f'{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].str.replace(',', '').astype(float).sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}')
 
 #------------------------------------------------------------
 #      02. GRUPOS DE WHATSAPP
