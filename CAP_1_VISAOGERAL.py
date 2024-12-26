@@ -12,11 +12,26 @@ PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
 
 # Carregar DataFrames para lançamento selecionado
-DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
-DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
-DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
-DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
-DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+status = st.status("Carregando dados...", expanded=True)
+with status:
+    st.write("Carregando Central > Captura...")
+    DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+
+    st.write("Carregando Central > Vendas...")
+    DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
+
+    st.write("Carregando Pesquisa de Tráfego > Dados...")
+    DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+
+    st.write("Carregando Pesquisa de Copy > Dados...")
+    DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+
+    st.write("Carregando Grupos de Whatsapp > Sendflow...")
+    DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+
+    status.update(label="Carregados com sucesso!", state="complete", expanded=False)
+    
+status.empty()
 
 # Cacheamento para Gráficos
 @st.cache_data

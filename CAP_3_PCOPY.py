@@ -31,32 +31,31 @@ st.caption("CAPTAÇÃO > PESQUISA DE COPY")
 st.title('Pesquisa de Copy')
 
 #------------------------------------------------------------
-#      01. DUMMY SECTION
+#      01. FILTROS
 #------------------------------------------------------------
 
-st.write('Selecione os filtros abaixo para personalizar a visualização dos dados')
-
 # Data Cleaning
-DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].str.lower()
-DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].replace({
-    'união estável': 'união estável',
-    'união estavel': 'união estável',
-    'casada somente no religioso': 'casado(a)',
-    'ajuntando': 'morando juntos',
-    'amaseado': 'morando juntos',
-    'amasiado': 'morando juntos',
-    'só junto': 'morando juntos',
-    'moro junto': 'morando juntos',
-    'união estavel': 'união estável',
-    'viúva': 'viúvo(a)',
-    'viuva': 'viúvo(a)',
-    'viúvo': 'viúvo(a)'
-})
+if 'Qual sua situação amorosa hoje?' in DF_PCOPY_DADOS:
+    DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].str.lower()
+    DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].replace({
+        'união estável': 'união estável',
+        'união estavel': 'união estável',
+        'casada somente no religioso': 'casado(a)',
+        'ajuntando': 'morando juntos',
+        'amaseado': 'morando juntos',
+        'amasiado': 'morando juntos',
+        'só junto': 'morando juntos',
+        'moro junto': 'morando juntos',
+        'união estavel': 'união estável',
+        'viúva': 'viúvo(a)',
+        'viuva': 'viúvo(a)',
+        'viúvo': 'viúvo(a)'
+    })
 DF_PCOPY_DADOS['Qual sua idade?'] = pd.to_numeric(DF_PCOPY_DADOS['Qual sua idade?'], errors='coerce')
 
 gender_options = ['TODOS'] + ['Masculino', 'Feminino', 'Outro']
 children_options = ['TODOS'] + list(DF_PCOPY_DADOS['Você tem filhos?'].dropna().unique())
-marital_status_options = ['TODOS'] + ['casado(a)', 'solteiro(a)', 'divorciado(a)', 'namorando', 'viúvo(a)']
+marital_status_options = ['TODOS'] + ['solteiro(a)', 'namorando', 'casado(a)', 'divorciado(a)', 'viúvo(a)', 'outro']
 investment_experience_options = [
     'TODOS',
     'Totalmente iniciante',
@@ -84,7 +83,6 @@ investment_experience_filter = col4.multiselect(
     default='TODOS'
 )
 
-
 if int(VERSAO_PRINCIPAL) >= 20:
     # Age range slider
     age_min = int(DF_PCOPY_DADOS['Qual sua idade?'].min())
@@ -105,7 +103,10 @@ if 'TODOS' not in children_filter:
     filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['Você tem filhos?'].dropna().isin(children_filter)]
 
 if 'TODOS' not in marital_status_filter:
-    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].isin(marital_status_filter)]
+    if 'Qual sua situação amorosa hoje?' in filtered_DF_PCOPY_DADOS:
+        filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].isin(marital_status_filter)]
+    else:
+        filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['Qual seu estado civil atual?'].isin(marital_status_filter)]
 
 if 'TODOS' not in investment_experience_filter:
     filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[
@@ -204,7 +205,7 @@ st.header('Dados ausentes')
 st.write(missing_data_summary.set_index('Variável'))
 st.divider()
 with st.container(border=False):
-        st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Métricas Gerais</h1>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Métricas Gerais</h2>", unsafe_allow_html=True)
         ctcol1, ctcol2, ctcol3= st.columns([1, 1, 1])
         with ctcol1:
             st.metric("Total de leads CAPTURA:", DF_CENTRAL_CAPTURA.shape[0])

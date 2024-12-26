@@ -71,7 +71,7 @@ def setupSheets(produto, versao):
     
     return SHEETS
 
-@st.cache_data(show_spinner=True)
+@st.cache_data(show_spinner=False)
 def get_df(PRODUTO, VERSAO_PRINCIPAL, K_PLANILHA):
     if K_PLANILHA in st.session_state:
         df = st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PLANILHA}"]
