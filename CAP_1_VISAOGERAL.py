@@ -277,14 +277,14 @@ with st.container(border=True):
 
     with col_whatsapp:
         st.subheader("WhatsApp")
-        wpp_members = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo']
+        wpp_members = DF_GRUPOS_WPP[DF_GRUPOS_WPP["Evento"] == "Entrou no grupo"]
         st.metric(label="Total", value=f"{wpp_members.shape[0]}")
         st.metric(label="Conversão", value=f"{round(wpp_members.shape[0]/DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%", delta="")
     
     with col_cpl:
-        st.subheader('CPL')
-        st.metric(label = 'CPL Geral', value = f'{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].str.replace(',', '').astype(float).sum()/DF_CENTRAL_CAPTURA.shape[0],2)}')
-        st.metric(label = 'CPL Trafego', value = f'{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].str.replace(',', '').astype(float).sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}')
+        st.subheader("CPL")
+        st.metric(label = "CPL Geral", value = f"{round(DF_PTRAFEGO_META_ADS["VALOR USADO"].str.replace(",", "").astype(float).sum()/DF_CENTRAL_CAPTURA.shape[0],2)}")
+        st.metric(label = "CPL Trafego", value = f"{round(DF_PTRAFEGO_META_ADS["VALOR USADO"].str.replace(",", "").astype(float).sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA["CAP UTM_MEDIUM"] == "pago"].shape[0],2)}")
 
 #------------------------------------------------------------
 #      02. GRUPOS DE WHATSAPP
