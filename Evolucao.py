@@ -12,14 +12,24 @@ dados = pd.read_csv('Métricas_EI - Dados.csv')
 #------------------------------------------------------------
 #      01.GRÁFICOS DE LINHA
 #------------------------------------------------------------
+dados['conv_traf'] = (dados['Trafego'] / dados['Captura']) * 100
+dados['conv_copy'] = (dados['Copy'] / dados['Captura']) * 100
+dados['conv_wpp'] = (dados['Whatsapp'] / dados['Captura']) * 100
+dados['conv_alunos'] = (dados['Alunos'] / dados['Captura']) * 100
+
+# Arredondar as novas colunas para duas casas decimais
+columns_to_round = ['conv_traf', 'conv_copy', 'conv_wpp', 'conv_alunos']
+dados[columns_to_round] = dados[columns_to_round].round(2)
+
 @st.cache_data
-def create_line_chart(df, variable, title=''):
+def create_line_chart(df, variable, conv=None, title=''):
     """
-    Create a line chart for a specific variable in the DataFrame.
+    Create a line chart for a specific variable and an optional conversion variable in the DataFrame.
 
     Parameters:
     df (pd.DataFrame): DataFrame containing the data.
-    variable (str): Column name of the variable to plot.
+    variable (str): Column name of the primary variable to plot.
+    conv (str, optional): Column name of the conversion variable to plot (in percentages).
     title (str): Title of the chart.
 
     Returns:
@@ -27,23 +37,62 @@ def create_line_chart(df, variable, title=''):
     """
     fig = go.Figure()
 
-    # Add the line and markers to the chart
+    # Add the primary variable line
     fig.add_trace(go.Scatter(
         x=df['EI'],
         y=df[variable],
         mode='lines+markers+text',
         text=df[variable],
         textposition='top center',
-        line=dict(width=2),
+        line=dict(width=2, color='blue'),
         marker=dict(size=8),
         name=variable
     ))
 
-    # Update layout for better visualization
+    # Add the conversion variable line if provided
+    if conv:
+        # Calculate min and max values for y2 axis
+        min_val = df[conv].min()
+        max_val = df[conv].max()
+        y2_min = min_val * 0.95  # 90% of minimum value
+        y2_max = max_val * 1.05  # 110% of maximum value
+
+        fig.add_trace(go.Scatter(
+            x=df['EI'],
+            y=df[conv],
+            mode='lines+markers+text',
+            text=df[conv].round(2).astype(str) + '%',
+            textposition='top center',
+            line=dict(width=2, color='green', dash='dot'),
+            marker=dict(size=8),
+            name=conv,
+            yaxis='y2'  # Specify secondary y-axis
+        ))
+
+        # Update layout for dual-axis with new range and hidden ticks
+        fig.update_layout(
+            yaxis=dict(
+                title=variable,
+                titlefont=dict(color='blue'),
+                tickfont=dict(color='blue')
+            ),
+            yaxis2=dict(
+                title='Taxa (%)',
+                titlefont=dict(color='green'),
+                tickfont=dict(color='green'),
+                overlaying='y',
+                side='right',
+                range=[y2_min, y2_max],
+                showticklabels=True,  # Hide tick labels
+                showgrid=False,        # Hide grid lines
+                zeroline=False         # Hide zero line
+            )
+        )
+
+    # General layout updates
     fig.update_layout(
         title=title,
         xaxis_title='Lançamento (EI)',
-        yaxis_title=variable,
         template='plotly_white',
         font=dict(size=12),
         margin=dict(l=40, r=40, t=50, b=40)
@@ -81,33 +130,90 @@ renda = renda[ascending_renda_columns]
 @st.cache_data
 def gerar_barras_empilhadas(dataframe, colunas_renda, title):
     """
-    Gera um gráfico de barras empilhadas para a distribuição de leads por faixa de renda.
+    Gera um gráfico de barras empilhadas para a distribuição de leads por faixa de renda,
+    com botão para alternar entre valores absolutos e percentuais.
 
     Parâmetros:
         dataframe (pd.DataFrame): O dataframe contendo os dados.
         colunas_renda (list): Lista de colunas relacionadas à renda em ordem ascendente.
+        title (str): Título do gráfico
         
     Retorno:
-        None: Mostra o gráfico interativo.
+        fig: Objeto Figure do Plotly com o gráfico.
     """
     # Garantir que as colunas estão na ordem correta
-    dataframe = dataframe[colunas_renda]
+    dataframe = dataframe[colunas_renda].copy()
+    
+    # Calcular o total de cada linha (lançamento)
+    dataframe['total'] = dataframe.sum(axis=1)
+    
+    # Calcular as porcentagens para cada coluna
+    for col in colunas_renda:
+        dataframe[f'{col}_pct'] = (dataframe[col] / dataframe['total'] * 100).round(1)
     
     # Criar o gráfico de barras empilhadas
     fig = go.Figure()
 
-    # Adicionar cada coluna como uma camada do gráfico empilhado
+    # Criar duas listas para armazenar os dados de ambas as visualizações
+    data_abs = []
+    data_pct = []
+
+    # Preparar os dados para valores absolutos
     for col in colunas_renda:
-        fig.add_trace(go.Bar(
+        data_abs.append(go.Bar(
             name=col,
             x=[f'EI.{i+15}' for i in range(len(dataframe))],
             y=dataframe[col],
             text=dataframe[col],
             textposition='auto',
-            hoverinfo='text+name'
+            hovertemplate='%{text}<extra></extra>',
+            visible=True
         ))
 
-    # Atualizar o layout do gráfico para melhorar a visualização
+    # Preparar os dados para porcentagens
+    for col in colunas_renda:
+        data_pct.append(go.Bar(
+            name=col,
+            x=[f'EI.{i+15}' for i in range(len(dataframe))],
+            y=dataframe[f'{col}_pct'],
+            text=dataframe[f'{col}_pct'].apply(lambda x: f'{x}%'),
+            textposition='auto',
+            hovertemplate='%{text}<extra></extra>',
+            visible=False
+        ))
+
+    # Adicionar todos os traces ao gráfico
+    fig.add_traces(data_abs + data_pct)
+
+    # Criar os botões de alternância com estilo azul
+    updatemenus = [
+        dict(
+            type="buttons",
+            direction="right",
+            x=0.1,
+            y=1.2,
+            showactive=True,
+            #bgcolor='#ADD8E6',  # Azul claro para o fundo
+            #activecolor='#1E90FF',  # Azul mais escuro quando ativo
+            #font=dict(color='black'),  # Cor do texto
+            buttons=list([
+                dict(
+                    label="Valores Absolutos",
+                    method="update",
+                    args=[{"visible": [True]*len(colunas_renda) + [False]*len(colunas_renda)},
+                          {"yaxis": {"title": "Quantidade"}}]
+                ),
+                dict(
+                    label="Porcentagem",
+                    method="update",
+                    args=[{"visible": [False]*len(colunas_renda) + [True]*len(colunas_renda)},
+                          {"yaxis": {"title": "Proporção (%)", "range": [0, 100]}}]
+                )
+            ])
+        )
+    ]
+
+    # Atualizar o layout do gráfico
     fig.update_layout(
         barmode='stack',
         title={
@@ -126,10 +232,10 @@ def gerar_barras_empilhadas(dataframe, colunas_renda, title):
             tickangle=0
         ),
         template='plotly_white',
-        showlegend=True
+        showlegend=True,
+        updatemenus=updatemenus
     )
 
-    # Mostrar o gráfico
     return fig
 
 #------------------------------------------------------------
@@ -153,22 +259,23 @@ with tab1:
             chart
         with st.container(border=True):
             st.subheader('Copy')
-            chart = create_line_chart(dados, variaveis[2])
-            chart
-        with st.container(border=True):
-            st.subheader('Alunos')
-            chart = create_line_chart(dados, variaveis[4])
+            chart = create_line_chart(dados, variaveis[2], conv = 'conv_copy')
             chart
 
     with colunas[1]:
         with st.container(border=True):
             st.subheader('Trafego')
-            chart = create_line_chart(dados, variaveis[1])
+            chart = create_line_chart(dados, variaveis[1], conv = 'conv_traf')
             chart
         with st.container(border=True):
             st.subheader('Whatsapp')
-            chart = create_line_chart(dados, variaveis[3])
+            chart = create_line_chart(dados, variaveis[3], conv = 'conv_wpp')
             chart
+
+    with st.container(border=True):
+        st.subheader('Alunos')
+        chart = create_line_chart(dados, variaveis[4], conv = 'conv_alunos')
+        chart
 
 with tab2:
 
