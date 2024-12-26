@@ -18,3 +18,10 @@ def format_grupos_wpp(df_grupos_wpp):
     df_grupos_wpp['Entradas'] = df_grupos_wpp['Evento'].str.contains("Entrou", na=False).astype(int)
     df_grupos_wpp['Saidas'] = df_grupos_wpp['Evento'].str.contains("Saiu", na=False).astype(int)
     return df_grupos_wpp
+
+def format_ptrafego_metaads(df_ptrafego_metaads):
+    if df_ptrafego_metaads.empty:
+        raise ValueError("O DataFrame 'df_ptrafego_metaads' está vazio.")
+    else:
+        df_ptrafego_metaads['VALOR USADO'] = df_ptrafego_metaads['VALOR USADO'].str.replace(",", "").astype(float)
+        return df_ptrafego_metaads

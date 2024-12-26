@@ -4,7 +4,7 @@ import gspread
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
 
-from libs.data_formatter import format_central_captura, format_grupos_wpp
+from libs.data_formatter import format_central_captura, format_grupos_wpp, format_ptrafego_metaads
 
 # CONSTANTS
 K_CENTRAL_CAPTURA = "K_CENTRAL_CAPTURA"
@@ -135,7 +135,7 @@ class DataLoader:
             case "K_PTRAFEGO_DADOS":
                 df_sheet = df_sheet
             case "K_PTRAFEGO_META_ADS":
-                df_sheet = df_sheet
+                df_sheet = format_ptrafego_metaads(df_sheet)
             case "K_PTRAFEGO_ANUNCIOS_SUBIDOS":
                 df_sheet = df_sheet
             case "K_PCOPY_DADOS":
