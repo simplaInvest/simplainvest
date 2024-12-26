@@ -41,8 +41,9 @@ else:
             st.Page("CAP_2_PTRAFEGO.py", title = "💲 Pesquisa de Tráfego"),
             st.Page("CAP_3_PCOPY.py", title = "🧑 Pesquisa de Copy"),
             st.Page("CAP_4_GRUPOS_WPP.py", title = "📞 Grupos de Whatsapp"),
-            # st.Page("prematricula.py", title = "✅ Pré-Matrícula"),
-            # st.Page("vendas.py", title = "💸 Central de Vendas"),
+            st.Page("prematricula.py", title = "✅ Pré-Matrícula"),
+            st.Page("vendas.py", title = "💸 Central de Vendas"),
+            st.Page("Evolucao.py", title = "Evo")
             # st.Page("2_Análise Geral Lançamento.py", title=" Análise Geral Lançamento"),
             # st.Page("4_Anúncios.py", title="Anuncios"),
             # st.Page("3_Desempenho_UTMS.py", title="Desempenho UTMS"),

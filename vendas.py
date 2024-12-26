@@ -8,49 +8,68 @@ import plotly.graph_objects as go
 import plotly.express as px
 import seaborn as sns
 
-captura_ei_vendas = st.session_state.get('df_CAPTURA', pd.DataFrame()).copy()
-trafego_ei_vendas = st.session_state.get('df_PESQUISA', pd.DataFrame()).copy()
-copy_ei_vendas = st.session_state.get('df_COPY', pd.DataFrame()).copy()
-copy_ei_vendas['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'] = copy_ei_vendas['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'].replace({
+
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, get_df
+
+# Carregar informações sobre lançamento selecionado
+PRODUTO = st.session_state["PRODUTO"]
+VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+
+# Carregar DataFrames para lançamento selecionado
+DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+DF_CENTRAL_PREMATRICULA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_PRE_MATRICULA)
+DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
+DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+
+DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'] = DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'].replace({
         'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante',
         'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
         'Intermediário. Já invisto, até fiz outros cursos de investimentos, mas sinto que falta alguma coisa.' : 'Intermediário',
         'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : ' Profissional'
 })
-whatsapp_ei_vendas = st.session_state.get('df_GRUPOS', pd.DataFrame()).copy()
-prematricula_ei_vendas = st.session_state.get('df_PREMATRICULA', pd.DataFrame()).copy()
-vendas_ei_vendas = st.session_state.get('df_VENDAS', pd.DataFrame()).copy()
-versao_ei = st.session_state.get('versao')
-captura_ei_vendas['Vendas'] = captura_ei_vendas['EMAIL'].isin(vendas_ei_vendas['EMAIL'].str.lower()).astype(int)
-trafego_ei_vendas['Vendas'] = trafego_ei_vendas['EMAIL'].isin(vendas_ei_vendas['EMAIL'].str.lower()).astype(int)
-copy_ei_vendas['Vendas'] = copy_ei_vendas['EMAIL'].isin(vendas_ei_vendas['EMAIL'].str.lower()).astype(int)
-prematricula_ei_vendas['Vendas'] = prematricula_ei_vendas['EMAIL'].isin(vendas_ei_vendas['EMAIL'].str.lower()).astype(int)
 
+DF_CENTRAL_CAPTURA['Vendas'] = DF_CENTRAL_CAPTURA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+DF_PTRAFEGO_DADOS['Vendas'] = DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+DF_PCOPY_DADOS['Vendas'] = DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+DF_CENTRAL_PREMATRICULA['Vendas'] = DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+
+#------------------------------------------------------------
+#      INÍCIO DO LAYOUT
+#------------------------------------------------------------
+
+st.caption("CAPTAÇÃO > VENDAS")
 st.title('Central de Vendas')
+
+
+#------------------------------------------------------------
+#      01. FILTROS
+#------------------------------------------------------------
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader('Leads')
-    st.metric(label = 'Captação', value = captura_ei_vendas.shape[0])
-    st.metric(label = 'Trafego', value = trafego_ei_vendas.shape[0])
-    st.metric(label = 'Copy', value = copy_ei_vendas.shape[0])
-    st.metric(label = 'Pré-Matrícula', value = prematricula_ei_vendas.shape[0])
+    st.metric(label = 'Captação', value = DF_CENTRAL_CAPTURA.shape[0])
+    st.metric(label = 'Trafego', value = DF_PTRAFEGO_DADOS.shape[0])
+    st.metric(label = 'Copy', value = DF_PCOPY_DADOS.shape[0])
+    st.metric(label = 'Pré-Matrícula', value = DF_CENTRAL_PREMATRICULA.shape[0])
 
 with col2:
     st.subheader('Vendas')
-    st.metric(label = '', value = vendas_ei_vendas.shape[0])
-    st.metric(label = '', value = trafego_ei_vendas['Vendas'].sum())
-    st.metric(label = '', value = copy_ei_vendas['Vendas'].sum())
-    st.metric(label = '', value = prematricula_ei_vendas['Vendas'].sum())
+    st.metric(label = '', value = DF_CENTRAL_VENDAS.shape[0])
+    st.metric(label = '', value = DF_PTRAFEGO_DADOS['Vendas'].sum())
+    st.metric(label = '', value = DF_PCOPY_DADOS['Vendas'].sum())
+    st.metric(label = '', value = DF_CENTRAL_PREMATRICULA['Vendas'].sum())
 
 
 with col3:
     st.subheader('Conversão')
-    st.metric(label = '', value = f"{round((vendas_ei_vendas.shape[0]/captura_ei_vendas.shape[0])*100,2)}%")
-    st.metric(label = '', value = f"{round((trafego_ei_vendas['Vendas'].sum()/trafego_ei_vendas.shape[0])*100,2)}%")
-    st.metric(label = '', value = f"{round((copy_ei_vendas['Vendas'].sum()/copy_ei_vendas.shape[0])*100,2)}%")
-    st.metric(label = '', value = f"{round((prematricula_ei_vendas['Vendas'].sum()/prematricula_ei_vendas.shape[0])*100,2)}%")
+    st.metric(label = '', value = f"{round((DF_CENTRAL_VENDAS.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100,2)}%")
+    st.metric(label = '', value = f"{round((DF_PTRAFEGO_DADOS['Vendas'].sum()/DF_PTRAFEGO_DADOS.shape[0])*100,2)}%")
+    st.metric(label = '', value = f"{round((DF_PCOPY_DADOS['Vendas'].sum()/DF_PCOPY_DADOS.shape[0])*100,2)}%")
+    st.metric(label = '', value = f"{round((DF_CENTRAL_PREMATRICULA['Vendas'].sum()/DF_CENTRAL_PREMATRICULA.shape[0])*100,2)}%")
 
 tab1, tab2 = st.tabs(['Desempenho UTMs', 'Conversão'])
 
@@ -86,7 +105,7 @@ with tab1:
             return fig
 
         # Exemplo de uso
-        fig_pizza_utm_source = plot_pizza_utm_source(vendas_ei_vendas)
+        fig_pizza_utm_source = plot_pizza_utm_source(DF_CENTRAL_VENDAS)
         st.plotly_chart(fig_pizza_utm_source)
 
 
@@ -120,7 +139,7 @@ with tab1:
             return fig
 
         # Exemplo de uso
-        fig_pizza_utm_medium = plot_pizza_utm_medium(vendas_ei_vendas)
+        fig_pizza_utm_medium = plot_pizza_utm_medium(DF_CENTRAL_VENDAS)
         st.plotly_chart(fig_pizza_utm_medium)
 
 with tab2:
@@ -195,7 +214,7 @@ with tab2:
             return fig
 
         # Exemplo de uso
-        fig = calcular_e_plotar_taxa_conversao(trafego_ei_vendas, "RENDA MENSAL", "Vendas", renda_order)
+        fig = calcular_e_plotar_taxa_conversao(DF_PTRAFEGO_DADOS, "RENDA MENSAL", "Vendas", renda_order)
 
         # Mostrar o gráfico no Streamlit
         st.plotly_chart(fig)
@@ -269,7 +288,7 @@ with tab2:
             'Acima de R$1 milhão'
         ]
 
-        fig = calcular_e_plotar_taxa_conversao(trafego_ei_vendas, "PATRIMONIO", "Vendas", patrimonio_order)
+        fig = calcular_e_plotar_taxa_conversao(DF_PTRAFEGO_DADOS, "PATRIMONIO", "Vendas", patrimonio_order)
 
         # Mostrar o gráfico no Streamlit
         st.plotly_chart(fig)
@@ -319,10 +338,10 @@ with tab2:
     col1, col2 = st.columns(2)
 
     with col1:
-        fig_sexo = plot_taxa_conversao(copy_ei_vendas, 'Qual seu sexo?')
+        fig_sexo = plot_taxa_conversao(DF_PCOPY_DADOS, 'Qual seu sexo?')
         st.plotly_chart(fig_sexo)
 
-        fig_filhos = plot_taxa_conversao(copy_ei_vendas, 'Você tem filhos?')
+        fig_filhos = plot_taxa_conversao(DF_PCOPY_DADOS, 'Você tem filhos?')
         st.plotly_chart(fig_filhos)
 
 
@@ -335,9 +354,9 @@ with tab2:
                         'Profissional',
                         'Não Informado'
                         ]
-        fig_xp = plot_taxa_conversao(copy_ei_vendas, 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
+        fig_xp = plot_taxa_conversao(DF_PCOPY_DADOS, 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
         st.plotly_chart(fig_xp)
-        if int(versao_ei) >= 20:
+        if int(VERSAO_PRINCIPAL) >= 20:
             def plot_taxa_conversao_por_faixa_etaria(dataframe, intervalo=5):
                 """
                 Plota a taxa de conversão por faixa etária.
@@ -398,7 +417,7 @@ with tab2:
                 )
                 return fig
 
-            fig_histograma_idade = plot_taxa_conversao_por_faixa_etaria(copy_ei_vendas)
+            fig_histograma_idade = plot_taxa_conversao_por_faixa_etaria(DF_PCOPY_DADOS)
             st.plotly_chart(fig_histograma_idade)
 
 
