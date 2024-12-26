@@ -71,7 +71,7 @@ def setupSheets(produto, versao):
     
     return SHEETS
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=True, ttl=1800)
 def get_df(PRODUTO, VERSAO_PRINCIPAL, K_PLANILHA):
     if K_PLANILHA in st.session_state:
         df = st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PLANILHA}"]
@@ -79,6 +79,9 @@ def get_df(PRODUTO, VERSAO_PRINCIPAL, K_PLANILHA):
         dataLoader = DataLoader(PRODUTO, VERSAO_PRINCIPAL)
         df = dataLoader.load_df(K_PLANILHA)
     return df.copy()
+
+def clear_df():
+    get_df.clear()
 
 class DataLoader:
     def __init__(self, produto, versao):
@@ -112,6 +115,8 @@ class DataLoader:
 
         if K_PLANILHA not in self.sheets:
             raise ValueError(f"Planilha inválida: {K_PLANILHA}")
+
+        print('load_df(): loading df for', K_PLANILHA)
 
         # Get self.sheet reference
         sheet = self.sheets[K_PLANILHA]

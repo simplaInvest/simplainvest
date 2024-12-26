@@ -1,6 +1,6 @@
 import streamlit as st
 
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, clear_df, get_df
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
@@ -24,6 +24,9 @@ st.title('Loaded Data')
 #------------------------------------------------------------
 #      01. DUMMY SECTION
 #------------------------------------------------------------
+
+if st.button("Limpar caches"):
+    clear_df()
 
 if f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_CENTRAL_CAPTURA}" in st.session_state:
     with st.expander("CENTRAL_CAPTURA"):
