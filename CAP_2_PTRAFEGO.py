@@ -1,11 +1,11 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
+# import pandas as pd
+# import numpy as np
 import altair as alt
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import plotly.graph_objects as go
-import plotly.express as px
+# import matplotlib.pyplot as plt
+# import matplotlib.cm as cm
+# import plotly.graph_objects as go
+# import plotly.express as px
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, get_df
 
@@ -87,19 +87,17 @@ else:
     # 02.A: FILTROS POR ETAPA
     cols_resumo = st.columns(3)
     with cols_resumo[0]:
-        col1, col2 = st.columns(2)
-        with col1:
-            options = ["Captação", "Pré-matrícula", "Vendas"]
-            filters_etapas = st.multiselect(
-                label="Filtros por etapa:", options=options, default=["Captação"]
-            )
-            if filters_etapas is not None:
-                if "Captação" in filters_etapas:
-                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_CAPTURA['EMAIL'].str.lower())]
-                if "Pré-matrícula" in filters_etapas:
-                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
-                if "Vendas" in filters_etapas:
-                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
+        options = ["Captação", "Pré-matrícula", "Vendas"]
+        filters_etapas = st.multiselect(
+            label="Filtros por etapa:", options=options, default=["Captação"]
+        )
+        if filters_etapas is not None:
+            if "Captação" in filters_etapas:
+                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_CAPTURA['EMAIL'].str.lower())]
+            if "Pré-matrícula" in filters_etapas:
+                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
+            if "Vendas" in filters_etapas:
+                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
         
     # 02.B: MÉTRICAS PRINCIPAIS
     with cols_resumo[1]:
@@ -209,7 +207,7 @@ else:
                     value=f"{renda_acima_selecionado.shape[0]}  "
                             f"({round((renda_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
                 )
-        st.metric(
+            st.metric(
                     label=f'Patrimônio {selected_patrimonio} e Renda {selected_renda}:',
                     value=f"{renda_patrimonio_acima_selecionado.shape[0]}  "
                             f"({round((renda_patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
