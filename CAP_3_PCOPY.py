@@ -146,6 +146,13 @@ closed_ended_columns = [
 
 # Open-ended response columns: free-text responses
 
+if int(VERSAO_PRINCIPAL) == 21:
+    open_ended_columns = [
+        "Porque você quer a começar a investir?", 
+        "Como você imagina a vida que está buscando?", 
+        "Quais são os principais obstáculos que te impedem de viver essa vida hoje? ",
+        "Descreva, da forma que imaginar, como seria o seu dia perfeito." 
+        ]
 if int(VERSAO_PRINCIPAL) == 20:
     open_ended_columns = [
         "Por que você quer aprender a investir?", 

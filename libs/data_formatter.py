@@ -23,5 +23,18 @@ def format_ptrafego_metaads(df_ptrafego_metaads):
     if df_ptrafego_metaads.empty:
         raise ValueError("O DataFrame 'df_ptrafego_metaads' está vazio.")
     else:
-        df_ptrafego_metaads['VALOR USADO'] = df_ptrafego_metaads['VALOR USADO'].str.replace(",", "").astype(float)
+        df_ptrafego_metaads['VALOR USADO'] = df_ptrafego_metaads['VALOR USADO'].str.replace(",", "").str.replace("R$", "").astype(float)
         return df_ptrafego_metaads
+    
+def format_ptrafego_clicks(df_ptrafego_clicks):
+    if df_ptrafego_clicks.empty:
+        return df_ptrafego_clicks
+    else:
+        # Converter a coluna 'DATA' para datetime
+        df_ptrafego_clicks['DATA'] = pd.to_datetime(df_ptrafego_clicks['DATA'], format='%d/%m/%Y')
+        # Converter as demais colunas para int
+        for col in df_ptrafego_clicks.columns:
+            if col != 'DATA':
+                df_ptrafego_clicks[col] = df_ptrafego_clicks[col].astype(int)
+
+    return df_ptrafego_clicks
