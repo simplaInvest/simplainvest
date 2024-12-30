@@ -153,7 +153,8 @@ if int(VERSAO_PRINCIPAL) == 21:
         "Porque você quer a começar a investir?", 
         "Como você imagina a vida que está buscando?", 
         "Quais são os principais obstáculos que te impedem de viver essa vida hoje? ",
-        "Descreva, da forma que imaginar, como seria o seu dia perfeito." 
+        "Descreva, da forma que imaginar, como seria o seu dia perfeito.",
+        "Se você estivesse com o Rufino agora, qual pergunta faria?"
         ]
 if int(VERSAO_PRINCIPAL) == 20:
     open_ended_columns = [
