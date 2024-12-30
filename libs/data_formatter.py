@@ -3,7 +3,7 @@ import pandas as pd
 def format_central_captura(df_central_captura):
     if df_central_captura.empty:
         raise ValueError("O DataFrame 'df_central_captura' está vazio.")
-    df_central_captura['CAP DATA_CAPTURA'] = pd.to_datetime(df_central_captura['CAP DATA_CAPTURA'], dayfirst=True).dt.date
+    df_central_captura['CAP DATA_CAPTURA'] = pd.to_datetime(df_central_captura['CAP DATA_CAPTURA'], dayfirst=True, format = 'mixed').dt.date
     return df_central_captura
 
 def format_grupos_wpp(df_grupos_wpp):
@@ -21,9 +21,9 @@ def format_grupos_wpp(df_grupos_wpp):
 
 def format_ptrafego_metaads(df_ptrafego_metaads):
     if df_ptrafego_metaads.empty:
-        raise ValueError("O DataFrame 'df_ptrafego_metaads' está vazio.")
+        return df_ptrafego_metaads
     else:
-        df_ptrafego_metaads['VALOR USADO'] = df_ptrafego_metaads['VALOR USADO'].str.replace(",", "").str.replace("R$", "").astype(float)
+        df_ptrafego_metaads['VALOR USADO'] = df_ptrafego_metaads.loc[df_ptrafego_metaads['VALOR USADO'] != '']['VALOR USADO'].str.replace(",", "").str.replace("R$", "").astype(float)
         return df_ptrafego_metaads
     
 def format_ptrafego_clicks(df_ptrafego_clicks):

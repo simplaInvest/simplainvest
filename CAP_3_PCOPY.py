@@ -51,7 +51,9 @@ if 'Qual sua situação amorosa hoje?' in DF_PCOPY_DADOS:
         'viuva': 'viúvo(a)',
         'viúvo': 'viúvo(a)'
     })
-DF_PCOPY_DADOS['Qual sua idade?'] = pd.to_numeric(DF_PCOPY_DADOS['Qual sua idade?'], errors='coerce')
+
+if VERSAO_PRINCIPAL >= 20:
+    DF_PCOPY_DADOS['Qual sua idade?'] = pd.to_numeric(DF_PCOPY_DADOS['Qual sua idade?'], errors='coerce')
 
 gender_options = ['TODOS'] + ['Masculino', 'Feminino', 'Outro']
 children_options = ['TODOS'] + list(DF_PCOPY_DADOS['Você tem filhos?'].dropna().unique())
