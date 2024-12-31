@@ -101,8 +101,8 @@ class DataLoader:
         if 'client' in st.session_state:
             return st.session_state.client
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'autorizador.json')
-        creds = ServiceAccountCredentials.from_json_keyfile_name(json_path, scope)
+        credentials_dict = st.secrets["gcp_service_account"]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
         client = gspread.authorize(creds)
         st.session_state.client = client
         return client
