@@ -1,11 +1,11 @@
 import streamlit as st
-# import pandas as pd
-# import numpy as np
+import pandas as pd
+import numpy as np
 import altair as alt
-# import matplotlib.pyplot as plt
-# import matplotlib.cm as cm
-# import plotly.graph_objects as go
-# import plotly.express as px
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import plotly.graph_objects as go
+import plotly.express as px
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, get_df
 
@@ -329,3 +329,56 @@ with col2:
         use_container_width=True,
         hide_index=True
     )
+
+st.divider()
+
+if VERSAO_PRINCIPAL == 21:
+    def calcular_proporcoes_e_plotar(dataframe, coluna, data_inicio, lista_faixas):
+        # 1. Filtrar dados relevantes e tratar NaNs
+        dataframe = dataframe.dropna(subset=["DATA DE CAPTURA", coluna])  # Remove linhas sem data ou patrimônio.
+        dataframe["DATA DE CAPTURA"] = pd.to_datetime(dataframe["DATA DE CAPTURA"], format="mixed")  # Converte as datas para o formato datetime.
+        dataframe["DIA"] = dataframe["DATA DE CAPTURA"].dt.date  # Extrai apenas a data (ignora horas e minutos).
+
+        # Filtrar pelo parâmetro de data_inicio
+        dataframe = dataframe[dataframe["DIA"] >= pd.to_datetime(data_inicio).date()]  # Mantém apenas as datas a partir de data_inicio.
+
+
+
+        # 2. Calcular proporções diárias por faixa de patrimônio
+        proporcoes = dataframe.groupby(["DIA", coluna]).size().reset_index(name="COUNT")  # Conta leads por dia e faixa de patrimônio.
+        total_por_dia = dataframe.groupby("DIA").size().reset_index(name="TOTAL")  # Conta o total de leads por dia.
+        proporcoes = proporcoes.merge(total_por_dia, on="DIA")  # Junta os dois dataframes pelo dia.
+        proporcoes["PROPORCAO"] = (proporcoes["COUNT"] / proporcoes["TOTAL"]) * 100  # Calcula a proporção percentual.
+
+        proporcoes = proporcoes[proporcoes[coluna].isin(lista_faixas)]  # Filtra somente as faixas da lista
+        proporcoes[coluna] = pd.Categorical(proporcoes[coluna], categories=lista_faixas, ordered=True)  # Ordena as categorias
+
+
+        # 3. Criar o gráfico usando Plotly
+        fig = px.line(
+            proporcoes,
+            x="DIA",
+            y="PROPORCAO",
+            color=coluna,
+            title=f"Proporção Diária de Leads por Faixa de {coluna}",
+            labels={"DIA": "Dia de Captação", "PROPORCAO": "Proporção (%)", coluna: f"Faixa de {coluna}"},
+            color_discrete_sequence=px.colors.qualitative.Set1,
+            category_orders={coluna: lista_faixas}
+        )
+
+        fig.update_layout(legend_title_text=f"Faixa de {coluna}")  # Adicionar título à legenda
+
+        # Retornar o objeto fig
+        return fig
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        with st.container(border=True):
+            chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'PATRIMONIO', '2024-12-01', patrimonio_order)
+            chart
+
+    with col2:
+        with st.container(border=True):
+            chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'RENDA MENSAL', '2024-12-01', renda_order)
+            chart

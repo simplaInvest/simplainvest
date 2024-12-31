@@ -5,7 +5,8 @@ import altair as alt
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, get_df
+import plotly.express as px
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, get_df
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
@@ -22,14 +23,20 @@ with loading_container:
         st.write("Carregando Central > Vendas...")
         DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
 
-        st.write("Carregando Pesquisa de Tráfego > Dados...")
-        DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+    st.write("Carregando Pesquisa de Tráfego > Dados...")
+    DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+
+    st.write("Carregando Pesquisa de Tráfego > Meta ADS...")
+    DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
 
         st.write("Carregando Pesquisa de Copy > Dados...")
         DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
 
-        st.write("Carregando Grupos de Whatsapp > Sendflow...")
-        DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+    st.write("Carregando Grupos de Whatsapp > Sendflow...")
+    DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+
+    st.write("Carregando Grupos de Whatsapp > Clicks...")
+    DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
 
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
     
@@ -229,6 +236,48 @@ def plot_utm_medium_pie_chart(df, column_name='UTM_MEDIUM', classes_to_include=N
     
     return pie_chart + text
 
+@st.cache_data
+def plot_clicks_over_time(df):
+    """
+    Cria um gráfico de linhas com a coluna 'CLICKS NO DIA' no eixo Y
+    e 'DATA' no eixo X (considerando apenas o dia), anotando os valores de cada ponto.
+    
+    Parâmetros:
+    - df (pd.DataFrame): DataFrame contendo as colunas 'DATA' e 'CLICKS NO DIA'.
+    
+    Retorna:
+    - fig (plotly.graph_objects.Figure): Objeto da figura gerada.
+    """
+    # Garantir que 'DATA' esteja no formato datetime e considerar apenas a data (sem horas)
+    df['DATA'] = pd.to_datetime(df['DATA']).dt.date
+
+    # Criar o gráfico de linhas
+    fig = px.line(
+        df, 
+        x='DATA', 
+        y='CLICKS NO DIA', 
+        title='Clicks no Dia ao Longo do Tempo',
+        labels={'DATA': 'Data', 'CLICKS NO DIA': 'Clicks no Dia'},
+        markers=True  # Adicionar marcadores nos pontos
+    )
+    
+    # Adicionar os valores sobre os pontos
+    fig.update_traces(
+        text=df['CLICKS NO DIA'].astype(str), 
+        textposition='top center',
+        mode='lines+markers+text'  # Inclui texto nos marcadores
+    )
+    
+    # Ajustar layout
+    fig.update_layout(
+        xaxis_title='Data',
+        yaxis_title='Clicks no Dia',
+        hovermode='x unified',
+        template='plotly_white'
+    )
+    
+    return fig
+
 # Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
     fig = go.Figure(data=[
@@ -258,7 +307,7 @@ st.title('Visão Geral')
 #      01. KEY METRICS
 #------------------------------------------------------------
 with st.container(border=True):
-    col_captura, col_trafego, col_copy, col_whatsapp = st.columns(4)
+    col_captura, col_trafego, col_copy, col_whatsapp, col_cpl = st.columns(5)
 
     with col_captura:
         st.subheader("Captura")
@@ -276,11 +325,15 @@ with st.container(border=True):
 
     with col_whatsapp:
         st.subheader("WhatsApp")
-        wpp_members = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo']
+        wpp_members = DF_GRUPOS_WPP[DF_GRUPOS_WPP["Evento"] == "Entrou no grupo"]
         st.metric(label="Total", value=f"{wpp_members.shape[0]}")
         st.metric(label="Conversão", value=f"{round(wpp_members.shape[0]/DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%", delta="")
-
-st.divider()
+    
+    with col_cpl:
+        if VERSAO_PRINCIPAL >= 17:
+            st.subheader("CPL")
+            st.metric(label = "CPL Geral", value = f"{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA.shape[0],2)}")
+            st.metric(label = "CPL Trafego", value = f"{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}")
 
 #------------------------------------------------------------
 #      02. GRUPOS DE WHATSAPP
@@ -307,6 +360,23 @@ with cols_grupos_wpp[1]:
 
 st.divider()
 
+cols_clicks_wpp = st.columns([3,1])
+
+# ---- 02.C - CLICKS POR DIA
+if DF_CLICKS_WPP.empty:
+    st.write('')
+else:
+    with cols_clicks_wpp[0]:
+        with st.container(border=True):
+            st.markdown('**Clicks por dia**')
+            fig = plot_clicks_over_time(DF_CLICKS_WPP)
+            fig
+
+    # ---- 02.D - TOTAL CLICKS
+    with cols_clicks_wpp[1]:
+        st.metric(label = 'Clicks hoje', value = f"{DF_CLICKS_WPP.loc[DF_CLICKS_WPP['DATA'].idxmax(), 'CLICKS NO DIA']}")
+        st.metric(label = 'Clicks totais', value = f"{DF_CLICKS_WPP.loc[DF_CLICKS_WPP['DATA'].idxmax(), 'TOTAL']}")
+
 #------------------------------------------------------------
 #      03. CAPTAÇÃO: ORIGEM / MÍDIA
 #------------------------------------------------------------
@@ -329,13 +399,6 @@ with cols_captacao_utm[1]:
         st.altair_chart(chart, use_container_width=True)
 
 st.divider()
-
-
-
-
-
-
-
 
 
 ### TODO: FINALIZAR CÓDIGO ABAIXO (NÃO PRIORITÁRIA)

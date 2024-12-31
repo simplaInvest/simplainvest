@@ -51,7 +51,9 @@ if 'Qual sua situação amorosa hoje?' in DF_PCOPY_DADOS:
         'viuva': 'viúvo(a)',
         'viúvo': 'viúvo(a)'
     })
-DF_PCOPY_DADOS['Qual sua idade?'] = pd.to_numeric(DF_PCOPY_DADOS['Qual sua idade?'], errors='coerce')
+
+if VERSAO_PRINCIPAL >= 20:
+    DF_PCOPY_DADOS['Qual sua idade?'] = pd.to_numeric(DF_PCOPY_DADOS['Qual sua idade?'], errors='coerce')
 
 gender_options = ['TODOS'] + ['Masculino', 'Feminino', 'Outro']
 children_options = ['TODOS'] + list(DF_PCOPY_DADOS['Você tem filhos?'].dropna().unique())
@@ -146,6 +148,14 @@ closed_ended_columns = [
 
 # Open-ended response columns: free-text responses
 
+if int(VERSAO_PRINCIPAL) == 21:
+    open_ended_columns = [
+        "Porque você quer a começar a investir?", 
+        "Como você imagina a vida que está buscando?", 
+        "Quais são os principais obstáculos que te impedem de viver essa vida hoje? ",
+        "Descreva, da forma que imaginar, como seria o seu dia perfeito.",
+        "Se você estivesse com o Rufino agora, qual pergunta faria?"
+        ]
 if int(VERSAO_PRINCIPAL) == 20:
     open_ended_columns = [
         "Por que você quer aprender a investir?", 

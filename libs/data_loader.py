@@ -4,7 +4,7 @@ import gspread
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
 
-from libs.data_formatter import format_central_captura, format_grupos_wpp
+from libs.data_formatter import format_central_captura, format_grupos_wpp, format_ptrafego_metaads, format_ptrafego_clicks
 
 # CONSTANTS
 K_CENTRAL_CAPTURA = "K_CENTRAL_CAPTURA"
@@ -15,6 +15,7 @@ K_PTRAFEGO_META_ADS = "K_PTRAFEGO_META_ADS"
 K_PTRAFEGO_ANUNCIOS_SUBIDOS = "K_PTRAFEGO_ANUNCIOS_SUBIDOS"
 K_PCOPY_DADOS = "K_PCOPY_DADOS"
 K_GRUPOS_WPP = "K_GRUPOS_WPP"
+K_CLICKS_WPP = "K_CLICKS_WPP"
 
 def setupSheets(produto, versao):
     lancamento = f"{produto}.{str(versao).zfill(2)}"
@@ -32,6 +33,7 @@ def setupSheets(produto, versao):
     ABA_PTRAFEGO_ANUNCIOS_SUBIDOS = "ANUNCIOS SUBIDOS"
     ABA_PCOPY_DADOS = 'pesquisa-copy-' + lancamento.replace(".", "")
     ABA_GRUPOS_WPP = 'SENDFLOW - ATIVIDADE EXPORT'
+    ABA_CLICKS_WPP = 'CLICKS POR DIA - BOAS-VINDAS'
 
     # PLANILHAS
     SHEETS = {
@@ -66,6 +68,10 @@ def setupSheets(produto, versao):
         K_GRUPOS_WPP: { "id": "K_GRUPOS_WPP",
                             "sheet": SHEET_GRUPOS_WPP,
                             "aba": ABA_GRUPOS_WPP,
+                            "dataframe": None },
+        K_CLICKS_WPP: { "id": "K_GRUPOS_WPP",
+                            "sheet": SHEET_GRUPOS_WPP,
+                            "aba": ABA_CLICKS_WPP,
                             "dataframe": None }
     }
     
@@ -135,13 +141,15 @@ class DataLoader:
             case "K_PTRAFEGO_DADOS":
                 df_sheet = df_sheet
             case "K_PTRAFEGO_META_ADS":
-                df_sheet = df_sheet
+                df_sheet = format_ptrafego_metaads(df_sheet)
             case "K_PTRAFEGO_ANUNCIOS_SUBIDOS":
                 df_sheet = df_sheet
             case "K_PCOPY_DADOS":
                 df_sheet = df_sheet
             case "K_GRUPOS_WPP":
                 df_sheet = format_grupos_wpp(df_sheet)
+            case "K_CLICKS_WPP":
+                df_sheet = format_ptrafego_clicks(df_sheet)
             case _:
                 raise ValueError(f"Planilha inválida: {K_PLANILHA}")
 
