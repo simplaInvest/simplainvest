@@ -13,13 +13,15 @@ PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
 
 # Carregar DataFrames para lançamento selecionado
-status = st.status("Carregando dados...", expanded=True)
-with status:
-    st.write("Carregando Central > Captura...")
-    DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+loading_container = st.empty()
+with loading_container:
+    status = st.status("Carregando dados...", expanded=True)
+    with status:
+        st.write("Carregando Central > Captura...")
+        DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
 
-    st.write("Carregando Central > Vendas...")
-    DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
+        st.write("Carregando Central > Vendas...")
+        DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
 
     st.write("Carregando Pesquisa de Tráfego > Dados...")
     DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
@@ -38,7 +40,7 @@ with status:
 
     status.update(label="Carregados com sucesso!", state="complete", expanded=False)
     
-status.empty()
+loading_container.empty()
 
 # Cacheamento para Gráficos
 @st.cache_data
