@@ -21,7 +21,7 @@ def setupSheets(produto, versao):
     lancamento = f"{produto}.{str(versao).zfill(2)}"
     # PLANILHAS
     SHEET_CENTRAL_DO_UTM = lancamento + " - CENTRAL DO UTM"
-    SHEET_PESQUISA_TRAFEGO = lancamento + " - PESQUISA TRAFEGO"
+    SHEET_PESQUISA_TRAFEGO = lancamento + " - PTRAFEGO DADOS"
     SHEET_PESQUISA_COPY = lancamento + " - PESQUISA DE COPY"
     SHEET_GRUPOS_WPP = lancamento + " - GRUPOS DE WHATSAPP"
     # ABAS
@@ -114,6 +114,30 @@ class DataLoader:
             return pd.DataFrame() if not data else pd.DataFrame(data[1:], columns=data[0])
         except Exception as e:
             st.error(f"Erro ao carregar a planilha '{sheet_name} > {aba_name}': {str(e)}")
+            return pd.DataFrame()
+        
+    def load_gsheet_paginated(self, sheet_name, aba_name, page_size=5000):
+        try:
+            worksheet = self.client.open(sheet_name).worksheet(aba_name)
+            headers = worksheet.row_values(1)
+            num_cols = len(headers)
+            all_data = []
+            
+            total_rows = worksheet.row_count
+            last_col = chr(ord('A') + num_cols - 1)
+            
+            for start_row in range(2, total_rows + 1, page_size):
+                end_row = min(start_row + page_size - 1, total_rows)
+                print(f"carrengado da {start_row} à {end_row} linha")
+                range_str = f'A{start_row}:{last_col}{end_row}'
+                chunk = worksheet.get(range_str)
+                # Ensure each row has correct number of columns
+                chunk = [row + [''] * (num_cols - len(row)) for row in chunk]
+                all_data.extend(chunk)
+                
+            return pd.DataFrame(all_data, columns=headers)
+        except Exception as e:
+            st.error(f"Erro ao carregar planilha '{sheet_name} > {aba_name}': {str(e)}")
             return pd.DataFrame()
         
     def load_df(self, K_PLANILHA):
