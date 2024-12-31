@@ -6,7 +6,8 @@ def format_central_captura(df_central_captura):
     df_central_captura['CAP DATA_CAPTURA'] = pd.to_datetime(
     df_central_captura['CAP DATA_CAPTURA'], 
     dayfirst=True, 
-    format="%d/%m/%Y %H:%M:%S"
+    format="%d/%m/%Y %H:%M:%S",
+    errors = 'coerce'
     ).dt.date
     return df_central_captura
 
