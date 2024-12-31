@@ -29,8 +29,8 @@ with loading_container:
     st.write("Carregando Pesquisa de Tráfego > Meta ADS...")
     DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
 
-        st.write("Carregando Pesquisa de Copy > Dados...")
-        DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+    st.write("Carregando Pesquisa de Copy > Dados...")
+    DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
 
     st.write("Carregando Grupos de Whatsapp > Sendflow...")
     DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
@@ -38,7 +38,7 @@ with loading_container:
     st.write("Carregando Grupos de Whatsapp > Clicks...")
     DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
 
-        status.update(label="Carregados com sucesso!", state="complete", expanded=False)
+    status.update(label="Carregados com sucesso!", state="complete", expanded=False)
     
 loading_container.empty()
 
