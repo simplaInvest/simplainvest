@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 import gspread
 import streamlit as st
@@ -21,7 +20,8 @@ def setupSheets(produto, versao):
     lancamento = f"{produto}.{str(versao).zfill(2)}"
     # PLANILHAS
     SHEET_CENTRAL_DO_UTM = lancamento + " - CENTRAL DO UTM"
-    SHEET_PESQUISA_TRAFEGO = lancamento + " - PTRAFEGO DADOS"
+    SHEET_PESQUISA_TRAFEGO_DADOS = lancamento + " - PTRAFEGO DADOS"
+    SHEET_PESQUISA_TRAFEGO_ADS = lancamento + " - PESQUISA TRAFEGO"
     SHEET_PESQUISA_COPY = lancamento + " - PESQUISA DE COPY"
     SHEET_GRUPOS_WPP = lancamento + " - GRUPOS DE WHATSAPP"
     # ABAS
@@ -50,15 +50,15 @@ def setupSheets(produto, versao):
                             "aba": ABA_CENTRAL_VENDAS,
                             "dataframe": None },
         K_PTRAFEGO_DADOS: { "id": "K_PTRAFEGO_DADOS",
-                            "sheet": SHEET_PESQUISA_TRAFEGO,
+                            "sheet": SHEET_PESQUISA_TRAFEGO_DADOS,
                             "aba": ABA_PTRAFEGO_DADOS,
                             "dataframe": None },
         K_PTRAFEGO_META_ADS: { "id": "K_PTRAFEGO_META_ADS",
-                            "sheet": SHEET_PESQUISA_TRAFEGO,
+                            "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_META_ADS,
                             "dataframe": None },
         K_PTRAFEGO_ANUNCIOS_SUBIDOS: { "id": "K_PTRAFEGO_ANUNCIOS_SUBIDOS",
-                            "sheet": SHEET_PESQUISA_TRAFEGO,
+                            "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_ANUNCIOS_SUBIDOS,
                             "dataframe": None },
         K_PCOPY_DADOS: { "id": "K_PCOPY_DADOS",
