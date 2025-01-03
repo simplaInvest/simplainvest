@@ -1,16 +1,9 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import altair as alt
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import plotly.graph_objects as go
 import plotly.express as px
-import seaborn as sns
-import re
-from sklearn.feature_extraction.text import CountVectorizer
 
-from libs.data_loader import K_CENTRAL_CAPTURA, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_CLICKS_WPP, get_df
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
@@ -23,8 +16,10 @@ with loading_container:
     with status:
         DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
         DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+        DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
+
 # Cria Dataframes de Entradas e Saidas dos grupos
 whatsapp_entradas = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo']
 whatsapp_saidas = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Saiu do grupo']
@@ -242,6 +237,48 @@ def calculate_stay_duration_and_plot_histogram(df):
 
     return bars + text
 
+@st.cache_data
+def plot_clicks_over_time(df):
+    """
+    Cria um gráfico de linhas com a coluna 'CLICKS NO DIA' no eixo Y
+    e 'DATA' no eixo X (considerando apenas o dia), anotando os valores de cada ponto.
+    
+    Parâmetros:
+    - df (pd.DataFrame): DataFrame contendo as colunas 'DATA' e 'CLICKS NO DIA'.
+    
+    Retorna:
+    - fig (plotly.graph_objects.Figure): Objeto da figura gerada.
+    """
+    # Garantir que 'DATA' esteja no formato datetime e considerar apenas a data (sem horas)
+    df['DATA'] = pd.to_datetime(df['DATA']).dt.date
+
+    # Criar o gráfico de linhas
+    fig = px.line(
+        df, 
+        x='DATA', 
+        y='CLICKS NO DIA', 
+        title='Clicks no Dia ao Longo do Tempo',
+        labels={'DATA': 'Data', 'CLICKS NO DIA': 'Clicks no Dia'},
+        markers=True  # Adicionar marcadores nos pontos
+    )
+    
+    # Adicionar os valores sobre os pontos
+    fig.update_traces(
+        text=df['CLICKS NO DIA'].astype(str), 
+        textposition='top center',
+        mode='lines+markers+text'  # Inclui texto nos marcadores
+    )
+    
+    # Ajustar layout
+    fig.update_layout(
+        xaxis_title='Data',
+        yaxis_title='Clicks no Dia',
+        hovermode='x unified',
+        template='plotly_white'
+    )
+    
+    return fig
+
 DF_GRUPOS_WPP['Entry'] = DF_GRUPOS_WPP['Evento'].str.contains("Entrou", na=False).astype(int)
 DF_GRUPOS_WPP['Exit'] = DF_GRUPOS_WPP['Evento'].str.contains("Saiu", na=False).astype(int)
 
@@ -273,6 +310,21 @@ st.subheader('Número de pessoas no grupo')
 fig = plot_group_members_per_day_altair(daily_activity)
 if fig:
     st.altair_chart(fig, use_container_width=True)
+
+cols_clicks_wpp = st.columns([3,1])
+if DF_CLICKS_WPP.empty:
+    st.write('')
+else:
+    with cols_clicks_wpp[0]:
+        with st.container(border=True):
+            st.markdown('**Clicks por dia**')
+            fig = plot_clicks_over_time(DF_CLICKS_WPP)
+            fig
+
+    # ---- 02.D - TOTAL CLICKS
+    with cols_clicks_wpp[1]:
+        st.metric(label = 'Clicks hoje', value = f"{DF_CLICKS_WPP.loc[DF_CLICKS_WPP['DATA'].idxmax(), 'CLICKS NO DIA']}")
+        st.metric(label = 'Clicks totais', value = f"{DF_CLICKS_WPP.loc[DF_CLICKS_WPP['DATA'].idxmax(), 'TOTAL']}")
 
 st.subheader('Número de entradas por dia')
 fig = plot_entry_per_day(daily_activity)

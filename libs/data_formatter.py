@@ -8,7 +8,7 @@ def format_central_captura(df_central_captura):
 
 def format_grupos_wpp(df_grupos_wpp):
     if df_grupos_wpp.empty:
-        raise ValueError("O DataFrame 'df_grupos_wpp' está vazio.")
+        return df_grupos_wpp
     # Converte coluna "Data" (string) em datetime
     if 'Data' in df_grupos_wpp.columns:
         if df_grupos_wpp['Data'].dtype == 'object':  # Apenas se ainda for texto

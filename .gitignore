@@ -1,1 +1,5 @@
 .streamlit/secrets.toml
+# Ignore arquivos do __pycache__
+__pycache__/
+*.pyc
+libs/__pycache__/
