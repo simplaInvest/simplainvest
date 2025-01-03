@@ -91,7 +91,7 @@ else:
     st.divider()
 
     # 02.A: FILTROS POR ETAPA
-    cols_resumo = st.columns(3)
+    cols_resumo = st.columns(2)
     with cols_resumo[0]:
         options = ["Captação", "Pré-matrícula", "Vendas"]
         filters_etapas = st.multiselect(
@@ -105,8 +105,7 @@ else:
             if "Vendas" in filters_etapas:
                 filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
         
-    # 02.B: MÉTRICAS PRINCIPAIS
-    with cols_resumo[1]:
+        # 02.B: MÉTRICAS PRINCIPAIS
         st.metric(
             label="Respostas da pesquisa:",
             value=f"{filtered_DF_PTRAFEGO_DADOS.shape[0]}  ({round((filtered_DF_PTRAFEGO_DADOS.shape[0] / DF_CENTRAL_CAPTURA.shape[0]) * 100, 2)}%)"
@@ -185,7 +184,7 @@ else:
             'Acima de R$20.000': ['Acima de R$20.000']
         }
     
-    with cols_resumo[2]:
+    with cols_resumo[1]:
         cols_patrimonio_selector = st.columns(2)
         with cols_patrimonio_selector[0]:
             selected_patrimonio = st.selectbox("Selecione o intervalo de patrimônio:", patrimonio_options)
