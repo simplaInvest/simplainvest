@@ -40,50 +40,66 @@ def setupSheets(produto, versao):
         K_CENTRAL_CAPTURA: { "id": "K_CENTRAL_CAPTURA",
                             "sheet": SHEET_CENTRAL_DO_UTM,
                             "aba": ABA_CENTRAL_CAPTURA,
-                            "dataframe": None },
+                            "dataframe": None,
+                            "name": "Central > Captura" },
         K_CENTRAL_PRE_MATRICULA: { "id": "K_CENTRAL_PRE_MATRICULA",
                             "sheet": SHEET_CENTRAL_DO_UTM,
                             "aba": ABA_CENTRAL_PRE_MATRICULA,
-                            "dataframe": None },
+                            "dataframe": None,
+                            "name": "Central > Pré-matrícula" },
         K_CENTRAL_VENDAS: { "id": "K_CENTRAL_VENDAS",
                             "sheet": SHEET_CENTRAL_DO_UTM,
                             "aba": ABA_CENTRAL_VENDAS,
-                            "dataframe": None },
+                            "dataframe": None,
+                            "name": "Central > Vendas" },
         K_PTRAFEGO_DADOS: { "id": "K_PTRAFEGO_DADOS",
                             "sheet": SHEET_PESQUISA_TRAFEGO_DADOS,
                             "aba": ABA_PTRAFEGO_DADOS,
-                            "dataframe": None },
+                            "dataframe": None,
+                            "name": "Pesquisa de Tráfego > Dados" },
         K_PTRAFEGO_META_ADS: { "id": "K_PTRAFEGO_META_ADS",
                             "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_META_ADS,
-                            "dataframe": None },
+                            "dataframe": None,
+                            "name": "Pesquisa de Tráfego > Meta ADs" },
         K_PTRAFEGO_ANUNCIOS_SUBIDOS: { "id": "K_PTRAFEGO_ANUNCIOS_SUBIDOS",
                             "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_ANUNCIOS_SUBIDOS,
-                            "dataframe": None },
+                            "dataframe": None,
+                            "name": "Pesquisa de Tráfego > Anúncio subidos" },
         K_PCOPY_DADOS: { "id": "K_PCOPY_DADOS",
                             "sheet": SHEET_PESQUISA_COPY,
                             "aba": ABA_PCOPY_DADOS,
-                            "dataframe": None },
+                            "dataframe": None,
+                            "name": "Pesquisa de Copy > Dados" },
         K_GRUPOS_WPP: { "id": "K_GRUPOS_WPP",
                             "sheet": SHEET_GRUPOS_WPP,
                             "aba": ABA_GRUPOS_WPP,
-                            "dataframe": None },
+                            "dataframe": None,
+                            "name": "Grupos de Whatsapp > Atividade" },
         K_CLICKS_WPP: { "id": "K_GRUPOS_WPP",
                             "sheet": SHEET_GRUPOS_WPP,
                             "aba": ABA_CLICKS_WPP,
-                            "dataframe": None }
+                            "dataframe": None,
+                            "name": "Grupos de Whatsapp > Clicks" }
     }
     
     return SHEETS
 
-@st.cache_data(show_spinner=True, ttl=1800)
+@st.cache_data(show_spinner=False, ttl=1800)
 def get_df(PRODUTO, VERSAO_PRINCIPAL, K_PLANILHA):
+    ui_status = st.empty()
+    with ui_status:
+        st.write(f"Carregando {K_PLANILHA.replace('K_', '').replace('_', ' ').title()}...")
+        
     if K_PLANILHA in st.session_state:
         df = st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PLANILHA}"]
     else:
         dataLoader = DataLoader(PRODUTO, VERSAO_PRINCIPAL)
         df = dataLoader.load_df(K_PLANILHA)
+
+    with ui_status:
+        st.write(f"✅ {K_PLANILHA.replace('K_', '').replace('_', ' ').title()}.")
     return df.copy()
 
 def clear_df():

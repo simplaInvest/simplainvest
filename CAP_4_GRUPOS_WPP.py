@@ -17,8 +17,15 @@ PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
 
 # Carregar DataFrames para lançamento selecionado
-DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
-DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+loading_container = st.empty()
+with loading_container:
+    status = st.status("Carregando dados...", expanded=True)
+    with status:
+        DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+        DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+        status.update(label="Carregados com sucesso!", state="complete", expanded=False)
+loading_container.empty()
+# Cria Dataframes de Entradas e Saidas dos grupos
 whatsapp_entradas = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo']
 whatsapp_saidas = DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Saiu do grupo']
 

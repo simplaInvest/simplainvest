@@ -17,29 +17,14 @@ loading_container = st.empty()
 with loading_container:
     status = st.status("Carregando dados...", expanded=True)
     with status:
-        st.write("Carregando Central > Captura...")
         DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
-
-        st.write("Carregando Central > Vendas...")
         DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
-
-    st.write("Carregando Pesquisa de Tráfego > Dados...")
-    DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
-
-    st.write("Carregando Pesquisa de Tráfego > Meta ADS...")
-    DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
-
-    st.write("Carregando Pesquisa de Copy > Dados...")
-    DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
-
-    st.write("Carregando Grupos de Whatsapp > Sendflow...")
-    DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
-
-    st.write("Carregando Grupos de Whatsapp > Clicks...")
-    DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
-
-    status.update(label="Carregados com sucesso!", state="complete", expanded=False)
-    
+        DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+        DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
+        DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+        DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+        DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
+        status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
 # Cacheamento para Gráficos
@@ -334,6 +319,15 @@ with st.container(border=True):
             st.subheader("CPL")
             st.metric(label = "CPL Geral", value = f"{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA.shape[0],2)}")
             st.metric(label = "CPL Trafego", value = f"{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}")
+
+st.write("só pagos")
+st.dataframe(DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'])
+
+st.write("leads gerais")
+st.write(DF_CENTRAL_CAPTURA.shape[0])
+
+st.write("valor usado")
+st.write(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum())
 
 #------------------------------------------------------------
 #      02. GRUPOS DE WHATSAPP
