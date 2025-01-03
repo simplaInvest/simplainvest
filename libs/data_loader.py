@@ -11,6 +11,7 @@ K_CENTRAL_PRE_MATRICULA = "K_CENTRAL_PRE_MATRICULA"
 K_CENTRAL_VENDAS = "K_CENTRAL_VENDAS"
 K_PTRAFEGO_DADOS = "K_PTRAFEGO_DADOS"
 K_PTRAFEGO_META_ADS = "K_PTRAFEGO_META_ADS"
+K_PTRAFEGO_META_ADS_L4 = "K_PTRAFEGO_META_ADS_L4"
 K_PTRAFEGO_ANUNCIOS_SUBIDOS = "K_PTRAFEGO_ANUNCIOS_SUBIDOS"
 K_PCOPY_DADOS = "K_PCOPY_DADOS"
 K_GRUPOS_WPP = "K_GRUPOS_WPP"
@@ -30,6 +31,7 @@ def setupSheets(produto, versao):
     ABA_CENTRAL_VENDAS = "VENDAS"
     ABA_PTRAFEGO_DADOS = "DADOS"
     ABA_PTRAFEGO_META_ADS = "NEW META ADS"
+    ABA_PTRAFEGO_META_ADS_L4 = "L4 - NEW META ADS"
     ABA_PTRAFEGO_ANUNCIOS_SUBIDOS = "ANUNCIOS SUBIDOS"
     ABA_PCOPY_DADOS = 'pesquisa-copy-' + lancamento.replace(".", "")
     ABA_GRUPOS_WPP = 'SENDFLOW - ATIVIDADE EXPORT'
@@ -41,47 +43,52 @@ def setupSheets(produto, versao):
                             "sheet": SHEET_CENTRAL_DO_UTM,
                             "aba": ABA_CENTRAL_CAPTURA,
                             "dataframe": None,
-                            "name": "Central > Captura" },
+                            },
         K_CENTRAL_PRE_MATRICULA: { "id": "K_CENTRAL_PRE_MATRICULA",
                             "sheet": SHEET_CENTRAL_DO_UTM,
                             "aba": ABA_CENTRAL_PRE_MATRICULA,
                             "dataframe": None,
-                            "name": "Central > Pré-matrícula" },
+                            },
         K_CENTRAL_VENDAS: { "id": "K_CENTRAL_VENDAS",
                             "sheet": SHEET_CENTRAL_DO_UTM,
                             "aba": ABA_CENTRAL_VENDAS,
                             "dataframe": None,
-                            "name": "Central > Vendas" },
+                            },
         K_PTRAFEGO_DADOS: { "id": "K_PTRAFEGO_DADOS",
                             "sheet": SHEET_PESQUISA_TRAFEGO_DADOS,
                             "aba": ABA_PTRAFEGO_DADOS,
                             "dataframe": None,
-                            "name": "Pesquisa de Tráfego > Dados" },
+                            },
         K_PTRAFEGO_META_ADS: { "id": "K_PTRAFEGO_META_ADS",
                             "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_META_ADS,
                             "dataframe": None,
-                            "name": "Pesquisa de Tráfego > Meta ADs" },
+                            },
+        K_PTRAFEGO_META_ADS_L4: { "id": "K_PTRAFEGO_META_ADS_L4",
+                            "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
+                            "aba": ABA_PTRAFEGO_META_ADS_L4,
+                            "dataframe": None,
+                            },
         K_PTRAFEGO_ANUNCIOS_SUBIDOS: { "id": "K_PTRAFEGO_ANUNCIOS_SUBIDOS",
                             "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_ANUNCIOS_SUBIDOS,
                             "dataframe": None,
-                            "name": "Pesquisa de Tráfego > Anúncio subidos" },
+                            },
         K_PCOPY_DADOS: { "id": "K_PCOPY_DADOS",
                             "sheet": SHEET_PESQUISA_COPY,
                             "aba": ABA_PCOPY_DADOS,
                             "dataframe": None,
-                            "name": "Pesquisa de Copy > Dados" },
+                            },
         K_GRUPOS_WPP: { "id": "K_GRUPOS_WPP",
                             "sheet": SHEET_GRUPOS_WPP,
                             "aba": ABA_GRUPOS_WPP,
                             "dataframe": None,
-                            "name": "Grupos de Whatsapp > Atividade" },
+                            },
         K_CLICKS_WPP: { "id": "K_GRUPOS_WPP",
                             "sheet": SHEET_GRUPOS_WPP,
                             "aba": ABA_CLICKS_WPP,
                             "dataframe": None,
-                            "name": "Grupos de Whatsapp > Clicks" }
+                             }
     }
     
     return SHEETS
@@ -181,6 +188,8 @@ class DataLoader:
             case "K_PTRAFEGO_DADOS":
                 df_sheet = df_sheet
             case "K_PTRAFEGO_META_ADS":
+                df_sheet = format_ptrafego_metaads(df_sheet)
+            case "K_PTRAFEGO_META_ADS_L4":
                 df_sheet = format_ptrafego_metaads(df_sheet)
             case "K_PTRAFEGO_ANUNCIOS_SUBIDOS":
                 df_sheet = df_sheet
