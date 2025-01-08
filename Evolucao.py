@@ -69,6 +69,16 @@ def create_line_chart(df, variable, conv=None, title=''):
             yaxis='y2'  # Specify secondary y-axis
         ))
 
+        # Add horizontal line for the mean of `conv`
+        mean_conv = df[conv].mean()
+        fig.add_hline(
+            y=mean_conv,
+            line=dict(color='yellow', dash='dot'),
+            annotation_text=f'Média: {mean_conv:.2f}%',
+            annotation_position='top right',
+            yref='y2'
+        )
+
         # Update layout for dual-axis with new range and hidden ticks
         fig.update_layout(
             yaxis=dict(
@@ -185,31 +195,32 @@ def gerar_barras_empilhadas(dataframe, colunas_renda, title):
     # Adicionar todos os traces ao gráfico
     fig.add_traces(data_abs + data_pct)
 
-    # Criar os botões de alternância com estilo azul
+    # Criar o dropdown para alternar entre valores absolutos e percentuais
     updatemenus = [
         dict(
-            type="buttons",
-            direction="right",
-            x=0.1,
-            y=1.2,
+            type="dropdown",
+            direction="down",
+            x=0.3,  # Centralizado horizontalmente
+            y=1.15,  # Logo acima do gráfico
             showactive=True,
-            #bgcolor='#ADD8E6',  # Azul claro para o fundo
-            #activecolor='#1E90FF',  # Azul mais escuro quando ativo
-            #font=dict(color='black'),  # Cor do texto
-            buttons=list([
-                dict(
-                    label="Porcentagem",
-                    method="update",
-                    args=[{"visible": [False]*len(colunas_renda) + [True]*len(colunas_renda)},
-                          {"yaxis": {"title": "Proporção (%)", "range": [0, 100]}}]
-                ),
+            bgcolor="rgba(240, 240, 240, 0.8)",  # Fundo cinza claro translúcido
+            borderwidth=1,
+            bordercolor="lightgray",
+            font=dict(color="black", size=12),
+            buttons=[
                 dict(
                     label="Valores Absolutos",
                     method="update",
                     args=[{"visible": [True]*len(colunas_renda) + [False]*len(colunas_renda)},
                           {"yaxis": {"title": "Quantidade"}}]
+                ),
+                dict(
+                    label="Porcentagem",
+                    method="update",
+                    args=[{"visible": [False]*len(colunas_renda) + [True]*len(colunas_renda)},
+                          {"yaxis": {"title": "Proporção (%)", "range": [0, 100]}}]
                 )
-            ])
+            ]
         )
     ]
 
@@ -312,4 +323,4 @@ with tab2:
                             'Alunos: Acima de R$20.000']
             # Gráfico de Renda dos Alunos
             chart = gerar_barras_empilhadas(dados, alunos_renda, 'Alunos: Renda')
-            chart
+            st.plotly_chart(chart, use_container_width=True)
