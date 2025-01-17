@@ -27,7 +27,7 @@ loading_container.empty()
 #      INÍCIO DO LAYOUT
 #------------------------------------------------------------
 
-st.caption("CAPTAÇÃO > PRÉ-MATRÍCULA")
+st.caption("PRÉ-MATRÍCULA > VISÃO GERAL")
 st.title('Pré-Matrícula')
 
 

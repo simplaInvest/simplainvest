@@ -40,7 +40,7 @@ DF_CENTRAL_PREMATRICULA['Vendas'] = DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_CEN
 #      INÍCIO DO LAYOUT
 #------------------------------------------------------------
 
-st.caption("CAPTAÇÃO > VENDAS")
+st.caption("VENDAS > VISÃO GERAL")
 st.title('Central de Vendas')
 
 
