@@ -1,14 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import altair as alt
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import plotly.graph_objects as go
-import plotly.express as px
-import seaborn as sns
-import re
-from sklearn.feature_extraction.text import CountVectorizer
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, get_df
 

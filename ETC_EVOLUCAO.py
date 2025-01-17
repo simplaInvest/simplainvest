@@ -1,9 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import altair as alt
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import plotly.graph_objects as go
 
 dados = pd.read_csv('Métricas_EI - Dados.csv')
