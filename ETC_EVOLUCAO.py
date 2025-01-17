@@ -4,7 +4,6 @@ import plotly.graph_objects as go
 
 dados = pd.read_csv('Métricas_EI - Dados.csv')
 
-
 #------------------------------------------------------------
 #      01.GRÁFICOS DE LINHA
 #------------------------------------------------------------
