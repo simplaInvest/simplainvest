@@ -1,10 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import altair as alt
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import plotly.graph_objects as go
 import plotly.express as px
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, get_df
@@ -235,7 +231,7 @@ patrimonio_order = [
         'Acima de R$1 milhão'
     ]
 renda_order = [
-        'Menos de R$1.500',
+        'Até R$1.500',
         'Entre R$1.500 e R$2.500',
         'Entre R$2.500 e R$5.000',
         'Entre R$5.000 e R$10.000',

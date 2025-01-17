@@ -17,16 +17,17 @@ loading_container = st.empty()
 with loading_container:
     status = st.status("Carregando dados...", expanded=True)
     with status:
-        DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
-        DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
-        DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
-        DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
-        DF_PTRAFEGO_META_ADS_L4 = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS_L4) # Especial pro EI.21 (Make não busca mais L4, foi pausada)
-        DF_PTRAFEGO_META_ADS = pd.concat([DF_PTRAFEGO_META_ADS, DF_PTRAFEGO_META_ADS_L4]) # Especial pro EI.21 (Make não busca mais L4, foi pausada)
-        DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
-        DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
-        DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
-        status.update(label="Carregados com sucesso!", state="complete", expanded=False)
+        try:
+            DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+            DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
+            DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+            DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
+            DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+            DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+            DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
+            status.update(label="Carregados com sucesso!", state="complete", expanded=False)
+        except Exception as e:
+            status.update(label="Erro ao carregar dados: " + str(e), state="error", expanded=False)
 loading_container.empty()
 
 # Cacheamento para Gráficos

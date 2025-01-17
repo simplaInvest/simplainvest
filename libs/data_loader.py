@@ -11,7 +11,6 @@ K_CENTRAL_PRE_MATRICULA = "K_CENTRAL_PRE_MATRICULA"
 K_CENTRAL_VENDAS = "K_CENTRAL_VENDAS"
 K_PTRAFEGO_DADOS = "K_PTRAFEGO_DADOS"
 K_PTRAFEGO_META_ADS = "K_PTRAFEGO_META_ADS"
-K_PTRAFEGO_META_ADS_L4 = "K_PTRAFEGO_META_ADS_L4"
 K_PTRAFEGO_ANUNCIOS_SUBIDOS = "K_PTRAFEGO_ANUNCIOS_SUBIDOS"
 K_PCOPY_DADOS = "K_PCOPY_DADOS"
 K_GRUPOS_WPP = "K_GRUPOS_WPP"
@@ -31,7 +30,6 @@ def setupSheets(produto, versao):
     ABA_CENTRAL_VENDAS = "VENDAS"
     ABA_PTRAFEGO_DADOS = "DADOS"
     ABA_PTRAFEGO_META_ADS = "NEW META ADS"
-    ABA_PTRAFEGO_META_ADS_L4 = "L4 - NEW META ADS"
     ABA_PTRAFEGO_ANUNCIOS_SUBIDOS = "ANUNCIOS SUBIDOS"
     ABA_PCOPY_DADOS = 'pesquisa-copy-' + lancamento.replace(".", "")
     ABA_GRUPOS_WPP = 'SENDFLOW - ATIVIDADE EXPORT'
@@ -62,11 +60,6 @@ def setupSheets(produto, versao):
         K_PTRAFEGO_META_ADS: { "id": "K_PTRAFEGO_META_ADS",
                             "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_META_ADS,
-                            "dataframe": None,
-                            },
-        K_PTRAFEGO_META_ADS_L4: { "id": "K_PTRAFEGO_META_ADS_L4",
-                            "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
-                            "aba": ABA_PTRAFEGO_META_ADS_L4,
                             "dataframe": None,
                             },
         K_PTRAFEGO_ANUNCIOS_SUBIDOS: { "id": "K_PTRAFEGO_ANUNCIOS_SUBIDOS",

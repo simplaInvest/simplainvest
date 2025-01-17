@@ -41,15 +41,21 @@ else:
             st.Page("CAP_2_PTRAFEGO.py", title = "💲 Pesquisa de Tráfego"),
             st.Page("CAP_3_PCOPY.py", title = "🧑 Pesquisa de Copy"),
             st.Page("CAP_4_GRUPOS_WPP.py", title = "📞 Grupos de Whatsapp"),
-            st.Page("prematricula.py", title = "✅ Pré-Matrícula"),
-            st.Page("vendas.py", title = "💸 Central de Vendas"),
-            st.Page("Evolucao.py", title = "🎯 Comparação de Lançamentos")
             # st.Page("2_Análise Geral Lançamento.py", title=" Análise Geral Lançamento"),
             # st.Page("4_Anúncios.py", title="Anuncios"),
             # st.Page("3_Desempenho_UTMS.py", title="Desempenho UTMS"),
             # st.Page("5_General_Message_analyzer.py", title="Message Analyzer"),
             # st.Page("98_Tester.py", title="anunciosss"),
             # st.Page("6_Analise_Dinamica.py", title="Análise dinâmica")
+        ],
+        'PRÉ-MATRÍCULA': [
+            st.Page("PM_1_VISAOGERAL.py", title = "⭐ Visão Geral"),
+        ],
+        'VENDAS': [
+            st.Page("VENDAS_1_VISAOGERAL.py", title = "💵 Visão geral"),
+        ],
+        'GERAL': [
+            st.Page("ETC_EVOLUCAO.py", title = "🎯 Comparação de Lançamentos")
         ]
     }
     pages = pages_after_load
