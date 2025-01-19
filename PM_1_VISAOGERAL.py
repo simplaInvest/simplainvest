@@ -41,7 +41,7 @@ columns_to_filter = ['PM UTM_TERM', 'PM UTM_CAMPAIGN', 'PM UTM_SOURCE', 'PM UTM_
 
 # Criar os filtros lado a lado
 filters = {}
-col1, col2, col3, col4, col5 = st.columns(len(columns_to_filter))
+col1, col2, col3, col4, col5, col6 = st.columns(len(columns_to_filter)+1)
 
 with col1:
     unique_terms = list(DF_CENTRAL_PREMATRICULA['PM UTM_TERM'].unique())
@@ -67,7 +67,6 @@ with col5:
     unique_adsets = list(DF_CENTRAL_PREMATRICULA['PM UTM_ADSET'].unique())
     unique_adsets.insert(0, 'TODOS')
     filters['PM UTM_ADSET'] = st.multiselect("PM UTM_ADSET", unique_adsets, default="TODOS")
-    
 
 # Verificar se os filtros estão vazios
 if DF_CENTRAL_PREMATRICULA.empty:
@@ -80,15 +79,28 @@ else:
         if "TODOS" not in selected_values:
             filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA[column].isin(selected_values)]
 
-    # Verificar se o DataFrame filtrado está vazio
-    if filtered_DF_CENTRAL_PREMATRICULA.empty:
-        st.warning("Nenhum dado encontrado com os filtros selecionados.")
-    else:
-        st.divider()
+with col6:
+    with st.container(border=True):
+        st.metric(label=f'% do filtro em relação ao total', value = f'{round((filtered_DF_CENTRAL_PREMATRICULA.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2)}%')
+
+# Verificar se o DataFrame filtrado está vazio
+if filtered_DF_CENTRAL_PREMATRICULA.empty:
+    st.warning("Nenhum dado encontrado com os filtros selecionados.")
+else:
+    st.divider()
 
 # Convertendo colunas de data para datetime, se necessário
-filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'] = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'], errors='coerce')
-filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'] = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'], errors='coerce')
+filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'] = pd.to_datetime(
+    filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'], 
+    format='%d/%m/%Y %H:%M', 
+    errors='coerce'
+)
+
+filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'] = pd.to_datetime(
+    filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'], 
+    format='%d/%m/%Y %H:%M', 
+    errors='coerce'
+)
 
 # Função para criar o gráfico de linhas de PM DATA_CAPTURA
 @st.cache_data
@@ -136,34 +148,50 @@ def grafico_linhas_cap_data_captura(df, start_date, end_date):
 
 # Função para criar o gráfico de barras horizontais para UTM_SOURCE
 @st.cache_data
-def grafico_barras_horizontais_utm_source(df):
-    df_grouped = df['PM UTM_SOURCE'].value_counts().reset_index()
-    df_grouped.columns = ['PM UTM_SOURCE', 'Contagem']
+def grafico_barras_horizontais_utm_source_medium(df):
+    df['PM UTM_SOURCE_MEDIUM'] = df['PM UTM_SOURCE'] + ' / ' + df['PM UTM_MEDIUM']
+    df_grouped = df['PM UTM_SOURCE_MEDIUM'].value_counts().reset_index()
+    df_grouped.columns = ['PM UTM_SOURCE_MEDIUM', 'Contagem']
 
     chart = alt.Chart(df_grouped).mark_bar(color='lightblue').encode(
         x=alt.X('Contagem:Q', title='Número de Ocorrências'),
-        y=alt.Y('PM UTM_SOURCE:N', sort='-x', title='Fonte'),
-        tooltip=['PM UTM_SOURCE', 'Contagem']
+        y=alt.Y('PM UTM_SOURCE_MEDIUM:N', sort='-x', title='Fonte'),
+        tooltip=['PM UTM_SOURCE_MEDIUM', 'Contagem']
     ).properties(
-        title='Gráfico de Barras Horizontais - UTM_SOURCE'
+        title='Gráfico de Barras Horizontais - UTM_SOURCE_MEDIUM'
+    )
+    return chart
+
+@st.cache_data
+def grafico_barras_horizontais(df, column):
+    df_grouped = df[column].value_counts().reset_index()
+    df_grouped.columns = [column, 'Contagem']
+    df_grouped = df_grouped.head(10)
+
+    chart = alt.Chart(df_grouped).mark_bar(color='lightblue').encode(
+        x=alt.X('Contagem:Q', title='Número de Ocorrências'),
+        y=alt.Y(f'{column}:N', sort='-x', title='Fonte'),
+        tooltip=[f'{column}', 'Contagem']
+    ).properties(
+        title=f'Gráfico de Barras Horizontais - {column}'
     )
     return chart
 
 # Função para criar o gráfico de pizza para UTM_MEDIUM
 @st.cache_data
-def grafico_pizza_utm_medium(df):
+def grafico_pizza(df, column):
     # Agrupar dados por UTM_MEDIUM
-    df_grouped = df['PM UTM_MEDIUM'].value_counts(normalize=True).reset_index()
-    df_grouped.columns = ['PM UTM_MEDIUM', 'Proporção']
+    df_grouped = df[column].value_counts(normalize=True).reset_index()
+    df_grouped.columns = [column, 'Proporção']
     df_grouped['Proporção (%)'] = (df_grouped['Proporção'] * 100).round(2)  # Convertendo para porcentagem
 
     # Criar o gráfico de pizza
     chart = alt.Chart(df_grouped).mark_arc().encode(
         theta=alt.Theta(field='Proporção', type='quantitative', title='Proporção'),
-        color=alt.Color(field='PM UTM_MEDIUM', type='nominal', title='Medium'),
-        tooltip=['PM UTM_MEDIUM', alt.Tooltip('Proporção (%)', format='.2f')]
+        color=alt.Color(field=f'{column}', type='nominal', title='Medium'),
+        tooltip=[f'{column}', alt.Tooltip('Proporção (%)', format='.2f')]
     ).properties(
-        title='Gráfico de Pizza - UTM_MEDIUM'
+        title=f'Gráfico de Pizza - {column}'
     )
 
     return chart
@@ -173,31 +201,31 @@ pm_traf = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMA
 pm_copy = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PCOPY_DADOS['EMAIL'])]
 
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
+
 
 with col1:
     st.metric(label="Total", value=filtered_DF_CENTRAL_PREMATRICULA.shape[0])
-    st.metric(label = "Com pesquisa", value = pm_traf.shape[0])
-    st.metric(label= 'Com copy', value = pm_copy.shape[0])
 
 with col2:
-    st.metric(label='Conversão', value = round((filtered_DF_CENTRAL_PREMATRICULA.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2))
-    st.metric(label='Proporção em relação ao total de pré-matrículas', value = round((pm_traf.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2))
-    st.metric(label='Proporção em relação ao total de pré-matrículas', value = round((pm_copy.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2))
+    st.metric(label='Conversão', value = f'{round((filtered_DF_CENTRAL_PREMATRICULA.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%')
 
 with col3:
-    st.metric(label='Proporção do filtro em relação ao total', value = round((filtered_DF_CENTRAL_PREMATRICULA.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2))
+    st.metric(label = "Com pesquisa", value = f'{pm_traf.shape[0]} ({round((pm_traf.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2)}%)')
+
+with col4:
+    st.metric(label= 'Com copy', value = f'{pm_copy.shape[0]} ({round((pm_copy.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2)}%)')
 
 st.divider()
 
-tab1, tab2 = st.tabs(["Origens","Tráfego"])
+tab1, tab2 = st.tabs(["Trackeamento","Pesquisa"])
 
 with tab1:
     st.subheader('Captação')
     if int(VERSAO_PRINCIPAL) >= 20:
         # Preparar os dados para o slider
-        min_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'].min()).date()
-        max_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'].max()).date()
+        min_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'].min()).date()
+        max_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'].max()).date()
 
         # Criar o slider para selecionar o intervalo de tempo
         start_date, end_date = st.slider(
@@ -215,15 +243,28 @@ with tab1:
         if fig:
             st.altair_chart(fig, use_container_width=True)
 
-    st.subheader('Source')
-    fig = grafico_barras_horizontais_utm_source(filtered_DF_CENTRAL_PREMATRICULA)
-    if fig:
-        st.altair_chart(fig, use_container_width=True)
+    with st.container(border=True):
+        st.subheader('Source/Medium')
+        fig = grafico_barras_horizontais_utm_source_medium(filtered_DF_CENTRAL_PREMATRICULA)
+        if fig:
+            st.altair_chart(fig, use_container_width=True)
+    
 
-    st.subheader('Medium')
-    fig = grafico_pizza_utm_medium(filtered_DF_CENTRAL_PREMATRICULA)
-    if fig:
-        st.altair_chart(fig, use_container_width=True)
+    lista_colunas = ['PM UTM_SOURCE', 'PM UTM_MEDIUM', 'PM UTM_ADSET', 'PM UTM_TERM']
+
+    for coluna in lista_colunas:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            with st.container(border=True):
+                fig = grafico_barras_horizontais(filtered_DF_CENTRAL_PREMATRICULA, coluna)
+                if fig:
+                    st.altair_chart(fig, use_container_width=True)
+        with col2:
+            with st.container(border=True):
+                fig = grafico_pizza(filtered_DF_CENTRAL_PREMATRICULA, coluna)
+                if fig:
+                    st.altair_chart(fig, use_container_width=True)
 
 with tab2:
     filtered_DF_CENTRAL_PREMATRICULA['EMAIL'] = filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower()

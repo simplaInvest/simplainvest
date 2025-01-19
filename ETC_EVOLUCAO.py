@@ -12,6 +12,7 @@ dados = pd.read_csv('Métricas_EI - Dados.csv')
 #------------------------------------------------------------
 #      01.GRÁFICOS DE LINHA
 #------------------------------------------------------------
+
 dados['conv_traf'] = (dados['Trafego'] / dados['Captura']) * 100
 dados['conv_copy'] = (dados['Copy'] / dados['Captura']) * 100
 dados['conv_wpp'] = (dados['Whatsapp'] / dados['Captura']) * 100
@@ -22,7 +23,7 @@ columns_to_round = ['conv_traf', 'conv_copy', 'conv_wpp', 'conv_alunos']
 dados[columns_to_round] = dados[columns_to_round].round(2)
 
 @st.cache_data
-def create_line_chart(df, variable, conv=None, title=''):
+def create_line_chart(df, variable, conv=None, title='', variable_legend=None, conv_legend=None):
     """
     Create a line chart for a specific variable and an optional conversion variable in the DataFrame.
 
@@ -31,11 +32,17 @@ def create_line_chart(df, variable, conv=None, title=''):
     variable (str): Column name of the primary variable to plot.
     conv (str, optional): Column name of the conversion variable to plot (in percentages).
     title (str): Title of the chart.
+    variable_legend (str, optional): Custom name for the primary variable in the legend.
+    conv_legend (str, optional): Custom name for the conversion variable in the legend.
 
     Returns:
     fig: Plotly Figure object.
     """
     fig = go.Figure()
+
+    # Define legend names with fallback to column names
+    variable_legend = variable_legend if variable_legend else variable
+    conv_legend = conv_legend if conv_legend else conv
 
     # Add the primary variable line
     fig.add_trace(go.Scatter(
@@ -46,7 +53,7 @@ def create_line_chart(df, variable, conv=None, title=''):
         textposition='top center',
         line=dict(width=2, color='blue'),
         marker=dict(size=8),
-        name=variable
+        name=variable_legend
     ))
 
     # Add the conversion variable line if provided
@@ -65,7 +72,7 @@ def create_line_chart(df, variable, conv=None, title=''):
             textposition='top center',
             line=dict(width=2, color='green', dash='dot'),
             marker=dict(size=8),
-            name=conv,
+            name=conv_legend,
             yaxis='y2'  # Specify secondary y-axis
         ))
 
@@ -93,7 +100,7 @@ def create_line_chart(df, variable, conv=None, title=''):
                 overlaying='y',
                 side='right',
                 range=[y2_min, y2_max],
-                showticklabels=True,  # Hide tick labels
+                showticklabels=True,  # Show tick labels
                 showgrid=False,        # Hide grid lines
                 zeroline=False         # Hide zero line
             )
@@ -109,6 +116,7 @@ def create_line_chart(df, variable, conv=None, title=''):
     )
 
     return fig
+
 
 #------------------------------------------------------------
 #      02.GRÁFICOS DE BARRAS EMPILHADAS
@@ -270,22 +278,22 @@ with tab1:
             chart
         with st.container(border=True):
             st.subheader('Copy')
-            chart = create_line_chart(dados, variaveis[2], conv = 'conv_copy')
+            chart = create_line_chart(dados, variaveis[2], conv = 'conv_copy', variable_legend = 'Copy', conv_legend = 'Proporção respostas')
             chart
 
     with colunas[1]:
         with st.container(border=True):
             st.subheader('Trafego')
-            chart = create_line_chart(dados, variaveis[1], conv = 'conv_traf')
+            chart = create_line_chart(dados, variaveis[1], conv = 'conv_traf',variable_legend = 'Leads', conv_legend = 'Pesquisas')
             chart
         with st.container(border=True):
             st.subheader('Whatsapp')
-            chart = create_line_chart(dados, variaveis[3], conv = 'conv_wpp')
+            chart = create_line_chart(dados, variaveis[3], conv = 'conv_wpp', variable_legend = 'Whatsapp', conv_legend = 'Proporção whatsapp')
             chart
 
     with st.container(border=True):
         st.subheader('Alunos')
-        chart = create_line_chart(dados, variaveis[4], conv = 'conv_alunos')
+        chart = create_line_chart(dados, variaveis[4], conv = 'conv_alunos', variable_legend = 'Alunos', conv_legend = 'Conversão')
         chart
 
 with tab2:
