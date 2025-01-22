@@ -24,7 +24,7 @@ else:
         lancamento_cod = st.session_state["PRODUTO"] + ' - ' + str(st.session_state["VERSAO_PRINCIPAL"])
         with st.expander(lancamento_cod):
             PRODUTO = st.radio('Produto', ['Eu Investidor', 'Simpla Club'])
-            options = list(reversed(range(1, 22)))
+            options = list(reversed(range(1, 26)))
             index = options.index(st.session_state["VERSAO_PRINCIPAL"])
             VERSAO_PRINCIPAL = st.selectbox('Versão', options, index=index)
             if st.button('Alterar', use_container_width=True):
