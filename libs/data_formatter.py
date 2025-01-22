@@ -2,7 +2,7 @@ import pandas as pd
 
 def format_central_captura(df_central_captura):
     if df_central_captura.empty:
-        raise ValueError("O DataFrame 'df_central_captura' está vazio.")
+        raise ValueError(f"O DataFrame '{df_central_captura}' está vazio.")
     df_central_captura['CAP DATA_CAPTURA'] = pd.to_datetime(df_central_captura['CAP DATA_CAPTURA'], dayfirst=True).dt.date
     return df_central_captura
 
@@ -38,3 +38,11 @@ def format_ptrafego_clicks(df_ptrafego_clicks):
                 df_ptrafego_clicks[col] = df_ptrafego_clicks[col].astype(int)
 
     return df_ptrafego_clicks
+
+def format_ptrafego_dados(df_ptrafego_dados):
+    if df_ptrafego_dados.empty:
+        raise ValueError(f"O Dataframe '{df_ptrafego_dados}' está vazio")
+    else:
+        # converter a coluna 'DATA DE CAPTURA' para datetime no formato correto
+        df_ptrafego_dados["DATA DE CAPTURA"] = pd.to_datetime(df_ptrafego_dados["DATA DE CAPTURA"], format="%d/%m/%Y %H:%M", errors="coerce")
+    return df_ptrafego_dados

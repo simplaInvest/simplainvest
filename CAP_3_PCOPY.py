@@ -125,17 +125,33 @@ if int(VERSAO_PRINCIPAL) >= 20:
         (filtered_DF_PCOPY_DADOS['Qual sua idade?'] <= age_range[1])
     ]
 
-prematricula_filter = st.checkbox("Pré-matrícula")
+# Filter columns layout
+colu1, colu2, colu3 = st.columns([1,1,4])
+with colu1:
+    with st.container(border = True):
+        st.subheader('Pré-Matrícula:')
+        opcao_prematricula = st.radio("Escolha uma opção", ("Todos", "Com", "Sem"))
 
 # Aplicar o filtro de pré-matrícula se a opção estiver marcada
-if prematricula_filter:
+if opcao_prematricula == 'Todos':
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS
+elif opcao_prematricula == 'Com':
     filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
+elif opcao_prematricula == 'Sem':
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[~filtered_DF_PCOPY_DADOS['EMAIL'].str.lower().isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
 
-vendas_filter = st.checkbox("Venda")
+with colu2:
+    with st.container(border = True):
+        st.subheader('Vendas:')
+        opcao_vendas = st.radio("Escolha uma opção", ("Ambos", "Sim", "Não"))
 
 # Aplicar o filtro de pré-matrícula se a opção estiver marcada
-if vendas_filter:
+if opcao_vendas == 'Ambos':
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS
+elif opcao_vendas == 'Sim':
     filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[filtered_DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
+elif opcao_vendas == 'Não':
+    filtered_DF_PCOPY_DADOS = filtered_DF_PCOPY_DADOS[~filtered_DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
 
 # Closed-ended response columns: categorical responses or choices
 closed_ended_columns = [
@@ -213,9 +229,6 @@ missing_data_summary = pd.DataFrame({
     'Proporção em relação ao total de respostas da pesquisa': proportion_na_values
 })
 
-st.header('Dados ausentes')
-st.write(missing_data_summary.set_index('Variável'))
-st.divider()
 with st.container(border=False):
         st.markdown("<h2 style='text-align: left; font-size: 2vw; margin-bottom: 28px; color: lightblue;hover-color: red'>Métricas Gerais</h2>", unsafe_allow_html=True)
         ctcol1, ctcol2, ctcol3= st.columns([1, 1, 1])
@@ -245,6 +258,11 @@ def graf_sexo():
     variavel_data = data[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
+    if total_respostas <= 101:
+        warning = '⚠️ POUCAS RESPOSTAS'
+    else:
+        warning = ''
+
     # Criando o gráfico
     plt.figure(figsize=(10, 5))
     ax = variavel_data.plot(kind='bar', color=cor, width=0.6, edgecolor='black')
@@ -256,7 +274,7 @@ def graf_sexo():
         ax.annotate(f"{count} ({perc:.1f}%)", (p.get_x() + p.get_width() / 2, p.get_height()), ha='center', va='bottom')
 
     # Adicionando título e rótulos
-    plt.title(titulo, fontsize=14)
+    plt.title(f"{titulo} {warning}", fontsize=14)
     plt.xlabel('Classe', fontsize=12)
     plt.ylabel('Contagem', fontsize=12)
 
@@ -278,6 +296,14 @@ if int(VERSAO_PRINCIPAL) >= 20:
         idade_max = data['Qual sua idade?'].max()
         bins = np.arange(0, idade_max + 5, 5)
 
+        # Calculando o total de respostas
+        total_respostas = idade_data.shape[0]
+
+        if total_respostas <= 101:
+            warning = '⚠️ POUCAS RESPOSTAS'
+        else:
+            warning = ''
+
         # Calculando média e desvio-padrão
         media_idade = data['Qual sua idade?'].mean()
         desvio_padrao = data['Qual sua idade?'].std()
@@ -294,7 +320,7 @@ if int(VERSAO_PRINCIPAL) >= 20:
         plt.xticks(bins, rotation=0)
 
         # Adicionando título, legenda e rótulos
-        plt.title('Distribuição da Idade dos Respondentes')
+        plt.title(f'Distribuição de Idades {warning}')
         plt.xlabel('Idade')
         plt.ylabel('Frequência')
         plt.legend()
@@ -315,6 +341,11 @@ def graf_filhos():
     variavel_data = data[var].dropna().value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
+    if total_respostas <= 101:
+        warning = '⚠️ POUCAS RESPOSTAS'
+    else:
+        warning = ''
+
     # Criando o gráfico
     plt.figure(figsize=(10, 5))
     ax = variavel_data.plot(kind='bar', color=cor, width=0.6, edgecolor='black')
@@ -326,7 +357,7 @@ def graf_filhos():
         ax.annotate(f"{count} ({perc:.1f}%)", (p.get_x() + p.get_width() / 2, p.get_height()), ha='center', va='bottom')
 
     # Adicionando título e rótulos
-    plt.title(titulo, fontsize=14)
+    plt.title(f'{titulo} {warning}', fontsize=14)
     plt.xlabel('Classe', fontsize=12)
     plt.ylabel('Contagem', fontsize=12)
 
@@ -351,6 +382,12 @@ def graf_civil():
     # Contagem dos valores e reindexação para garantir a ordem
     variavel_data = data[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
+    # Calculando o total de respostas
+
+    if total_respostas <= 101:
+        warning = '⚠️ POUCAS RESPOSTAS'
+    else:
+        warning = ''
 
     # Criando o gráfico
     plt.figure(figsize=(10, 5))
@@ -363,7 +400,7 @@ def graf_civil():
         ax.annotate(f"{count} ({perc:.1f}%)", (p.get_x() + p.get_width() / 2, p.get_height()), ha='center', va='bottom')
 
     # Adicionando título e rótulos
-    plt.title(titulo, fontsize=14)
+    plt.title(f'{titulo} {warning}', fontsize=14)
     plt.xlabel('Classe', fontsize=12)
     plt.ylabel('Contagem', fontsize=12)
 
@@ -395,6 +432,11 @@ def graf_exp():
     variavel_data = data[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
+    if total_respostas <= 101:
+        warning = '⚠️ POUCAS RESPOSTAS'
+    else:
+        warning = ''
+
     # Criando o gráfico
     plt.figure(figsize=(10, 5))
     ax = variavel_data.plot(kind='bar', color=cor, width=0.6, edgecolor='black')
@@ -406,7 +448,7 @@ def graf_exp():
         ax.annotate(f"{count} ({perc:.1f}%)", (p.get_x() + p.get_width() / 2, p.get_height()), ha='center', va='bottom')
 
     # Adicionando título e rótulos
-    plt.title(titulo, fontsize=14)
+    plt.title(f'{titulo} {warning}', fontsize=14)
     plt.xlabel('Classe', fontsize=12)
     plt.ylabel('Contagem', fontsize=12)
 
@@ -434,6 +476,11 @@ def graf_renda():
     variavel_data = data[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
+    if total_respostas <= 101:
+        warning = '⚠️ POUCAS RESPOSTAS'
+    else:
+        warning = ''
+
     # Criando o gráfico com ordem invertida
     plt.figure(figsize=(10, 5))
     ax = variavel_data.plot(kind='barh', color=cor, width=0.6, xlim=(0, 1.1 * variavel_data.max()), edgecolor='black')
@@ -446,7 +493,7 @@ def graf_renda():
                     ha='left', va='center')
 
     # Adicionando título e rótulos
-    plt.title(titulo, fontsize=14)
+    plt.title(f'{titulo} {warning}', fontsize=14)
     plt.xlabel('Contagem', fontsize=12)
     plt.ylabel('Classe', fontsize=12)
 
@@ -474,6 +521,11 @@ def graf_patrim():
     variavel_data = data[var].value_counts().reindex(classes_order)
     total_respostas = variavel_data.sum()  # Total para calcular a proporção
 
+    if total_respostas <= 101:
+        warning = '⚠️ POUCAS RESPOSTAS'
+    else:
+        warning = ''
+
     # Criando o gráfico com ordem invertida
     plt.figure(figsize=(10, 5))
     ax = variavel_data.plot(kind='barh', color=cor, width=0.6, xlim=(0, 1.1 * variavel_data.max()), edgecolor='black')
@@ -486,7 +538,7 @@ def graf_patrim():
                     ha='left', va='center')
 
     # Adicionando título e rótulos
-    plt.title(titulo, fontsize=14)
+    plt.title(f'{titulo} {warning}', fontsize=14)
     plt.xlabel('Contagem', fontsize=12)
     plt.ylabel('Classe', fontsize=12)
 
@@ -499,6 +551,13 @@ if int(VERSAO_PRINCIPAL) >= 20:
         # Access the specified column and transform it into a single string
         investment_column_string = ' '.join(data['Você já investe seu dinheiro atualmente?'].dropna().astype(str))
         from collections import Counter
+
+        total_respostas = data['Você já investe seu dinheiro atualmente?'].dropna().shape[0]
+
+        if total_respostas <= 101:
+            warning = '⚠️ POUCAS RESPOSTAS'
+        else:
+            warning = ''
 
         # Define the list of investment categories to count in the string
         investment_classes = [
@@ -531,7 +590,7 @@ if int(VERSAO_PRINCIPAL) >= 20:
 
         # Labeling
         plt.xlabel('Contagem')
-        plt.title('Frequência de cada Tipo de Investimento com Proporção')
+        plt.title(f'Frequência de cada Tipo de Investimento com Proporção {warning}')
         plt.gca().invert_yaxis()  # Invert the y-axis for a more intuitive reading order
 
         st.pyplot(plt)
@@ -568,39 +627,66 @@ stopwords_portugues = [
 ]
 def plot_top_bigrams_by_column(data, columns, top_n=10):
     for column in columns:
-        # Clean the text by removing punctuation and converting to lowercase
+        # Limpar o texto: remover pontuação e converter para minúsculas
         column_text = data[column].fillna('').str.cat(sep=' ')
         column_text = re.sub(r'[^\w\s]', '', column_text.lower())
         
-        # Use CountVectorizer to create bigrams and calculate their frequency
+        # Gerar bigramas
         vectorizer = CountVectorizer(ngram_range=(2, 2), stop_words=stopwords_portugues)
         bigram_counts = vectorizer.fit_transform([column_text])
+        bigram_features = vectorizer.get_feature_names_out()
+
+        # Adicionando aviso
+        total_respostas = data[column].dropna().shape[0]
+
+        if total_respostas <= 101:
+            warning = '⚠️ POUCAS RESPOSTAS'
+        else:
+            warning = ''
         
-        # Sum up the counts for each bigram
+        # Ordenar as palavras em cada bigrama e remover bigramas com palavras iguais
+        filtered_bigrams = []
+        for bigram in bigram_features:
+            words = bigram.split()
+            if words[0] != words[1]:  # Apenas incluir bigramas com palavras diferentes
+                filtered_bigrams.append(' '.join(sorted(words)))
+        
+        # Calcular as frequências somadas de bigramas equivalentes
         bigram_sums = bigram_counts.toarray().sum(axis=0)
-        bigram_frequencies = dict(zip(vectorizer.get_feature_names_out(), bigram_sums))
+        bigram_frequencies = {}
+        for bigram, count in zip(filtered_bigrams, bigram_sums):
+            bigram_frequencies[bigram] = bigram_frequencies.get(bigram, 0) + count
         
-        # Sort bigrams by frequency and select the top N
+        # Selecionar os top N bigramas
         top_bigrams = sorted(bigram_frequencies.items(), key=lambda x: x[1], reverse=True)[:top_n]
-        
-        # Separate bigrams and their counts for plotting
         bigrams, counts = zip(*top_bigrams) if top_bigrams else ([], [])
         
-        # Calculate the total bigram count for this column
+        # Calcular o total de bigramas
         total_bigram_count = sum(bigram_frequencies.values())
         
-        # Plot the results for this column
-        plt.figure(figsize=(10, 6))
+        # Criar o gráfico
+        plt.figure(figsize=(12, 8))
         bars = plt.barh(bigrams, counts, color='green', edgecolor='black')
         
-        # Add text labels for each bar
-        for bar, count in zip(bars, counts):
-            plt.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height() / 2, f'{count}', va='center')
+        # Ajustar limite do eixo x para evitar texto fora
+        max_count = max(counts) if counts else 0
+        plt.xlim(0, max_count * 1.15)
         
-        # Labeling
+        # Adicionar rótulos com valores absolutos e relativos
+        for bar, count in zip(bars, counts):
+            relative_freq = (count / total_bigram_count) * 100
+            plt.text(bar.get_width() + max_count * 0.02, 
+                     bar.get_y() + bar.get_height() / 2, 
+                     f'{relative_freq:.2f}% ({count})', 
+                     va='center')
+        
+        # Configurar rótulos e título
         plt.xlabel('Frequency')
-        plt.title(f'Top {top_n} Bigramas na coluna: {column} (Total: {total_bigram_count})')
+        plt.title(f'{column} (Total: {total_bigram_count}) {warning}')
         plt.gca().invert_yaxis()
+        plt.tight_layout()
+        
+        # Renderizar o gráfico com streamlit
         st.pyplot(plt)
 
 def plot_confusion_matrix_renda_patrimonio(data):
@@ -655,12 +741,12 @@ def plot_confusion_matrix_renda_patrimonio(data):
     st.pyplot(plt)
 
 # Criando as abas
-tab1, tab2, tab3 = st.tabs(["Informações Pessoais", "Informações Financeiras", "Análise Textual"])
+tab1, tab2, tab3, tab4 = st.tabs(["Informações Pessoais", "Informações Financeiras", "Bigramas", "Respostas" ])
 
 # Aba 1: Informações Pessoais
 with tab1:
-    st.header("Informações Pessoais")
-    
+    st.subheader("Informações Pessoais")
+        
     col1, col2 = st.columns(2)
     with col1:
         graf_sexo()
@@ -672,15 +758,16 @@ with tab1:
         if int(VERSAO_PRINCIPAL) >= 20:
             graf_filhos()
 
+
 # Aba 2: Informações Financeiras
 with tab2:
-    st.header("Informações Financeiras")
-    
+    st.subheader("Informações Financeiras")
+        
     col3, col4 = st.columns(2)
     with col3:
         if int(VERSAO_PRINCIPAL) >= 20:
             graf_invest()
-        graf_patrim()
+            graf_patrim()
     with col4:
         graf_renda()
     st.divider()
@@ -690,8 +777,19 @@ with tab2:
 
 # Aba 3: Análise Textual
 with tab3:
-    st.header("Análise Textual")
-    
-    st.subheader("Principais Bigramas")
-    plot_top_bigrams_by_column(data, open_ended_columns)
+    st.subheader("Bigramas")
+        
+    col1, col2 = st.columns(2)
+    with col1:
+        plot_top_bigrams_by_column(data, open_ended_columns[:3])
+    with col2:
+        plot_top_bigrams_by_column(data, open_ended_columns[3:])
+        
+with tab4:
+    st.subheader("Respostas")
+    st.dataframe(data[open_ended_columns])
 
+st.divider()
+st.header('Dados ausentes')
+st.write(missing_data_summary.set_index('Variável'))
+st.divider()

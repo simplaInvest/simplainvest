@@ -3,7 +3,7 @@ import gspread
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
 
-from libs.data_formatter import format_central_captura, format_grupos_wpp, format_ptrafego_metaads, format_ptrafego_clicks
+from libs.data_formatter import format_central_captura, format_grupos_wpp, format_ptrafego_metaads, format_ptrafego_clicks, format_ptrafego_dados
 
 # CONSTANTS
 K_CENTRAL_CAPTURA = "K_CENTRAL_CAPTURA"
@@ -53,7 +53,7 @@ def setupSheets(produto, versao):
                             "dataframe": None,
                             },
         K_PTRAFEGO_DADOS: { "id": "K_PTRAFEGO_DADOS",
-                            "sheet": SHEET_PESQUISA_TRAFEGO_DADOS,
+                            "sheet": SHEET_PESQUISA_TRAFEGO_DADOS if st.session_state["VERSAO_PRINCIPAL"] >= 21 else SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_DADOS,
                             "dataframe": None,
                             },
@@ -179,7 +179,7 @@ class DataLoader:
             case "K_CENTRAL_VENDAS":
                 df_sheet = df_sheet
             case "K_PTRAFEGO_DADOS":
-                df_sheet = df_sheet
+                df_sheet = format_ptrafego_dados(df_sheet)
             case "K_PTRAFEGO_META_ADS":
                 df_sheet = format_ptrafego_metaads(df_sheet)
             case "K_PTRAFEGO_META_ADS_L4":

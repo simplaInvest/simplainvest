@@ -292,19 +292,27 @@ daily_activity.rename(columns={'Data': 'Date'}, inplace=True)
 daily_activity['Members'] = daily_activity['Entry'].cumsum() - daily_activity['Exit'].cumsum()
 daily_activity['Ratio'] = round((daily_activity['Exit']/daily_activity['Entry']) * 100, 2)
 
-col1, col2, col3 = st.columns(3)
+with st.container(border = True):
+    col1, col2, col3, col4 = st.columns(4)
 
-with col1:
-    st.subheader("Captura")
-    st.metric(label = '', value=f"{DF_CENTRAL_CAPTURA.shape[0]}")
+    with col1:
+        st.subheader("Leads")
+        st.metric(label = '', value=f"{DF_CENTRAL_CAPTURA.shape[0]}")
 
-with col2:
-    st.subheader("Whatsapp")
-    st.metric(label = '', value=f"{whatsapp_entradas.shape[0]}")
+    with col2:
+        st.subheader("Entradas")
+        st.metric(label = '', value=f"{whatsapp_entradas.shape[0]} ({round((whatsapp_entradas.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)")
 
-with col3:
-    st.subheader("Conversão")
-    st.metric(label = '', value=f"{round((whatsapp_entradas.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%")
+    with col3:
+        st.subheader("Saidas")
+        st.metric(label = '', value=f"{whatsapp_saidas.shape[0]} ({round((whatsapp_saidas.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)")
+        
+
+    with col4:
+        st.subheader("Nos grupos")
+        nos_grupos = whatsapp_entradas.shape[0] - whatsapp_saidas.shape[0]
+        st.metric(label = '', value=f"{nos_grupos} ({round((nos_grupos/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)")
+        
 
 st.subheader('Número de pessoas no grupo')
 fig = plot_group_members_per_day_altair(daily_activity)
@@ -345,3 +353,4 @@ st.subheader('Distribuição de Tempo de Permanência nos Grupos (em dias)')
 fig = calculate_stay_duration_and_plot_histogram(DF_GRUPOS_WPP)
 if fig:
     st.altair_chart(fig, use_container_width=True)
+    st.write('O gráfico mostra o comportamento dos leads que saem dos grupos. Cada coluna representa uma quantidade de dias e seus valores mostram quantos leads saíram depois de ficar aquela quantidade de dias no grupo')

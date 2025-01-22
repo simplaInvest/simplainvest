@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import plotly.express as px
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, get_df
 
@@ -91,7 +93,7 @@ else:
     with cols_resumo[0]:
         options = ["Captação", "Pré-matrícula", "Vendas"]
         filters_etapas = st.multiselect(
-            label="Filtros por etapa:", options=options, default=["Captação"]
+            label="Filtros por etapa:", options=options
         )
         if filters_etapas is not None:
             if "Captação" in filters_etapas:
@@ -337,7 +339,6 @@ if VERSAO_PRINCIPAL == 21:
     def calcular_proporcoes_e_plotar(dataframe, coluna, data_inicio, lista_faixas):
         # 1. Filtrar dados relevantes e tratar NaNs
         dataframe = dataframe.dropna(subset=["DATA DE CAPTURA", coluna])  # Remove linhas sem data ou patrimônio.
-        dataframe["DATA DE CAPTURA"] = pd.to_datetime(dataframe["DATA DE CAPTURA"], format="mixed")  # Converte as datas para o formato datetime.
         dataframe["DIA"] = dataframe["DATA DE CAPTURA"].dt.date  # Extrai apenas a data (ignora horas e minutos).
 
         # Filtrar pelo parâmetro de data_inicio
@@ -355,7 +356,13 @@ if VERSAO_PRINCIPAL == 21:
         proporcoes[coluna] = pd.Categorical(proporcoes[coluna], categories=lista_faixas, ordered=True)  # Ordena as categorias
 
 
-        # 3. Criar o gráfico usando Plotly
+        # 3. Gerar gradiente de cores do vermelho ao verde
+        n_faixas = len(lista_faixas)
+        cmap = plt.get_cmap("bwr")  # Gradiente de vermelho para verde
+        colors = [cmap(i / (n_faixas - 1)) for i in range(n_faixas)]  # Gradiente normalizado
+        hex_colors = [mcolors.rgb2hex(c) for c in colors]  # Converter para hexadecimal
+
+        # 4. Criar o gráfico usando Plotly
         fig = px.line(
             proporcoes,
             x="DIA",
@@ -363,7 +370,7 @@ if VERSAO_PRINCIPAL == 21:
             color=coluna,
             title=f"Proporção Diária de Leads por Faixa de {coluna}",
             labels={"DIA": "Dia de Captação", "PROPORCAO": "Proporção (%)", coluna: f"Faixa de {coluna}"},
-            color_discrete_sequence=px.colors.qualitative.Set1,
+            color_discrete_sequence=hex_colors,  # Aplicar gradiente de cores
             category_orders={coluna: lista_faixas}
         )
 
@@ -378,6 +385,7 @@ if VERSAO_PRINCIPAL == 21:
         with st.container(border=True):
             chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'PATRIMONIO', '2024-12-01', patrimonio_order)
             chart
+            st.write(DF_PTRAFEGO_DADOS['DATA DE CAPTURA'].min())
 
     with col2:
         with st.container(border=True):

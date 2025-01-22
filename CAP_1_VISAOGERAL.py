@@ -231,14 +231,26 @@ def plot_observacoes_por_dia(dataframe):
     
     # Renomear as colunas para facilitar
     observacoes_por_dia.columns = ['Data', 'Quantidade']
+
+    # Calcular os dias corridos
+    dias_corridos = (observacoes_por_dia['Data'].max() - observacoes_por_dia['Data'].min()).days
     
     # Criar o gráfico com Plotly
     fig = px.line(observacoes_por_dia, 
                   x='Data', 
                   y='Quantidade', 
-                  title='Captação por dia',
+                  title=f'Captação por dia<br><sup>{dias_corridos} dias</sup>',
                   labels={'Data': 'Data', 'Quantidade': 'Quantidade'},
                   markers=True)
+    
+    # Ajustar o layout para aumentar o tamanho da fonte do título
+    fig.update_layout(
+        title={
+            'font': {
+                'size': 30  # Ajuste o tamanho da fonte do título
+            }
+        }
+    )
     
     # Adicionar anotações para os pontos
     for i in range(len(observacoes_por_dia)):
@@ -309,8 +321,8 @@ with st.container(border=True):
     with col_cpl:
         if VERSAO_PRINCIPAL >= 17:
             st.subheader("CPL")
-            st.metric(label = "CPL Geral", value = f"{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA.shape[0],2)}")
-            st.metric(label = "CPL Trafego", value = f"{round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}")
+            st.metric(label = "CPL Geral", value = f"R$ {round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA.shape[0],2)}")
+            st.metric(label = "CPL Trafego", value = f"R$ {round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}")
 
 with st.container(border=True):
     chart = plot_observacoes_por_dia(DF_CENTRAL_CAPTURA)
