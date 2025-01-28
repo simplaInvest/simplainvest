@@ -4,6 +4,7 @@ import altair as alt
 import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import plotly.graph_objects as go
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, get_df
 
@@ -385,9 +386,74 @@ if VERSAO_PRINCIPAL == 21:
         with st.container(border=True):
             chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'PATRIMONIO', '2024-12-01', patrimonio_order)
             chart
-            st.write(DF_PTRAFEGO_DADOS['DATA DE CAPTURA'].min())
 
     with col2:
         with st.container(border=True):
             chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'RENDA MENSAL', '2024-12-01', renda_order)
             chart
+
+#------------------------------------------------------------
+#      04. HEATMAP
+#------------------------------------------------------------
+def create_heatmap(dataframe):
+    """
+    Função para criar um heatmap com anotações dos valores de cada célula.
+    
+    Args:
+    dataframe (pd.DataFrame): DataFrame contendo as colunas 'PATRIMONIO' e 'RENDA MENSAL'.
+    
+    Returns:
+    plotly.graph_objects.Figure: Objeto do gráfico Plotly com anotações.
+    """
+    # Criar tabela de contagem para o heatmap
+    heatmap_pivot = dataframe.pivot_table(
+        index='PATRIMONIO', 
+        columns='RENDA MENSAL', 
+        aggfunc='size', 
+        fill_value=0
+    )
+    
+    # Criar heatmap com Plotly
+    fig = go.Figure(data=go.Heatmap(
+        z=heatmap_pivot.values,
+        x=heatmap_pivot.columns,
+        y=heatmap_pivot.index,
+        colorscale='Blues',
+        colorbar=dict(title='Quantidade')
+    ))
+    
+    # Adicionar anotações com valores de cada célula
+    for i, row in enumerate(heatmap_pivot.index):
+        for j, col in enumerate(heatmap_pivot.columns):
+            fig.add_annotation(
+                x=col,
+                y=row,
+                text=str(heatmap_pivot.loc[row, col]),
+                showarrow=False,
+                font=dict(color="black", size = 15, family="Arial", weight="bold")
+            )
+    
+    # Atualizar layout
+    fig.update_layout(
+        title='Mapa de calor: PATRIMÔNIO vs RENDA MENSAL',
+        xaxis_title="Faixa de Renda Mensal",
+        yaxis_title="Faixa de Patrimônio",
+        xaxis=dict(categoryorder='array', categoryarray=[
+            'Até R$1.500', 'Entre R$1.500 e R$2.500', 'Entre R$2.500 e R$5.000',
+            'Entre R$5.000 e R$10.000', 'Entre R$10.000 e R$20.000', 'Acima de R$20.000'
+        ]),
+        yaxis=dict(categoryorder='array', categoryarray=[
+            'Menos de R$5 mil', 'Entre R$5 mil e R$20 mil', 'Entre R$20 mil e R$100 mil',
+            'Entre R$100 mil e R$250 mil', 'Entre R$250 mil e R$500 mil', 'Entre R$500 mil e R$1 milhão',
+            'Acima de R$1 milhão'
+        ])
+    )
+    
+    return fig
+
+col1, col2, col3 = st.columns([1,7,1])
+
+with col2:
+    chart = create_heatmap(filtered_DF_PTRAFEGO_DADOS)
+
+    chart

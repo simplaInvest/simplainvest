@@ -149,7 +149,7 @@ with tab2:
     with col1:
         # Ordem das classes de renda
         renda_order = [
-            'Menos de R$1.500',
+            'Até R$1.500',
             'Entre R$1.500 e R$2.500',
             'Entre R$2.500 e R$5.000',
             'Entre R$5.000 e R$10.000',
@@ -170,9 +170,6 @@ with tab2:
             Retorna:
             - fig: plotly.graph_objects.Figure, o gráfico de barras horizontais com anotações.
             """
-            import pandas as pd
-            import plotly.express as px
-            import plotly.graph_objects as go
 
             # Configurando a coluna de renda com a ordem correta
             dataframe[coluna_renda] = pd.Categorical(dataframe[coluna_renda], categories=ordem_renda, ordered=True)
@@ -234,9 +231,6 @@ with tab2:
             Retorna:
             - fig: plotly.graph_objects.Figure, o gráfico de barras horizontais com anotações.
             """
-            import pandas as pd
-            import plotly.express as px
-            import plotly.graph_objects as go
 
             # Configurando a coluna de categoria com a ordem correta
             dataframe[coluna_categoria] = pd.Categorical(dataframe[coluna_categoria], categories=ordem_categoria, ordered=True)
@@ -420,5 +414,80 @@ with tab2:
             fig_histograma_idade = plot_taxa_conversao_por_faixa_etaria(DF_PCOPY_DADOS)
             st.plotly_chart(fig_histograma_idade)
 
+
+    def create_conversion_heatmap(dataframe):
+        """
+        Função para criar um heatmap de taxa de conversão com anotações.
+
+        Args:
+        dataframe (pd.DataFrame): DataFrame contendo as colunas 'PATRIMONIO', 'RENDA MENSAL', e 'Vendas'.
+
+        Returns:
+        plotly.graph_objects.Figure: Objeto do gráfico Plotly com anotações.
+        """
+        # Calcular a taxa de conversão e o número de instâncias por par de PATRIMÔNIO e RENDA MENSAL
+        grouped = dataframe.groupby(['PATRIMONIO', 'RENDA MENSAL']).agg(
+            total=('Vendas', 'size'),
+            vendas=('Vendas', 'sum')
+        ).reset_index()
+        grouped['conversion_rate'] = grouped['vendas'] / grouped['total']
+
+        # Pivotar os dados para o formato de heatmap
+        conversion_pivot = grouped.pivot_table(
+            index='PATRIMONIO', 
+            columns='RENDA MENSAL', 
+            values='conversion_rate', 
+            fill_value=0
+        )
+        count_pivot = grouped.pivot_table(
+            index='PATRIMONIO', 
+            columns='RENDA MENSAL', 
+            values='total', 
+            fill_value=0
+        )
+
+        # Criar heatmap com Plotly
+        fig = go.Figure(data=go.Heatmap(
+            z=conversion_pivot.values,
+            x=conversion_pivot.columns,
+            y=conversion_pivot.index,
+            colorscale='Blues',
+            colorbar=dict(title='Taxa de Conversão (%)')
+        ))
+
+        # Adicionar anotações com taxa de conversão e número de instâncias
+        for i, row in enumerate(conversion_pivot.index):
+            for j, col in enumerate(conversion_pivot.columns):
+                conversion_rate = conversion_pivot.loc[row, col] * 100  # Converter para porcentagem
+                total_instances = count_pivot.loc[row, col]
+                annotation_text = f"{conversion_rate:.1f}% ({total_instances})"
+                fig.add_annotation(
+                    x=col,
+                    y=row,
+                    text=annotation_text,
+                    showarrow=False,
+                    font=dict(color="black", size=13, family="Arial Black")
+                )
+
+        # Atualizar layout
+        fig.update_layout(
+            title='Mapa de Calor: Taxa de Conversão por PATRIMÔNIO e RENDA MENSAL',
+            xaxis_title="Faixa de Renda Mensal",
+            yaxis_title="Faixa de Patrimônio",
+            xaxis=dict(categoryorder='array', categoryarray=[
+                'Até R$1.500', 'Entre R$1.500 e R$2.500', 'Entre R$2.500 e R$5.000',
+                'Entre R$5.000 e R$10.000', 'Entre R$10.000 e R$20.000', 'Acima de R$20.000'
+            ]),
+            yaxis=dict(categoryorder='array', categoryarray=[
+                'Menos de R$5 mil', 'Entre R$5 mil e R$20 mil', 'Entre R$20 mil e R$100 mil',
+                'Entre R$100 mil e R$250 mil', 'Entre R$250 mil e R$500 mil', 'Entre R$500 mil e R$1 milhão',
+                'Acima de R$1 milhão'
+            ])
+        )
+
+        return fig
+
+    chart = create_conversion_heatmap(DF_PTRAFEGO_DADOS)
+    chart
 
 st.divider()

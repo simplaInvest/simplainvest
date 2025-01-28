@@ -61,6 +61,8 @@ if st.button("Continuar para Análise"):
     worksheet_copy = 'pesquisa-copy-' + lancamento.replace('.', '')
     worksheet_grupos = 'SENDFLOW - ATIVIDADE EXPORT'
 
+    # Definindo as variáveis para as datas dos lançamentos
+
     # Criar um container para as mensagens de status
     status_container = st.empty()
 
