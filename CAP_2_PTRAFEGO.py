@@ -186,11 +186,11 @@ else:
     with cols_resumo[1]:
         cols_patrimonio_selector = st.columns(2)
         with cols_patrimonio_selector[0]:
-            selected_patrimonio = st.selectbox("Selecione o intervalo de patrimônio:", patrimonio_options)
+            selected_patrimonio = st.selectbox("Selecione o intervalo de patrimônio:", patrimonio_options, index =1)
             patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
                 filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])
             ]
-            selected_renda = st.selectbox('Selecione o intervalo de renda:', renda_options)
+            selected_renda = st.selectbox('Selecione o intervalo de renda:', renda_options, index = 2)
             renda_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
                 filtered_DF_PTRAFEGO_DADOS['RENDA MENSAL'].isin(renda_mapping[selected_renda])
             ]
