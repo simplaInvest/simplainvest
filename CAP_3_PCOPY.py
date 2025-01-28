@@ -1,11 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import altair as alt
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import plotly.graph_objects as go
-import plotly.express as px
 import seaborn as sns
 import re
 from sklearn.feature_extraction.text import CountVectorizer

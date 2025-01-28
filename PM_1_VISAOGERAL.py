@@ -1,14 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import altair as alt
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import plotly.graph_objects as go
-import plotly.express as px
-import seaborn as sns
-import re
-from sklearn.feature_extraction.text import CountVectorizer
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, get_df
 
@@ -17,18 +9,25 @@ PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
 
 # Carregar DataFrames para lançamento selecionado
-DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
-DF_CENTRAL_PREMATRICULA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_PRE_MATRICULA)
-DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
-DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
-DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
-DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+loading_container = st.empty()
+with loading_container:
+    status = st.status("Carregando dados...", expanded=True)
+    with status:
+        # Carregar DataFrames para lançamento selecionado
+        DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+        DF_CENTRAL_PREMATRICULA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_PRE_MATRICULA)
+        DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
+        DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
+        DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+        DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+        status.update(label="Carregados com sucesso!", state="complete", expanded=False)
+loading_container.empty()
 
 #------------------------------------------------------------
 #      INÍCIO DO LAYOUT
 #------------------------------------------------------------
 
-st.caption("CAPTAÇÃO > PRÉ-MATRÍCULA")
+st.caption("PRÉ-MATRÍCULA > VISÃO GERAL")
 st.title('Pré-Matrícula')
 
 
