@@ -492,4 +492,19 @@ with tab2:
     chart = create_conversion_heatmap(DF_PTRAFEGO_DADOS)
     chart
 
+    # Calcular a taxa de conversão para cada faixa de patrimônio e renda
+    taxas_patrimonio = DF_PTRAFEGO_DADOS.groupby('PATRIMONIO')['Vendas'].mean() * 100
+    taxas_renda = DF_PTRAFEGO_DADOS.groupby('RENDA MENSAL')['Vendas'].mean() * 100
+
+    taxas_patrimonio = taxas_patrimonio.round(2).astype(str) + '%'
+    taxas_renda = taxas_renda.round(2).astype(str) + '%'
+
+    headers = [('Patrimônio', col) for col in patrimonio_order] + [('Renda', col) for col in renda_order]
+    multi_index = pd.MultiIndex.from_tuples(headers)
+
+    # Criar a tabela de uma linha com MultiIndex
+    tabela_taxas = pd.DataFrame([list(taxas_patrimonio) + list(taxas_renda)], columns=multi_index)
+  
+    st.dataframe(tabela_taxas, hide_index=True, use_container_width=True)
+
 st.divider()
