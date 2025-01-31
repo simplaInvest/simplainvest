@@ -499,12 +499,26 @@ with tab2:
     taxas_patrimonio = taxas_patrimonio.round(2).astype(str) + '%'
     taxas_renda = taxas_renda.round(2).astype(str) + '%'
 
-    headers = [('Patrimônio', col) for col in patrimonio_order] + [('Renda', col) for col in renda_order]
+    # Calculando número absoluto de leads
+    leads_patrimonio = DF_PTRAFEGO_DADOS.groupby('PATRIMONIO').size()
+    leads_renda = DF_PTRAFEGO_DADOS.groupby('RENDA MENSAL').size()
+
+    # Calculando número absoluto de compradores
+    compradores_patrimonio = DF_PTRAFEGO_DADOS.groupby('PATRIMONIO')['Vendas'].sum()
+    compradores_renda = DF_PTRAFEGO_DADOS.groupby('RENDA MENSAL')['Vendas'].sum()
+
+    # Criar os índices e estrutura do DataFrame
+    headers = [('Patrimônio', col) for col in taxas_patrimonio.index] + [('Renda', col) for col in taxas_renda.index]
     multi_index = pd.MultiIndex.from_tuples(headers)
 
-    # Criar a tabela de uma linha com MultiIndex
-    tabela_taxas = pd.DataFrame([list(taxas_patrimonio) + list(taxas_renda)], columns=multi_index)
+    # Criar a tabela com 3 linhas (Taxa de conversão, Leads, Compradores)
+    tabela_taxas = pd.DataFrame([
+        list(taxas_patrimonio) + list(taxas_renda),
+        list(leads_patrimonio) + list(leads_renda),
+        list(compradores_patrimonio) + list(compradores_renda)
+    ], index=['Taxa de Conversão', 'Total de Leads', 'Total de Compradores'], columns=multi_index)
+
   
-    st.dataframe(tabela_taxas, hide_index=True, use_container_width=True)
+    st.dataframe(tabela_taxas, hide_index=False, use_container_width=True)
 
 st.divider()
