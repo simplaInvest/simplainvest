@@ -23,6 +23,9 @@ with st.container(border=True):
         if PRODUTO is not None and VERSAO_PRINCIPAL is not None:
             st.session_state["PRODUTO"] = "EI" if PRODUTO == "Eu Investidor" else "SC"
             st.session_state["VERSAO_PRINCIPAL"] = VERSAO_PRINCIPAL
+            variaveis_para_inicializar = ["Captacao", "CPLs", "Vendas", "VIP", "Reabertura"]
+            for var in variaveis_para_inicializar:
+                st.session_state.setdefault(var, None)  # Inicializa com None se não existir ainda
             if "PRODUTO" in st.session_state and "VERSAO_PRINCIPAL" in st.session_state:
                 if st.session_state["PRODUTO"] == 'EI':
                     # Dicionário com as datas para cada versão
