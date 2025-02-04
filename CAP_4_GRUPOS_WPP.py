@@ -35,12 +35,14 @@ st.title('Grupos de Whatsapp')
 #      01. DUMMY SECTION
 #------------------------------------------------------------
 
-@st.cache_data
 def plot_group_members_per_day_altair(df):
     # Verify if the DataFrame is not empty
     if df.empty:
         st.warning("No data available for group entries.")
         return None
+
+    # Convert 'Date' column to datetime if not already
+    df["Date"] = pd.to_datetime(df["Date"])
 
     # Create the line chart with Altair
     line_chart = alt.Chart(df).mark_line(point=True).encode(
@@ -53,7 +55,7 @@ def plot_group_members_per_day_altair(df):
     text_chart = alt.Chart(df).mark_text(
         align='center',
         baseline='bottom',
-        color = 'lightblue',
+        color='lightblue',
         dy=-10  # Adjust the vertical position of the text
     ).encode(
         x='Date:T',
@@ -61,12 +63,76 @@ def plot_group_members_per_day_altair(df):
         text=alt.Text('Members:Q', format=',')
     )
 
-    # Combine the charts
-    chart = (line_chart + text_chart).properties(
-        title='',
-        width=600,
-        height=400
-    )
+    # Adicionar linhas verticais para os dias de CPL
+    if "CPLs" in st.session_state and st.session_state["CPLs"]:
+        cpl_df = pd.DataFrame({
+            "CPLs": pd.to_datetime(st.session_state["CPLs"]),
+            "CPL_Label": [f"CPL{i+1}" for i in range(len(st.session_state["CPLs"]))]
+        })
+
+        # Filtrar datas dentro do intervalo do gráfico
+        min_date = df["Date"].min()
+        max_date = df["Date"].max()
+        cpl_df = cpl_df[(cpl_df["CPLs"] >= min_date) & (cpl_df["CPLs"] <= max_date)]
+
+        if not cpl_df.empty:
+            cpl_lines = alt.Chart(cpl_df).mark_rule(strokeDash=[4, 4], color='red').encode(
+                x='CPLs:T'
+            )
+
+            cpl_labels = alt.Chart(cpl_df).mark_text(
+                align='left',
+                baseline='top',
+                dy=15,
+                color='red'
+            ).encode(
+                x='CPLs:T',
+                text='CPL_Label'
+            )
+
+            chart = (line_chart + text_chart + cpl_lines + cpl_labels).properties(
+                title='Group Members Over Time with CPLs',
+                width=700,
+                height=400
+            ).configure_axis(
+                grid=False,
+                labelColor='white',
+                titleColor='white'
+            ).configure_view(
+                strokeWidth=0
+            ).configure_title(
+                color='white'
+            ).configure(background='rgba(0,0,0,0)')
+        
+        else:
+            chart = (line_chart + text_chart).properties(
+                title='Group Members Over Time',
+                width=700,
+                height=400
+            ).configure_axis(
+                grid=False,
+                labelColor='white',
+                titleColor='white'
+            ).configure_view(
+                strokeWidth=0
+            ).configure_title(
+                color='white'
+            ).configure(background='rgba(0,0,0,0)')
+
+    else:
+        chart = (line_chart + text_chart).properties(
+            title='Group Members Over Time',
+            width=700,
+            height=400
+        ).configure_axis(
+            grid=False,
+            labelColor='white',
+            titleColor='white'
+        ).configure_view(
+            strokeWidth=0
+        ).configure_title(
+            color='white'
+        ).configure(background='rgba(0,0,0,0)')
 
     return chart
 

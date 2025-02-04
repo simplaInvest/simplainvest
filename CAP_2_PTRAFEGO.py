@@ -24,6 +24,12 @@ with loading_container:
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
+if 'Captacao' not in st.session_state:
+    Cap = []
+    st.write('Lista de Captação vazia')
+else:
+    Cap = st.session_state['Captacao']
+
 #------------------------------------------------------------
 #      INÍCIO DO LAYOUT
 #------------------------------------------------------------
@@ -336,14 +342,14 @@ with col2:
 
 st.divider()
 
-if VERSAO_PRINCIPAL == 21:
-    def calcular_proporcoes_e_plotar(dataframe, coluna, data_inicio, lista_faixas):
+if VERSAO_PRINCIPAL >= 21:
+    def calcular_proporcoes_e_plotar(dataframe, coluna, lista_faixas):
         # 1. Filtrar dados relevantes e tratar NaNs
         dataframe = dataframe.dropna(subset=["DATA DE CAPTURA", coluna])  # Remove linhas sem data ou patrimônio.
         dataframe["DIA"] = dataframe["DATA DE CAPTURA"].dt.date  # Extrai apenas a data (ignora horas e minutos).
 
         # Filtrar pelo parâmetro de data_inicio
-        dataframe = dataframe[dataframe["DIA"] >= pd.to_datetime(data_inicio).date()]  # Mantém apenas as datas a partir de data_inicio.
+        dataframe = dataframe[dataframe["DIA"] >= pd.to_datetime(Cap[0]).date()]  
 
 
 
@@ -372,7 +378,8 @@ if VERSAO_PRINCIPAL == 21:
             title=f"Proporção Diária de Leads por Faixa de {coluna}",
             labels={"DIA": "Dia de Captação", "PROPORCAO": "Proporção (%)", coluna: f"Faixa de {coluna}"},
             color_discrete_sequence=hex_colors,  # Aplicar gradiente de cores
-            category_orders={coluna: lista_faixas}
+            category_orders={coluna: lista_faixas},
+            hover_data={"COUNT": True, "TOTAL": True}
         )
 
         fig.update_layout(legend_title_text=f"Faixa de {coluna}")  # Adicionar título à legenda
@@ -384,12 +391,12 @@ if VERSAO_PRINCIPAL == 21:
 
     with col1:
         with st.container(border=True):
-            chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'PATRIMONIO', '2024-12-01', patrimonio_order)
+            chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'PATRIMONIO', patrimonio_order)
             chart
 
     with col2:
         with st.container(border=True):
-            chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'RENDA MENSAL', '2024-12-01', renda_order)
+            chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'RENDA MENSAL', renda_order)
             chart
 
 #------------------------------------------------------------

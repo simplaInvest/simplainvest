@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import datetime
 
 ## PÁGINA DE SETUP
 if not "PRODUTO" in st.session_state and not "VERSAO_PRINCIPAL" in st.session_state:
@@ -31,7 +32,56 @@ else:
                 if PRODUTO is not None and VERSAO_PRINCIPAL is not None:
                     st.session_state["PRODUTO"] = "EI" if PRODUTO == "Eu Investidor" else "SC"
                     st.session_state["VERSAO_PRINCIPAL"] = VERSAO_PRINCIPAL
-                    st.rerun()
+                    if st.session_state["PRODUTO"] == 'EI':
+                        # Dicionário com as datas para cada versão
+                        versoes = {
+                            16: {
+                                'Captacao': [datetime(2024, 2, 12), datetime(2024, 3, 3)],
+                                'CPLs': [datetime(2024, 3, dia) for dia in [3, 4, 5, 10]],
+                                'Vendas': [datetime(2024, 3, dia) for dia in range(10, 15)],
+                                'VIP': [datetime(2024, 3, dia) for dia in range(15, 21)],
+                                'Reabertura': datetime(2024, 3, 21),
+                            },
+                            17: {
+                                'Captacao': [datetime(2024, 4, 15), datetime(2024, 5, 5)],
+                                'CPLs': [datetime(2024, 5, dia) for dia in [5, 6, 7, 13]],
+                                'Vendas': [datetime(2024, 5, dia) for dia in range(13, 18)],
+                                'VIP': [datetime(2024, 5, dia) for dia in range(18, 23)],
+                                'Reabertura': datetime(2024, 5, 23),
+                            },
+                            18: {
+                                'Captacao': [datetime(2024, 6, 17), datetime(2024, 7, 7)],
+                                'CPLs': [datetime(2024, 7, dia) for dia in [7, 8, 9, 15]],
+                                'Vendas': [datetime(2024, 7, dia) for dia in range(15, 19)],
+                                'VIP': [datetime(2024, 7, dia) for dia in range(18, 23)],
+                                'Reabertura': datetime(2024, 7, 25),
+                            },
+                            19: {
+                                'Captacao': [datetime(2024, 8, 12), datetime(2024, 9, 1)],
+                                'CPLs': [datetime(2024, 9, dia) for dia in [1, 2, 3, 9]],
+                                'Vendas': [datetime(2024, 9, dia) for dia in range(9, 13)],
+                                'VIP': [datetime(2024, 9, dia) for dia in range(12, 17)],
+                                'Reabertura': datetime(2024, 9, 19),
+                            },
+                            20: {
+                                'Captacao': [datetime(2024, 10, 14), datetime(2024, 11, 3)],
+                                'CPLs': [datetime(2024, 11, dia) for dia in [4, 5, 6, 11]],
+                                'Vendas': [datetime(2024, 11, dia) for dia in range(11, 15)],
+                            },
+                            21: {
+                                'Captacao': [datetime(2024, 12, 16), datetime(2025, 1, 6)],
+                                'CPLs': [datetime(2025, 1, dia) for dia in [6, 7, 8, 9]],
+                                'Vendas': [datetime(2025, 1, dia) for dia in range(9, 17)],
+                            }
+                        }
+
+                        # Define as datas no session_state conforme a versão selecionada
+                        versao_atual = VERSAO_PRINCIPAL
+                        if versao_atual in versoes:
+                            for chave, valor in versoes[versao_atual].items():
+                                st.session_state[chave] = valor
+                st.rerun()
+
     pages_after_load = {
         'INÍCIO': [
             st.Page("dummy_snippets.py", title = "🏠 Início"),

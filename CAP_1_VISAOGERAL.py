@@ -11,6 +11,11 @@ from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+CPL = st.session_state['CPLs']
+#st.write(CPL)
+
+Cap = st.session_state['Captacao']
+#st.write(Cap)
 
 # Carregar DataFrames para lançamento selecionado
 loading_container = st.empty()
@@ -30,14 +35,16 @@ with loading_container:
             status.update(label="Erro ao carregar dados: " + str(e), state="error", expanded=False)
 loading_container.empty()
 
-# Cacheamento para Gráficos
-@st.cache_data
+
 def plot_group_members_per_day_altair(DF_GRUPOS_WPP):
     # Verify if the DataFrame is not empty
     if DF_GRUPOS_WPP.empty:
         st.warning("No data available for group entries.")
         return None
     
+    # Convert 'Data' column to datetime if not already
+    DF_GRUPOS_WPP['Data'] = pd.to_datetime(DF_GRUPOS_WPP['Data'])
+
     # Group by date and calculate cumulative sums for entries and exits
     daily_activity = DF_GRUPOS_WPP.groupby(DF_GRUPOS_WPP['Data'].dt.date)[['Entradas', 'Saidas']].sum().reset_index()
 
@@ -58,7 +65,7 @@ def plot_group_members_per_day_altair(DF_GRUPOS_WPP):
     text_chart = alt.Chart(daily_activity).mark_text(
         align='center',
         baseline='bottom',
-        color = 'lightblue',
+        color='lightblue',
         dy=-10  # Adjust the vertical position of the text
     ).encode(
         x='Date:T',
@@ -66,16 +73,79 @@ def plot_group_members_per_day_altair(DF_GRUPOS_WPP):
         text=alt.Text('Members:Q', format=',')
     )
 
-    # Combine the charts
-    chart = (line_chart + text_chart).properties(
-        title='',
-        width=600,
-        height=400
-    )
+    # Adicionar linhas verticais para os dias de CPL
+    if "CPLs" in st.session_state and st.session_state["CPLs"]:
+        cpl_df = pd.DataFrame({
+            "CPLs": pd.to_datetime(st.session_state["CPLs"]),
+            "CPL_Label": [f"CPL{i+1}" for i in range(len(st.session_state["CPLs"]))]
+        })
+
+        # Filtrar datas dentro do intervalo do gráfico
+        min_date = daily_activity["Date"].min()
+        max_date = daily_activity["Date"].max()
+        cpl_df = cpl_df[(cpl_df["CPLs"].dt.date >= min_date) & (cpl_df["CPLs"].dt.date <= max_date)]
+
+        if not cpl_df.empty:
+            cpl_lines = alt.Chart(cpl_df).mark_rule(strokeDash=[4, 4], color='red').encode(
+                x='CPLs:T'
+            )
+
+            cpl_labels = alt.Chart(cpl_df).mark_text(
+                align='left',
+                baseline='top',
+                dy=15,
+                color='red'
+            ).encode(
+                x='CPLs:T',
+                text='CPL_Label'
+            )
+
+            chart = (line_chart + text_chart + cpl_lines + cpl_labels).properties(
+                title='Group Members Over Time with CPLs',
+                width=700,
+                height=400
+            ).configure_axis(
+                grid=False,
+                labelColor='white',
+                titleColor='white'
+            ).configure_view(
+                strokeWidth=0
+            ).configure_title(
+                color='white'
+            ).configure(background='rgba(0,0,0,0)')
+        
+        else:
+            chart = (line_chart + text_chart).properties(
+                title='Group Members Over Time',
+                width=700,
+                height=400
+            ).configure_axis(
+                grid=False,
+                labelColor='white',
+                titleColor='white'
+            ).configure_view(
+                strokeWidth=0
+            ).configure_title(
+                color='white'
+            ).configure(background='rgba(0,0,0,0)')
+
+    else:
+        chart = (line_chart + text_chart).properties(
+            title='Group Members Over Time',
+            width=700,
+            height=400
+        ).configure_axis(
+            grid=False,
+            labelColor='white',
+            titleColor='white'
+        ).configure_view(
+            strokeWidth=0
+        ).configure_title(
+            color='white'
+        ).configure(background='rgba(0,0,0,0)')
 
     return chart
 
-@st.cache_data
 def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
     # Verificar se o DataFrame não está vazio
     if DF_CENTRAL_CAPTURA.empty:
@@ -84,13 +154,20 @@ def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
     
     # Contar o número de leads por dia
     df_CONTALEADS = DF_CENTRAL_CAPTURA.copy()
-    #df_CONTALEADS["CAP DATA_CAPTURA"] = pd.to_datetime(df_CONTALEADS["CAP DATA_CAPTURA"]).dt.date
     df_CONTALEADS = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
+
+    # Converter para datetime64 no Pandas para evitar erros de tipo
+    df_CONTALEADS["CAP DATA_CAPTURA"] = pd.to_datetime(df_CONTALEADS["CAP DATA_CAPTURA"])
+
+    # Calcular o tempo total de captação
+    min_date = df_CONTALEADS["CAP DATA_CAPTURA"].min()
+    max_date = df_CONTALEADS["CAP DATA_CAPTURA"].max()
+    total_dias = (max_date - min_date).days
 
     # Criar o gráfico de linhas com Altair
     line_chart = alt.Chart(df_CONTALEADS).mark_line(point=True).encode(
         x=alt.X('CAP DATA_CAPTURA:T', title='Data', axis=alt.Axis(labelAngle=-0, format="%d %B (%a)")),
-        y=alt.Y('EMAIL:Q', title=''),
+        y=alt.Y('EMAIL:Q', title='Número de Leads'),
         tooltip=['CAP DATA_CAPTURA:T', 'EMAIL:Q']
     )
 
@@ -106,20 +183,74 @@ def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
         text=alt.Text('EMAIL:Q', format=',')  # Exibe o número formatado
     )
 
-    # Combinar os gráficos
-    chart = (line_chart + text_chart).properties(
-        title='',
-        width=600,
-        height=400
-    ).configure_axis(
-        grid=False,
-        labelColor='white',
-        titleColor='white'
-    ).configure_view(
-        strokeWidth=0
-    ).configure_title(
-        color='white'
-    ).configure(background='rgba(0,0,0,0)')
+    # Adicionar linhas verticais para os dias de CPL
+    if "CPLs" in st.session_state and st.session_state["CPLs"]:
+        cpl_df = pd.DataFrame({
+            "CPLs": pd.to_datetime(st.session_state["CPLs"]),
+            "CPL_Label": [f"CPL{i+1}" for i in range(len(st.session_state["CPLs"]))]
+        })
+
+        # Filtrar datas dentro do intervalo do gráfico
+        cpl_df = cpl_df[(cpl_df["CPLs"] >= min_date) & (cpl_df["CPLs"] <= max_date)]
+
+        if not cpl_df.empty:
+            cpl_lines = alt.Chart(cpl_df).mark_rule(strokeDash=[4, 4], color='red').encode(
+                x='CPLs:T'
+            )
+
+            cpl_labels = alt.Chart(cpl_df).mark_text(
+                align='left',
+                baseline='top',
+                dy=15,
+                color='red'
+            ).encode(
+                x='CPLs:T',
+                text='CPL_Label'
+            )
+
+            chart = (line_chart + text_chart + cpl_lines + cpl_labels).properties(
+                title=f'Leads por Dia e Datas de CPLs\n{total_dias} dias de captação',
+                width=700,
+                height=400
+            ).configure_axis(
+                grid=False,
+                labelColor='white',
+                titleColor='white'
+            ).configure_view(
+                strokeWidth=0
+            ).configure_title(
+                color='white'
+            ).configure(background='rgba(0,0,0,0)')
+        
+        else:
+            chart = (line_chart + text_chart).properties(
+                title=f'Leads por Dia\n{total_dias} dias de captação',
+                width=700,
+                height=400
+            ).configure_axis(
+                grid=False,
+                labelColor='white',
+                titleColor='white'
+            ).configure_view(
+                strokeWidth=0
+            ).configure_title(
+                color='white'
+            ).configure(background='rgba(0,0,0,0)')
+
+    else:
+        chart = (line_chart + text_chart).properties(
+            title=f'Leads por Dia\n{total_dias} dias de captação',
+            width=700,
+            height=400
+        ).configure_axis(
+            grid=False,
+            labelColor='white',
+            titleColor='white'
+        ).configure_view(
+            strokeWidth=0
+        ).configure_title(
+            color='white'
+        ).configure(background='rgba(0,0,0,0)')
 
     return chart
 
@@ -224,49 +355,6 @@ def plot_utm_medium_pie_chart(df, column_name='UTM_MEDIUM', classes_to_include=N
     
     return pie_chart + text
 
-def plot_observacoes_por_dia(dataframe):
-    dataframe['CAP DATA_CAPTURA'] = pd.to_datetime(dataframe['CAP DATA_CAPTURA'])
-    # Contar as observações por dia
-    observacoes_por_dia = dataframe.groupby(dataframe['CAP DATA_CAPTURA'].dt.date).size().reset_index(name='Quantidade')
-    
-    # Renomear as colunas para facilitar
-    observacoes_por_dia.columns = ['Data', 'Quantidade']
-
-    # Calcular os dias corridos
-    dias_corridos = (observacoes_por_dia['Data'].max() - observacoes_por_dia['Data'].min()).days
-    
-    # Criar o gráfico com Plotly
-    fig = px.line(observacoes_por_dia, 
-                  x='Data', 
-                  y='Quantidade', 
-                  title=f'Captação por dia<br><sup>{dias_corridos} dias</sup>',
-                  labels={'Data': 'Data', 'Quantidade': 'Quantidade'},
-                  markers=True)
-    
-    # Ajustar o layout para aumentar o tamanho da fonte do título
-    fig.update_layout(
-        title={
-            'font': {
-                'size': 30  # Ajuste o tamanho da fonte do título
-            }
-        }
-    )
-    
-    # Adicionar anotações para os pontos
-    for i in range(len(observacoes_por_dia)):
-        fig.add_annotation(
-            x=observacoes_por_dia['Data'][i],
-            y=observacoes_por_dia['Quantidade'][i],
-            text=str(observacoes_por_dia['Quantidade'][i]),
-            showarrow=True,
-            arrowhead=2,
-            ax=0,
-            ay=-20
-        )
-    
-    # Retornar o objeto fig
-    return fig
-
 # Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
     fig = go.Figure(data=[
@@ -324,32 +412,23 @@ with st.container(border=True):
             st.metric(label = "CPL Geral", value = f"R$ {round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA.shape[0],2)}")
             st.metric(label = "CPL Trafego", value = f"R$ {round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}")
 
-with st.container(border=True):
-    chart = plot_observacoes_por_dia(DF_CENTRAL_CAPTURA)
-    chart
 
 #------------------------------------------------------------
 #      02. GRUPOS DE WHATSAPP
 #------------------------------------------------------------
-st.header("Grupos de Whatsapp")
-st.caption("Fluxo dos grupos de Whatsapp")
-cols_grupos_wpp = st.columns(2)
 
-# ---- 02.A - LEADS POR DIA
-with cols_grupos_wpp[0]:    
-    with st.container(border=True):
-        st.markdown('**Leads por dia**')
-        fig = plot_leads_per_day_altair(DF_CENTRAL_CAPTURA)
-        if fig:
-            st.altair_chart(fig, use_container_width=True)
+# ---- 02.A - LEADS POR DIA  
+with st.container(border=True):
+    fig = plot_leads_per_day_altair(DF_CENTRAL_CAPTURA)
+    if fig:
+        st.altair_chart(fig, use_container_width=True)
 
 # ---- 02.B - TOTAL DE LEADS POR DIA
-with cols_grupos_wpp[1]:
-    with st.container(border=True):
-        st.markdown('**Total de leads nos grupos**')
-        fig = plot_group_members_per_day_altair(DF_GRUPOS_WPP)
-        if fig:
-            st.altair_chart(fig, use_container_width=True)
+with st.container(border=True):
+    st.markdown('**Total de leads nos grupos**')
+    fig = plot_group_members_per_day_altair(DF_GRUPOS_WPP)
+    if fig:
+        st.altair_chart(fig, use_container_width=True)
 
 st.divider()
 #------------------------------------------------------------

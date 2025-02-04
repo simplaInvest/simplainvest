@@ -252,7 +252,7 @@ def graf_sexo():
                      'Não Informado'
                      ]
     cor = 'green'
-    titulo = f'{var}'
+    titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
 
     # Contagem dos valores e reindexação para garantir a ordem
     variavel_data = data[var].value_counts().reindex(classes_order)
@@ -289,6 +289,8 @@ if int(VERSAO_PRINCIPAL) >= 20:
     def graf_idade():
         # Convertendo para valores numéricos, substituindo não numéricos por NaN
         data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
+        var = 'Qual sua idade?'
+        titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
         
         # Removendo valores NaN
         idade_data = data['Qual sua idade?'].dropna()
@@ -320,7 +322,7 @@ if int(VERSAO_PRINCIPAL) >= 20:
         plt.xticks(bins, rotation=0)
 
         # Adicionando título, legenda e rótulos
-        plt.title(f'Distribuição de Idades {warning}')
+        plt.title(f'{titulo} {warning}')
         plt.xlabel('Idade')
         plt.ylabel('Frequência')
         plt.legend()
@@ -335,7 +337,7 @@ def graf_filhos():
                      'Não e nem pretendo'
                      ]
     cor = 'green'
-    titulo = f'{var}'
+    titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
 
     # Contagem dos valores e reindexação para garantir a ordem
     variavel_data = data[var].dropna().value_counts().reindex(classes_order)
@@ -377,7 +379,7 @@ def graf_civil():
                      'Não Informado'
                      ]
     cor = 'green'
-    titulo = f'{var}'
+    titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
 
     # Contagem dos valores e reindexação para garantir a ordem
     variavel_data = data[var].value_counts().reindex(classes_order)
@@ -426,7 +428,7 @@ def graf_exp():
                      'Não Informado'
                      ]
     cor = 'green'
-    titulo = f'{var}'
+    titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
 
     # Contagem dos valores e reindexação para garantir a ordem
     variavel_data = data[var].value_counts().reindex(classes_order)
@@ -470,7 +472,7 @@ def graf_renda():
                      'Até R$1.500'
                      ]
     cor = 'green'
-    titulo = f'{var}'
+    titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
 
     # Contagem dos valores e reindexação para garantir a ordem invertida
     variavel_data = data[var].value_counts().reindex(classes_order)
@@ -515,7 +517,7 @@ def graf_patrim():
 ]
 
     cor = 'green'
-    titulo = f'{var}'
+    titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
 
     # Contagem dos valores e reindexação para garantir a ordem invertida
     variavel_data = data[var].value_counts().reindex(classes_order)
@@ -559,6 +561,9 @@ if int(VERSAO_PRINCIPAL) >= 20:
         else:
             warning = ''
 
+        var = 'Você já investe seu dinheiro atualmente?'
+        titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
+
         # Define the list of investment categories to count in the string
         investment_classes = [
             'Ainda não invisto',
@@ -590,7 +595,7 @@ if int(VERSAO_PRINCIPAL) >= 20:
 
         # Labeling
         plt.xlabel('Contagem')
-        plt.title(f'Frequência de cada Tipo de Investimento com Proporção {warning}')
+        plt.title(f'{titulo} {warning}')
         plt.gca().invert_yaxis()  # Invert the y-axis for a more intuitive reading order
 
         st.pyplot(plt)
