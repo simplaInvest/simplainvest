@@ -15,13 +15,18 @@ with st.container(border=True):
     cols = st.columns(2)
 
     with cols[0]:
-        PRODUTO = st.radio('Produto', ['Eu Investidor', 'Simpla Club'], horizontal=True)
+        PRODUTO = st.radio('Produto', ['Eu Investidor', 'Simpla Club', 'Simpla Wealth'], horizontal=True)
     with cols[1]:
         VERSAO_PRINCIPAL = st.selectbox('Versão', list(reversed(range(1, 26))))
 
     if st.button('Continuar', use_container_width=True):
         if PRODUTO is not None and VERSAO_PRINCIPAL is not None:
-            st.session_state["PRODUTO"] = "EI" if PRODUTO == "Eu Investidor" else "SC"
+            if PRODUTO == "Eu Investidor":
+                st.session_state["PRODUTO"] = "EI"
+            if PRODUTO == "Simpla Club":
+                st.session_state["PRODUTO"] = "SC"
+            else:
+                st.session_state["PRODUTO"] = "SW"
             st.session_state["VERSAO_PRINCIPAL"] = VERSAO_PRINCIPAL
             variaveis_para_inicializar = ["Captacao", "CPLs", "Vendas", "VIP", "Reabertura"]
             for var in variaveis_para_inicializar:

@@ -53,7 +53,7 @@ def setupSheets(produto, versao):
                             "dataframe": None,
                             },
         K_PTRAFEGO_DADOS: { "id": "K_PTRAFEGO_DADOS",
-                            "sheet": SHEET_PESQUISA_TRAFEGO_DADOS if st.session_state["VERSAO_PRINCIPAL"] >= 21 else SHEET_PESQUISA_TRAFEGO_ADS,
+                            "sheet": SHEET_PESQUISA_TRAFEGO_DADOS if st.session_state["PRODUTO"] == 'EI' and st.session_state["VERSAO_PRINCIPAL"] >= 21 or st.session_state["PRODUTO"] == 'SW' else SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_DADOS,
                             "dataframe": None,
                             },
