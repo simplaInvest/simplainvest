@@ -21,9 +21,9 @@ with st.container(border=True):
 
     if st.button('Continuar', use_container_width=True):
         if PRODUTO is not None and VERSAO_PRINCIPAL is not None:
-            if PRODUTO == "Eu Investidor":
+            if PRODUTO == 'Eu Investidor':
                 st.session_state["PRODUTO"] = "EI"
-            if PRODUTO == "Simpla Club":
+            elif PRODUTO == 'Simpla Club':
                 st.session_state["PRODUTO"] = "SC"
             else:
                 st.session_state["PRODUTO"] = "SW"
