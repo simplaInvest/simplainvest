@@ -44,6 +44,10 @@ st.title('Pesquisa de Tráfego')
 # Colunas a serem filtradas
 columns_to_filter = ['UTM_TERM', 'UTM_CAMPAIGN', 'UTM_SOURCE', 'UTM_MEDIUM', 'UTM_ADSET']
 
+# Colunas financeiras
+cols_finan_01 = 'PATRIMONIO'
+cols_finan_02 = 'QUANTO_POUPA' if PRODUTO == "SW" else 'RENDA_MENSAL'
+
 # Criar os filtros lado a lado
 filters = {}
 cols_filters = st.columns(len(columns_to_filter))
@@ -189,6 +193,59 @@ else:
             'Acima de R$20.000': ['Acima de R$20.000']
         }
     
+    quanto_poupa_options = [
+        'Todos',
+        'Acima de R$250',
+        'Acima de R$500',
+        'Acima de R$1.000',
+        'Acima de R$2.500',
+        'Acima de R$5.000',
+        'Acima de R$15.000'
+    ]
+    quanto_poupa_mapping = {
+        'Todos': [
+            'Até R$250',
+            'Entre R$250 e R$500',
+            'Entre R$500 e R$1.000',
+            'Entre R$1.000 e R$2.500',
+            'Entre R$2.500 e R$5.000',
+            'Entre R$5.000 e R$15.000',
+            'Acima de R$15.000'
+        ],
+        'Acima de R$250': [
+            'Entre R$250 e R$500',
+            'Entre R$500 e R$1.000',
+            'Entre R$1.000 e R$2.500',
+            'Entre R$2.500 e R$5.000',
+            'Entre R$5.000 e R$15.000',
+            'Acima de R$15.000'
+        ],
+        'Acima de R$500': [
+            'Entre R$500 e R$1.000',
+            'Entre R$1.000 e R$2.500',
+            'Entre R$2.500 e R$5.000',
+            'Entre R$5.000 e R$15.000',
+            'Acima de R$15.000'
+        ],
+        'Acima de R$1.000': [
+            'Entre R$1.000 e R$2.500',
+            'Entre R$2.500 e R$5.000',
+            'Entre R$5.000 e R$15.000',
+            'Acima de R$15.000'
+        ],
+        'Acima de R$2.500': [
+            'Entre R$2.500 e R$5.000',
+            'Entre R$5.000 e R$15.000',
+            'Acima de R$15.000'
+        ],
+        'Acima de R$5.000': [
+            'Entre R$5.000 e R$15.000',
+            'Acima de R$15.000'
+        ],
+        'Acima de R$15.000': ['Acima de R$15.000']
+
+    }
+    
     with cols_resumo[1]:
         cols_patrimonio_selector = st.columns(2)
         with cols_patrimonio_selector[0]:
@@ -196,14 +253,14 @@ else:
             patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
                 filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])
             ]
-            selected_renda = st.selectbox('Selecione o intervalo de renda:', renda_options, index = 2)
+            selected_renda = st.selectbox('Selecione o intervalo de renda:', quanto_poupa_options if PRODUTO == "SW" else renda_options, index = 1)
             renda_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
-                filtered_DF_PTRAFEGO_DADOS['RENDA MENSAL'].isin(renda_mapping[selected_renda])
+                filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(quanto_poupa_mapping[selected_renda] if PRODUTO == "SW" else renda_mapping[selected_renda])
             ]
 
             renda_patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
                 (filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])) &
-                (filtered_DF_PTRAFEGO_DADOS['RENDA MENSAL'].isin(renda_mapping[selected_renda]))
+                (filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(quanto_poupa_mapping[selected_renda] if PRODUTO == "SW" else renda_mapping[selected_renda]))
             ]
 
         with cols_patrimonio_selector[1]:
@@ -247,6 +304,17 @@ renda_order = [
         'Entre R$10.000 e R$20.000',
         'Acima de R$20.000'
     ]
+quanto_poupa_order = [
+            'Até R$250',
+            'Entre R$250 e R$500',
+            'Entre R$500 e R$1.000',
+            'Entre R$1.000 e R$2.500',
+            'Entre R$2.500 e R$5.000',
+            'Entre R$5.000 e R$15.000',
+            'Acima de R$15.000'
+    ]
+
+secondary_order = quanto_poupa_order if PRODUTO == "SW" else renda_order
 
 # CRIA GRÁFICO DE DISTRIBUIÇÃO EM BARRA HORIZONTAL
 def create_distribution_chart(data, category_col, order_list, color='lightblue', title=''):
@@ -293,10 +361,10 @@ CHART_CONFIG = {
         'display_name': 'Patrimônio'
     },
     'renda': {
-        'column': 'RENDA MENSAL',
+        'column': cols_finan_02,
         'color': 'lightgreen',
         'title': '',
-        'display_name': 'Renda'
+        'display_name': 'Renda' if PRODUTO == "SW" else 'Quanto poupa'
     }
 }
 
@@ -323,18 +391,18 @@ with col1:
 
 # 03.B: RENDA MENSAL
 with col2:
-    st.subheader("Renda mensal")
+    st.subheader("Quanto poupa" if PRODUTO == "SW" else "Renda mensal")
     renda_chart, renda_df = create_distribution_chart(
         filtered_DF_PTRAFEGO_DADOS,
         CHART_CONFIG['renda']['column'],
-        renda_order,
+        secondary_order,
         CHART_CONFIG['renda']['color'],
         CHART_CONFIG['renda']['title']
     )
     renda_chart
     st.dataframe(
-        renda_df[['RENDA MENSAL', 'count']].rename(
-            columns={'RENDA MENSAL': 'Renda mensal', 'count': 'Quantidade'}
+        renda_df[[cols_finan_02, 'count']].rename(
+            columns={cols_finan_02: "Quanto poupa" if PRODUTO == "SW" else "Renda mensal", 'count': 'Quantidade'}
         ),
         use_container_width=True,
         hide_index=True
@@ -396,7 +464,7 @@ if VERSAO_PRINCIPAL >= 21:
 
     with col2:
         with st.container(border=True):
-            chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'RENDA MENSAL', renda_order)
+            chart = calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, cols_finan_02, secondary_order)
             chart
 
 #------------------------------------------------------------
@@ -407,7 +475,7 @@ def create_heatmap(dataframe):
     Função para criar um heatmap com anotações dos valores de cada célula.
     
     Args:
-    dataframe (pd.DataFrame): DataFrame contendo as colunas 'PATRIMONIO' e 'RENDA MENSAL'.
+    dataframe (pd.DataFrame): DataFrame contendo as colunas 'PATRIMONIO' e cols_finan_02.
     
     Returns:
     plotly.graph_objects.Figure: Objeto do gráfico Plotly com anotações.
@@ -415,7 +483,7 @@ def create_heatmap(dataframe):
     # Criar tabela de contagem para o heatmap
     heatmap_pivot = dataframe.pivot_table(
         index='PATRIMONIO', 
-        columns='RENDA MENSAL', 
+        columns=cols_finan_02, 
         aggfunc='size', 
         fill_value=0
     )
