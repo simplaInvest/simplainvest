@@ -46,7 +46,7 @@ columns_to_filter = ['UTM_TERM', 'UTM_CAMPAIGN', 'UTM_SOURCE', 'UTM_MEDIUM', 'UT
 
 # Colunas financeiras
 cols_finan_01 = 'PATRIMONIO'
-cols_finan_02 = 'QUANTO_POUPA' if PRODUTO == "SW" else 'RENDA_MENSAL'
+cols_finan_02 = 'QUANTO_POUPA' if PRODUTO == "SW" else 'RENDA MENSAL'
 
 # Criar os filtros lado a lado
 filters = {}
