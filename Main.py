@@ -37,7 +37,7 @@ else:
                         st.session_state["PRODUTO"] = "EI"
                     if PRODUTO == "Simpla Club":
                         st.session_state["PRODUTO"] = "SC"
-                    else:
+                    elif PRODUTO == "Simpla Wealth":
                         st.session_state["PRODUTO"] = "SW"
                     st.session_state["VERSAO_PRINCIPAL"] = VERSAO_PRINCIPAL
                     variaveis_para_inicializar = ["Captacao", "CPLs", "Vendas", "VIP", "Reabertura"]

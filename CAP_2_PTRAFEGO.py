@@ -35,7 +35,16 @@ else:
 #------------------------------------------------------------
 
 st.caption("CAPTAÇÃO > PESQUISA DE TRÁFEGO")
-st.title('Pesquisa de Tráfego')
+
+cols_1 = st.columns(2)
+
+with cols_1[0]:
+    st.title('Pesquisa de Tráfego')
+
+with cols_1[1]:
+    filter_container = st.container()
+
+
 
 #------------------------------------------------------------
 #      01. FILTROS
@@ -99,186 +108,120 @@ if filtered_DF_PTRAFEGO_DADOS.empty:
 else:
     st.divider()
 
+    with filter_container:
+        cols_container = st.columns(2)
+        with cols_container[0]:
+            options = ["Captação", "Pré-matrícula", "Vendas"]
+            filters_etapas = st.multiselect(
+                label="Filtros por etapa:", options=options
+            )
+            if filters_etapas is not None:
+                if "Captação" in filters_etapas:
+                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_CAPTURA['EMAIL'].str.lower())]
+                if "Pré-matrícula" in filters_etapas:
+                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
+                if "Vendas" in filters_etapas:
+                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
+        
+        with cols_container[1]:
+            # 02.B: MÉTRICAS PRINCIPAIS
+            st.metric(
+                label="Respostas da pesquisa:",
+                value=f"{filtered_DF_PTRAFEGO_DADOS.shape[0]}  ({round((filtered_DF_PTRAFEGO_DADOS.shape[0] / DF_CENTRAL_CAPTURA.shape[0]) * 100, 2)}%)"
+            )
+
     # 02.A: FILTROS POR ETAPA
     cols_resumo = st.columns(2)
-    with cols_resumo[0]:
-        options = ["Captação", "Pré-matrícula", "Vendas"]
-        filters_etapas = st.multiselect(
-            label="Filtros por etapa:", options=options
-        )
-        if filters_etapas is not None:
-            if "Captação" in filters_etapas:
-                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_CAPTURA['EMAIL'].str.lower())]
-            if "Pré-matrícula" in filters_etapas:
-                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower())]
-            if "Vendas" in filters_etapas:
-                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower())]
-        
-        # 02.B: MÉTRICAS PRINCIPAIS
-        st.metric(
-            label="Respostas da pesquisa:",
-            value=f"{filtered_DF_PTRAFEGO_DADOS.shape[0]}  ({round((filtered_DF_PTRAFEGO_DADOS.shape[0] / DF_CENTRAL_CAPTURA.shape[0]) * 100, 2)}%)"
-        )
-
+    
     # 02.C: MÉTRICAS PRINCIPAIS
-    patrimonio_options = [
-        'Todos',
-        'Acima de 5 mil',
-        'Acima de 20 mil',
-        'Acima de 100 mil',
-        'Acima de 250 mil',
-        'Acima de 500 mil',
-        'Acima de 1 milhão'
-    ]
-    patrimonio_mapping = {
-        'Todos': [  'Menos de R$5 mil',
-                    'Entre R$5 mil e R$20 mil',
-                    'Entre R$20 mil e R$100 mil',
-                    'Entre R$100 mil e R$250 mil',
-                    'Entre R$250 mil e R$500 mil',
-                    'Entre R$500 mil e R$1 milhão',
-                    'Acima de R$1 milhão'],
-        'Acima de 5 mil': ['Entre R$5 mil e R$20 mil',
-                            'Entre R$20 mil e R$100 mil',
-                            'Entre R$100 mil e R$250 mil',
-                            'Entre R$250 mil e R$500 mil',
-                            'Entre R$500 mil e R$1 milhão',
-                            'Acima de R$1 milhão'],
-        'Acima de 20 mil': ['Entre R$20 mil e R$100 mil',
-                            'Entre R$100 mil e R$250 mil',
-                            'Entre R$250 mil e R$500 mil',
-                            'Entre R$500 mil e R$1 milhão',
-                            'Acima de R$1 milhão'],
-        'Acima de 100 mil': ['Entre R$100 mil e R$250 mil',
-                            'Entre R$250 mil e R$500 mil',
-                            'Entre R$500 mil e R$1 milhão',
-                            'Acima de R$1 milhão'],
-        'Acima de 250 mil': ['Entre R$250 mil e R$500 mil',
-                            'Entre R$500 mil e R$1 milhão',
-                            'Acima de R$1 milhão'],
-        'Acima de 500 mil': ['Entre R$500 mil e R$1 milhão',
-                            'Acima de R$1 milhão'],
-        'Acima de 1 milhão': ['Acima de R$1 milhão']
-    }
-
-    renda_options = [
-            'Todos',
-            'Acima de R$1.500',
-            'Acima de R$2.500',
-            'Acima de R$5.000',
-            'Acima de R$10.000',
-            'Acima de R$20.000'
+    patrimonio_order = [
+            'Menos de R$5 mil',
+            'Entre R$5 mil e R$20 mil',
+            'Entre R$20 mil e R$100 mil',
+            'Entre R$100 mil e R$250 mil',
+            'Entre R$250 mil e R$500 mil',
+            'Entre R$500 mil e R$1 milhão',
+            'Acima de R$1 milhão'
         ]
-    renda_mapping = {
-            'Todos': ['Até R$1.500',
-                        'Entre R$1.500 e R$2.500',
-                        'Entre R$2.500 e R$5.000',
-                        'Entre R$5.000 e R$10.000',
-                        'Entre R$10.000 e R$20.000',
-                        'Acima de R$20.000'],
-            'Acima de R$1.500': ['Entre R$1.500 e R$2.500',
-                                'Entre R$2.500 e R$5.000',
-                                'Entre R$5.000 e R$10.000',
-                                'Entre R$10.000 e R$20.000',
-                                'Acima de R$20.000'],
-            'Acima de R$2.500': ['Entre R$2.500 e R$5.000',
-                                'Entre R$5.000 e R$10.000',
-                                'Entre R$10.000 e R$20.000',
-                                'Acima de R$20.000'],
-            'Acima de R$5.000': ['Entre R$5.000 e R$10.000',
-                                'Entre R$10.000 e R$20.000',
-                                'Acima de R$20.000'],
-            'Acima de R$10.000': ['Entre R$10.000 e R$20.000',
-                                'Acima de R$20.000'],
-            'Acima de R$20.000': ['Acima de R$20.000']
-        }
     
-    quanto_poupa_options = [
-        'Todos',
-        'Acima de R$250',
-        'Acima de R$500',
-        'Acima de R$1.000',
-        'Acima de R$2.500',
-        'Acima de R$5.000',
-        'Acima de R$15.000'
-    ]
-    quanto_poupa_mapping = {
-        'Todos': [
-            'Até R$250',
-            'Entre R$250 e R$500',
-            'Entre R$500 e R$1.000',
-            'Entre R$1.000 e R$2.500',
-            'Entre R$2.500 e R$5.000',
-            'Entre R$5.000 e R$15.000',
-            'Acima de R$15.000'
-        ],
-        'Acima de R$250': [
-            'Entre R$250 e R$500',
-            'Entre R$500 e R$1.000',
-            'Entre R$1.000 e R$2.500',
-            'Entre R$2.500 e R$5.000',
-            'Entre R$5.000 e R$15.000',
-            'Acima de R$15.000'
-        ],
-        'Acima de R$500': [
-            'Entre R$500 e R$1.000',
-            'Entre R$1.000 e R$2.500',
-            'Entre R$2.500 e R$5.000',
-            'Entre R$5.000 e R$15.000',
-            'Acima de R$15.000'
-        ],
-        'Acima de R$1.000': [
-            'Entre R$1.000 e R$2.500',
-            'Entre R$2.500 e R$5.000',
-            'Entre R$5.000 e R$15.000',
-            'Acima de R$15.000'
-        ],
-        'Acima de R$2.500': [
-            'Entre R$2.500 e R$5.000',
-            'Entre R$5.000 e R$15.000',
-            'Acima de R$15.000'
-        ],
-        'Acima de R$5.000': [
-            'Entre R$5.000 e R$15.000',
-            'Acima de R$15.000'
-        ],
-        'Acima de R$15.000': ['Acima de R$15.000']
-
-    }
-    
-    with cols_resumo[1]:
-        cols_patrimonio_selector = st.columns(2)
-        with cols_patrimonio_selector[0]:
-            selected_patrimonio = st.selectbox("Selecione o intervalo de patrimônio:", patrimonio_options, index =1)
-            patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
-                filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])
+    if PRODUTO != 'SW':
+        col2_order = [
+                'Até R$1.500',
+                'Entre R$1.500 e R$2.500',
+                'Entre R$2.500 e R$5.000',
+                'Entre R$5.000 e R$10.000',
+                'Entre R$10.000 e R$20.000',
+                'Acima de R$20.000'
             ]
-            selected_renda = st.selectbox('Selecione o intervalo de renda:', quanto_poupa_options if PRODUTO == "SW" else renda_options, index = 1)
-            renda_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
-                filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(quanto_poupa_mapping[selected_renda] if PRODUTO == "SW" else renda_mapping[selected_renda])
+    else:
+        col2_order = [
+                    'Até R$250',
+                    'Entre R$250 e R$500',
+                    'Entre R$500 e R$1.000',
+                    'Entre R$1.000 e R$2.500',
+                    'Entre R$2.500 e R$5.000',
+                    'Entre R$5.000 e R$15.000',
+                    'Acima de R$15.000'
             ]
-
-            renda_patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
-                (filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_mapping[selected_patrimonio])) &
-                (filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(quanto_poupa_mapping[selected_renda] if PRODUTO == "SW" else renda_mapping[selected_renda]))
-            ]
-
-        with cols_patrimonio_selector[1]:
-            st.metric(
-                label=f'{selected_patrimonio}:',
-                value=f"{patrimonio_acima_selecionado.shape[0]}  "
-                        f"({round((patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+        
+    def criar_slider(order, nome_da_var):
+        return st.select_slider(
+                f'Selecione as faixas de {nome_da_var}', 
+                options= order,
+                value=(order[0], order[-1])  # Define o valor inicial e final como padrão
             )
-            st.metric(
-                    label=f'{selected_renda}:',
-                    value=f"{renda_acima_selecionado.shape[0]}  "
-                            f"({round((renda_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+        
+    with cols_resumo[0]:
+        with st.container(border = True):
+            selected_patrimonio_start, selected_patrimonio_end = criar_slider(patrimonio_order, 'Patrimônio')
+
+            patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+                filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(
+                    patrimonio_order[patrimonio_order.index(selected_patrimonio_start) : patrimonio_order.index(selected_patrimonio_end) + 1]
                 )
-            st.metric(
-                    label=f'Patrimônio {selected_patrimonio} e Renda {selected_renda}:',
-                    value=f"{renda_patrimonio_acima_selecionado.shape[0]}  "
-                            f"({round((renda_patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+            ]
+
+
+    with cols_resumo[1]:  
+        with st.container(border = True):
+            selected_renda_start, selected_renda_end = criar_slider(col2_order, f'{cols_finan_02}')
+
+            renda_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+                filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(
+                    col2_order[col2_order.index(selected_renda_start) : col2_order.index(selected_renda_end) + 1]
                 )
+            ]
+
+        renda_patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+            (filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(
+                patrimonio_order[patrimonio_order.index(selected_patrimonio_start) : patrimonio_order.index(selected_patrimonio_end) + 1]
+            )) &
+            (filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(
+                col2_order[col2_order.index(selected_renda_start) : col2_order.index(selected_renda_end) + 1]
+            ))
+        ]
+
+
+with st.container(border = True):
+    metrics_cols = st.columns(3)
+    with metrics_cols[0]:
+        st.metric(
+            label='Patrimônio:',
+            value=f"{patrimonio_acima_selecionado.shape[0]}  "
+                    f"({round((patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+        )
+    with metrics_cols[1]:
+        st.metric(
+                label=f'Renda:',
+                value=f"{renda_acima_selecionado.shape[0]}  "
+                        f"({round((renda_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+            )
+    with metrics_cols[2]:
+        st.metric(
+                label=f'Patrimônio e Renda:',
+                value=f"{renda_patrimonio_acima_selecionado.shape[0]}  "
+                        f"({round((renda_patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+            )
 
 st.divider()
 
@@ -286,35 +229,7 @@ st.divider()
 #      03. GRÁFICOS DE BARRAS & DATAFRAME
 #------------------------------------------------------------
 
-# DEFINE ORDEM DAS FAIXAS
-patrimonio_order = [
-        'Menos de R$5 mil',
-        'Entre R$5 mil e R$20 mil',
-        'Entre R$20 mil e R$100 mil',
-        'Entre R$100 mil e R$250 mil',
-        'Entre R$250 mil e R$500 mil',
-        'Entre R$500 mil e R$1 milhão',
-        'Acima de R$1 milhão'
-    ]
-renda_order = [
-        'Até R$1.500',
-        'Entre R$1.500 e R$2.500',
-        'Entre R$2.500 e R$5.000',
-        'Entre R$5.000 e R$10.000',
-        'Entre R$10.000 e R$20.000',
-        'Acima de R$20.000'
-    ]
-quanto_poupa_order = [
-            'Até R$250',
-            'Entre R$250 e R$500',
-            'Entre R$500 e R$1.000',
-            'Entre R$1.000 e R$2.500',
-            'Entre R$2.500 e R$5.000',
-            'Entre R$5.000 e R$15.000',
-            'Acima de R$15.000'
-    ]
-
-secondary_order = quanto_poupa_order if PRODUTO == "SW" else renda_order
+secondary_order = col2_order if PRODUTO == "SW" else col2_order
 
 # CRIA GRÁFICO DE DISTRIBUIÇÃO EM BARRA HORIZONTAL
 def create_distribution_chart(data, category_col, order_list, color='lightblue', title=''):
