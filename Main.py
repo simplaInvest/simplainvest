@@ -101,7 +101,8 @@ else:
             st.Page("CAP_1_VISAOGERAL.py", title = "📊 Visão Geral"),
             st.Page("CAP_2_PTRAFEGO.py", title = "💲 Pesquisa de Tráfego"),
             st.Page("CAP_3_PCOPY.py", title = "🧑 Pesquisa de Copy"),
-            st.Page("CAP_4_GRUPOS_WPP.py", title = "📞 Grupos de Whatsapp")
+            st.Page("CAP_4_GRUPOS_WPP.py", title = "📞 Grupos de Whatsapp"),
+            st.Page("CAP_5_ANUNCIOS.py", title = "📲 Anúncios")
         ],
         'PRÉ-MATRÍCULA': [
             st.Page("PM_1_VISAOGERAL.py", title = "⭐ Visão Geral"),

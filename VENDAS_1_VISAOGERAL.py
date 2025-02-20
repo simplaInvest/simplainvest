@@ -489,7 +489,7 @@ with tab2:
 
         return fig
 
-    chart = create_conversion_heatmap(DF_PTRAFEGO_DADOS)
+    chart= create_conversion_heatmap(DF_PTRAFEGO_DADOS)
     chart
 
     # Calcular a taxa de conversão para cada faixa de patrimônio e renda
@@ -522,3 +522,80 @@ with tab2:
     st.dataframe(tabela_taxas, hide_index=False, use_container_width=True)
 
 st.divider()
+
+proxy_vendas = pd.read_csv("proxy_vendas.csv", index_col = 0)
+
+df_ptrafego_dados = DF_PTRAFEGO_DADOS.copy()
+
+# Filtrar apenas leads vindos de tráfego pago
+df_ptrafego_dados = df_ptrafego_dados[df_ptrafego_dados["UTM_MEDIUM"] == "pago"]
+
+# Criar um dicionário para armazenar os resultados
+resultados = []
+
+# Iterar sobre cada anúncio
+for anuncio in df_ptrafego_dados["UTM_TERM"].unique():
+    # Filtrar os leads daquele anúncio
+    df_anuncio = df_ptrafego_dados[df_ptrafego_dados["UTM_TERM"] == anuncio]
+    
+    # Criar a tabela de captura (matriz renda x patrimônio)
+    tabela_captura = df_anuncio.pivot_table(
+        index="RENDA MENSAL",
+        columns="PATRIMONIO",
+        values="EMAIL",
+        aggfunc="count",
+        fill_value=0
+    )
+
+    # Garantir que as faixas estão na ordem correta
+    tabela_captura = tabela_captura.reindex(index=proxy_vendas.index, columns=proxy_vendas.columns, fill_value=0)
+
+    # Multiplicar pela proxy de vendas para obter as vendas previstas
+    tabela_vendas_previstas = tabela_captura * proxy_vendas
+
+    # Calcular o total de leads capturados e o total de vendas previstas
+    total_leads = tabela_captura.sum().sum()
+    total_vendas_previstas = tabela_vendas_previstas.sum().sum()
+
+    # Calcular a taxa de conversão prevista
+    taxa_conversao_prevista = (total_vendas_previstas / total_leads) if total_leads > 0 else 0
+
+    # Armazenar os resultados
+    resultados.append([anuncio, total_leads, taxa_conversao_prevista])
+
+# Criar um DataFrame final com os resultados
+df_resultado = pd.DataFrame(resultados, columns=["Nome do Anúncio", "Captura", "Taxa de Conversão Prevista"])
+
+# Ordenar do maior para o menor número de capturas
+df_resultado = df_resultado.sort_values(by="Captura", ascending=False)
+
+#Formatar a coluna de taxa de conversão para exibição melhorada
+df_resultado["Taxa de Conversão Prevista"] = df_resultado["Taxa de Conversão Prevista"] * 100
+
+# Exibir o resultado
+import streamlit as st
+st.write("### 📊 Previsão de Conversão por Anúncio")
+st.dataframe(df_resultado)
+
+# Criar gráfico de dispersão usando Plotly sem rótulos sobre os pontos e sem variação de tamanho
+fig = px.scatter(
+    df_resultado,
+    y="Taxa de Conversão Prevista",
+    x="Captura",
+    color="Taxa de Conversão Prevista",
+    hover_name="Nome do Anúncio",
+    title="🎯 Leads Capturados vs. Taxa de Conversão Prevista",
+    labels={"Captura": "Leads Capturados", "Taxa de Conversão Prevista": "Taxa de Conversão Prevista (%)"},
+)
+
+# Ajustar layout: definir tamanho fixo dos pontos e remover rótulos sobre os pontos
+fig.update_traces(marker=dict(size=8))  # Define tamanho fixo dos pontos
+
+fig.update_layout(
+    xaxis=dict(title="Leads Capturados"),
+    yaxis=dict(title="Taxa de Conversão Prevista (%)"),
+    showlegend=False
+)
+
+# Exibir gráfico no Streamlit
+st.plotly_chart(fig, use_container_width=True)

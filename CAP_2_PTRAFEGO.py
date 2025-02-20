@@ -206,19 +206,19 @@ with st.container(border = True):
     metrics_cols = st.columns(3)
     with metrics_cols[0]:
         st.metric(
-            label='Patrimônio:',
+            label=f'{cols_finan_01}',
             value=f"{patrimonio_acima_selecionado.shape[0]}  "
                     f"({round((patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
         )
     with metrics_cols[1]:
         st.metric(
-                label=f'Renda:',
+                label=f'{cols_finan_02}:',
                 value=f"{renda_acima_selecionado.shape[0]}  "
                         f"({round((renda_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
             )
     with metrics_cols[2]:
         st.metric(
-                label=f'Patrimônio e Renda:',
+                label=f'{cols_finan_01} e {cols_finan_02}:',
                 value=f"{renda_patrimonio_acima_selecionado.shape[0]}  "
                         f"({round((renda_patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
             )
@@ -447,3 +447,40 @@ with col2:
     chart = create_heatmap(filtered_DF_PTRAFEGO_DADOS)
 
     chart
+
+st.divider()
+
+
+df_ptrafego_dados = DF_PTRAFEGO_DADOS.copy()
+df_central_vendas = DF_CENTRAL_VENDAS.copy()
+
+# Criar a dummy indicando se o lead comprou (1) ou não (0)
+df_ptrafego_dados["Comprou"] = df_ptrafego_dados["EMAIL"].isin(df_central_vendas["EMAIL"]).astype(int)
+
+
+# Criar a tabela de total de leads capturados por faixa de renda e patrimônio
+tabela_leads = df_ptrafego_dados.pivot_table(
+    index="RENDA MENSAL",
+    columns="PATRIMONIO",
+    values="EMAIL",
+    aggfunc="count",
+    fill_value=0
+)
+
+# Criar a tabela de total de vendas por faixa de renda e patrimônio
+tabela_vendas = df_ptrafego_dados.pivot_table(
+    index="RENDA MENSAL",
+    columns="PATRIMONIO",
+    values="Comprou",
+    aggfunc="sum",
+    fill_value=0
+)
+
+# Reindexar as tabelas para garantir a ordem correta das faixas
+tabela_leads = tabela_leads.reindex(index=col2_order, columns=patrimonio_order, fill_value=0)
+tabela_vendas = tabela_vendas.reindex(index=col2_order, columns=patrimonio_order, fill_value=0)
+
+# Calcular a proxy de vendas (taxa de conversão)
+proxy_vendas = tabela_vendas / tabela_leads
+
+proxy_vendas
