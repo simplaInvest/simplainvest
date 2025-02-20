@@ -38,7 +38,7 @@ st.caption("CAPTAÇÃO >  ANÚNCIOS")
 st.title('Anúncios')
 
 # Filtrar apenas os leads vindos de tráfego pago
-df_captura_pago = df_captura[df_captura["CAP UTM_MEDIUM"] == "pago"]
+df_captura_pago = df_captura[df_captura["UTM_MEDIUM"] == "pago"]
 
 
 # Criar dummies para pré-matrícula e vendas
@@ -53,14 +53,14 @@ else:
     df_captura_pago["VENDA"] = 0
 
 # Contar leads, pré-matrículas e vendas por anúncio
-ranking_leads = df_captura_pago.groupby("CAP UTM_TERM").agg(
+ranking_leads = df_captura_pago.groupby("UTM_TERM").agg(
     Leads_Capturados=("EMAIL", "count"),
     Prematriculas=("PREMATRICULA", "sum"),
     Vendas=("VENDA", "sum")
 ).reset_index()
 
 # Renomear coluna de anúncios
-ranking_leads = ranking_leads.rename(columns={"CAP UTM_TERM": "Anúncio"})
+ranking_leads = ranking_leads.rename(columns={"UTM_TERM": "Anúncio"})
 
 # Ordenar do maior para o menor em número de leads capturados
 ranking_leads = ranking_leads.sort_values(by="Leads_Capturados", ascending=False)
