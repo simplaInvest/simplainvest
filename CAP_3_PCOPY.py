@@ -166,6 +166,14 @@ closed_ended_columns = [
 
 # Open-ended response columns: free-text responses
 
+if int(VERSAO_PRINCIPAL) == 22:
+    open_ended_columns = [
+        'Porque você quer a começar a investir?',
+        'Como você imagina a vida que está buscando?',
+        'Quais são os principais obstáculos que te impedem de viver essa vida hoje? ',
+        'Descreva, da forma que imaginar, como seria o seu dia perfeito.',
+        'Se você estivesse com o Rufino agora, qual pergunta faria?'
+    ]
 if int(VERSAO_PRINCIPAL) == 21:
     open_ended_columns = [
         "Porque você quer a começar a investir?", 
@@ -744,6 +752,8 @@ def plot_confusion_matrix_renda_patrimonio(data):
     plt.yticks(rotation=0)
     plt.tight_layout()
     st.pyplot(plt)
+
+st.dataframe(missing_data_summary)
 
 # Criando as abas
 tab1, tab2, tab3, tab4 = st.tabs(["Informações Pessoais", "Informações Financeiras", "Bigramas", "Respostas" ])
