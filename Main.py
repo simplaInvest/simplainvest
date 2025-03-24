@@ -102,7 +102,8 @@ else:
             st.Page("CAP_2_PTRAFEGO.py", title = "💲 Pesquisa de Tráfego"),
             st.Page("CAP_3_PCOPY.py", title = "🧑 Pesquisa de Copy"),
             st.Page("CAP_4_GRUPOS_WPP.py", title = "📞 Grupos de Whatsapp"),
-            st.Page("CAP_5_ANUNCIOS.py", title = "📲 Anúncios")
+            st.Page("CAP_5_ANUNCIOS.py", title = "📲 Anúncios"),
+            st.Page("5_General_Message_analyzer.py", title = "💬 Message Analyser")
         ],
         'PRÉ-MATRÍCULA': [
             st.Page("PM_1_VISAOGERAL.py", title = "⭐ Visão Geral"),
@@ -111,7 +112,8 @@ else:
             st.Page("VENDAS_1_VISAOGERAL.py", title = "💵 Visão geral"),
         ],
         'GERAL': [
-            st.Page("ETC_EVOLUCAO.py", title = "🎯 Comparação de Lançamentos")
+            st.Page("ETC_EVOLUCAO.py", title = "🎯 Comparação de Lançamentos"),
+            st.Page("dbf_gen.py", title = "🔮 Gerador de Debriefing")
         ]
     }
     pages = pages_after_load

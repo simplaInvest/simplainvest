@@ -428,7 +428,7 @@ def graf_exp():
         'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
         'Intermediário. Já invisto, até fiz outros cursos de investimentos, mas sinto que falta alguma coisa.' : 'Intermediário',
         'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : ' Profissional'
-})
+    })
     classes_order = ['Totalmente Iniciante',
                      'Iniciante',
                      'Intermediário',
@@ -753,7 +753,7 @@ def plot_confusion_matrix_renda_patrimonio(data):
     plt.tight_layout()
     st.pyplot(plt)
 
-st.dataframe(missing_data_summary)
+
 
 # Criando as abas
 tab1, tab2, tab3, tab4 = st.tabs(["Informações Pessoais", "Informações Financeiras", "Bigramas", "Respostas" ])

@@ -101,3 +101,4 @@ watchdog==4.0.0
 wcwidth==0.2.13
 websockets==12.0
 XlsxWriter==3.2.0
+reportlab==4.0.9

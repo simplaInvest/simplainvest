@@ -24,18 +24,21 @@ with loading_container:
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
-# Carregar DataFrames para lançamento selecionado
-DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'] = DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'].replace({
-        'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante',
-        'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
-        'Intermediário. Já invisto, até fiz outros cursos de investimentos, mas sinto que falta alguma coisa.' : 'Intermediário',
-        'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : ' Profissional'
-})
+if PRODUTO == "EI":
+    # Carregar DataFrames para lançamento selecionado
+    DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'] = DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'].replace({
+            'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante',
+            'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
+            'Intermediário. Já invisto, até fiz outros cursos de investimentos, mas sinto que falta alguma coisa.' : 'Intermediário',
+            'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : ' Profissional'
+    })
 
 DF_CENTRAL_CAPTURA['Vendas'] = DF_CENTRAL_CAPTURA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
 DF_PTRAFEGO_DADOS['Vendas'] = DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
-DF_PCOPY_DADOS['Vendas'] = DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
-DF_CENTRAL_PREMATRICULA['Vendas'] = DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+if PRODUTO == "EI":
+    DF_PCOPY_DADOS['Vendas'] = DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+if PRODUTO == "EI":
+    DF_CENTRAL_PREMATRICULA['Vendas'] = DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
 
 #------------------------------------------------------------
 #      INÍCIO DO LAYOUT
@@ -62,16 +65,20 @@ with col2:
     st.subheader('Vendas')
     st.metric(label = '', value = DF_CENTRAL_VENDAS.shape[0])
     st.metric(label = '', value = DF_PTRAFEGO_DADOS['Vendas'].sum())
-    st.metric(label = '', value = DF_PCOPY_DADOS['Vendas'].sum())
-    st.metric(label = '', value = DF_CENTRAL_PREMATRICULA['Vendas'].sum())
+    if PRODUTO == "EI":
+        st.metric(label = '', value = DF_PCOPY_DADOS['Vendas'].sum())
+    if PRODUTO == "EI":
+        st.metric(label = '', value = DF_CENTRAL_PREMATRICULA['Vendas'].sum())
 
 
 with col3:
     st.subheader('Conversão')
     st.metric(label = '', value = f"{round((DF_CENTRAL_VENDAS.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100,2)}%")
     st.metric(label = '', value = f"{round((DF_PTRAFEGO_DADOS['Vendas'].sum()/DF_PTRAFEGO_DADOS.shape[0])*100,2)}%")
-    st.metric(label = '', value = f"{round((DF_PCOPY_DADOS['Vendas'].sum()/DF_PCOPY_DADOS.shape[0])*100,2)}%")
-    st.metric(label = '', value = f"{round((DF_CENTRAL_PREMATRICULA['Vendas'].sum()/DF_CENTRAL_PREMATRICULA.shape[0])*100,2)}%")
+    if PRODUTO == "EI":
+        st.metric(label = '', value = f"{round((DF_PCOPY_DADOS['Vendas'].sum()/DF_PCOPY_DADOS.shape[0])*100,2)}%")
+    if PRODUTO == "EI":
+        st.metric(label = '', value = f"{round((DF_CENTRAL_PREMATRICULA['Vendas'].sum()/DF_CENTRAL_PREMATRICULA.shape[0])*100,2)}%")
 
 tab1, tab2 = st.tabs(['Desempenho UTMs', 'Conversão'])
 
@@ -289,132 +296,133 @@ with tab2:
         # Mostrar o gráfico no Streamlit
         st.plotly_chart(fig)
 
-    st.subheader('Informações de Perfil')
+    if PRODUTO == 'EI':
+        st.subheader('Informações de Perfil')
 
-    def plot_taxa_conversao(dataframe, coluna):
-        # Calculando a taxa de conversão
-        taxa_conversao = (
-        dataframe.loc[dataframe[coluna] != '']  # Filtrar linhas onde a coluna não é vazia
-        .groupby(coluna)['Vendas']
-        .mean()
-        .reset_index()
-        .rename(columns={'Vendas': 'Taxa de Conversão'})
-    )
-        taxa_conversao['Taxa de Conversão (%)'] = taxa_conversao['Taxa de Conversão'] * 100
-
-        # Criando o gráfico
-        fig = px.bar(
-            taxa_conversao,
-            x='Taxa de Conversão (%)',
-            y=coluna,
-            orientation='h',
-            title=f"Taxa de Conversão: {coluna}",
-            labels={"Taxa de Conversão (%)": "Taxa de Conversão (%)", coluna : coluna}
+        def plot_taxa_conversao(dataframe, coluna):
+            # Calculando a taxa de conversão
+            taxa_conversao = (
+            dataframe.loc[dataframe[coluna] != '']  # Filtrar linhas onde a coluna não é vazia
+            .groupby(coluna)['Vendas']
+            .mean()
+            .reset_index()
+            .rename(columns={'Vendas': 'Taxa de Conversão'})
         )
+            taxa_conversao['Taxa de Conversão (%)'] = taxa_conversao['Taxa de Conversão'] * 100
 
-        # Adicionando valores acima das barras
-        for i, row in taxa_conversao.iterrows():
-            fig.add_annotation(
-                x=row['Taxa de Conversão (%)'],
-                y=row[coluna],
-                text=f"{row['Taxa de Conversão (%)']:.2f}%",
-                showarrow=False,
-                font=dict(size=15),
-                align='center',
-                xanchor='left'
+            # Criando o gráfico
+            fig = px.bar(
+                taxa_conversao,
+                x='Taxa de Conversão (%)',
+                y=coluna,
+                orientation='h',
+                title=f"Taxa de Conversão: {coluna}",
+                labels={"Taxa de Conversão (%)": "Taxa de Conversão (%)", coluna : coluna}
             )
 
-        fig.update_layout(
-            xaxis_title="Taxa de Conversão (%)",
-            yaxis_title="Sexo"
-        )
-
-        return fig
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        fig_sexo = plot_taxa_conversao(DF_PCOPY_DADOS, 'Qual seu sexo?')
-        st.plotly_chart(fig_sexo)
-
-        fig_filhos = plot_taxa_conversao(DF_PCOPY_DADOS, 'Você tem filhos?')
-        st.plotly_chart(fig_filhos)
-
-
-
-
-    with col2:
-        xp_order = ['Totalmente Iniciante',
-                        'Iniciante',
-                        'Intermediário',
-                        'Profissional',
-                        'Não Informado'
-                        ]
-        fig_xp = plot_taxa_conversao(DF_PCOPY_DADOS, 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
-        st.plotly_chart(fig_xp)
-        if int(VERSAO_PRINCIPAL) >= 20:
-            def plot_taxa_conversao_por_faixa_etaria(dataframe, intervalo=5):
-                """
-                Plota a taxa de conversão por faixa etária.
-
-                Parâmetros:
-                - dataframe: pd.DataFrame, o dataframe contendo os dados.
-                - intervalo: int, tamanho dos intervalos de idade (padrão: 5 anos).
-
-                Retorna:
-                - fig: plotly.graph_objects.Figure, o gráfico gerado.
-                """
-                # Remover valores nulos e converter para numérico
-                dataframe = dataframe.dropna(subset=['Qual sua idade?'])
-                dataframe['Qual sua idade?'] = pd.to_numeric(dataframe['Qual sua idade?'], errors='coerce')
-                dataframe = dataframe.dropna(subset=['Qual sua idade?'])
-
-                # Criar faixas de idade
-                dataframe['Faixa de Idade'] = pd.cut(
-                    dataframe['Qual sua idade?'],
-                    bins=range(int(dataframe['Qual sua idade?'].min()), int(dataframe['Qual sua idade?'].max()) + intervalo, intervalo),
-                    right=False
+            # Adicionando valores acima das barras
+            for i, row in taxa_conversao.iterrows():
+                fig.add_annotation(
+                    x=row['Taxa de Conversão (%)'],
+                    y=row[coluna],
+                    text=f"{row['Taxa de Conversão (%)']:.2f}%",
+                    showarrow=False,
+                    font=dict(size=15),
+                    align='center',
+                    xanchor='left'
                 )
 
-                # Calcular a taxa de conversão por faixa etária
-                taxa_conversao = (
-                    dataframe.groupby('Faixa de Idade')['Vendas']
-                    .mean()
-                    .reset_index()
-                    .rename(columns={'Vendas': 'Taxa de Conversão'})
-                )
-                taxa_conversao['Taxa de Conversão (%)'] = taxa_conversao['Taxa de Conversão'] * 100
+            fig.update_layout(
+                xaxis_title="Taxa de Conversão (%)",
+                yaxis_title="Sexo"
+            )
 
-                # Criar o gráfico de barras verticais
-                taxa_conversao['Faixa de Idade'] = taxa_conversao['Faixa de Idade'].astype(str)  # Converter Interval para string
-                fig = px.bar(
-                    taxa_conversao,
-                    x='Faixa de Idade',
-                    y='Taxa de Conversão (%)',
-                    title="Taxa de Conversão por Faixa Etária",
-                    labels={"Taxa de Conversão (%)": "Taxa de Conversão (%)", "Faixa de Idade": "Idade"}
-                )
+            return fig
 
-                # Adicionar valores acima das barras
-                for i, row in taxa_conversao.iterrows():
-                    fig.add_annotation(
-                        x=row['Faixa de Idade'],
-                        y=row['Taxa de Conversão (%)'],
-                        text=f"{row['Taxa de Conversão (%)']:.2f}%",
-                        showarrow=False,
-                        font=dict(size=12),
-                        align='center',
-                        yanchor = 'bottom'
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig_sexo = plot_taxa_conversao(DF_PCOPY_DADOS, 'Qual seu sexo?')
+            st.plotly_chart(fig_sexo)
+
+            fig_filhos = plot_taxa_conversao(DF_PCOPY_DADOS, 'Você tem filhos?')
+            st.plotly_chart(fig_filhos)
+
+
+
+
+        with col2:
+            xp_order = ['Totalmente Iniciante',
+                            'Iniciante',
+                            'Intermediário',
+                            'Profissional',
+                            'Não Informado'
+                            ]
+            fig_xp = plot_taxa_conversao(DF_PCOPY_DADOS, 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
+            st.plotly_chart(fig_xp)
+            if int(VERSAO_PRINCIPAL) >= 20:
+                def plot_taxa_conversao_por_faixa_etaria(dataframe, intervalo=5):
+                    """
+                    Plota a taxa de conversão por faixa etária.
+
+                    Parâmetros:
+                    - dataframe: pd.DataFrame, o dataframe contendo os dados.
+                    - intervalo: int, tamanho dos intervalos de idade (padrão: 5 anos).
+
+                    Retorna:
+                    - fig: plotly.graph_objects.Figure, o gráfico gerado.
+                    """
+                    # Remover valores nulos e converter para numérico
+                    dataframe = dataframe.dropna(subset=['Qual sua idade?'])
+                    dataframe['Qual sua idade?'] = pd.to_numeric(dataframe['Qual sua idade?'], errors='coerce')
+                    dataframe = dataframe.dropna(subset=['Qual sua idade?'])
+
+                    # Criar faixas de idade
+                    dataframe['Faixa de Idade'] = pd.cut(
+                        dataframe['Qual sua idade?'],
+                        bins=range(int(dataframe['Qual sua idade?'].min()), int(dataframe['Qual sua idade?'].max()) + intervalo, intervalo),
+                        right=False
                     )
 
-                fig.update_layout(
-                    xaxis_title="Faixa de Idade",
-                    yaxis_title="Taxa de Conversão (%)"
-                )
-                return fig
+                    # Calcular a taxa de conversão por faixa etária
+                    taxa_conversao = (
+                        dataframe.groupby('Faixa de Idade')['Vendas']
+                        .mean()
+                        .reset_index()
+                        .rename(columns={'Vendas': 'Taxa de Conversão'})
+                    )
+                    taxa_conversao['Taxa de Conversão (%)'] = taxa_conversao['Taxa de Conversão'] * 100
 
-            fig_histograma_idade = plot_taxa_conversao_por_faixa_etaria(DF_PCOPY_DADOS)
-            st.plotly_chart(fig_histograma_idade)
+                    # Criar o gráfico de barras verticais
+                    taxa_conversao['Faixa de Idade'] = taxa_conversao['Faixa de Idade'].astype(str)  # Converter Interval para string
+                    fig = px.bar(
+                        taxa_conversao,
+                        x='Faixa de Idade',
+                        y='Taxa de Conversão (%)',
+                        title="Taxa de Conversão por Faixa Etária",
+                        labels={"Taxa de Conversão (%)": "Taxa de Conversão (%)", "Faixa de Idade": "Idade"}
+                    )
+
+                    # Adicionar valores acima das barras
+                    for i, row in taxa_conversao.iterrows():
+                        fig.add_annotation(
+                            x=row['Faixa de Idade'],
+                            y=row['Taxa de Conversão (%)'],
+                            text=f"{row['Taxa de Conversão (%)']:.2f}%",
+                            showarrow=False,
+                            font=dict(size=12),
+                            align='center',
+                            yanchor = 'bottom'
+                        )
+
+                    fig.update_layout(
+                        xaxis_title="Faixa de Idade",
+                        yaxis_title="Taxa de Conversão (%)"
+                    )
+                    return fig
+
+                fig_histograma_idade = plot_taxa_conversao_por_faixa_etaria(DF_PCOPY_DADOS)
+                st.plotly_chart(fig_histograma_idade)
 
 
     def create_conversion_heatmap(dataframe):
@@ -520,5 +528,41 @@ with tab2:
 
   
     st.dataframe(tabela_taxas, hide_index=False, use_container_width=True)
+
+# Criar a coluna AVENDA (1 se o e-mail está em DF_CENTRAL_VENDAS, 0 caso contrário)
+DF_CENTRAL_CAPTURA['AVENDA'] = DF_CENTRAL_CAPTURA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL']).astype(int)
+
+# Converter CAP DATA_CAPTURA para datetime e extrair apenas a data
+DF_CENTRAL_CAPTURA['DATA'] = pd.to_datetime(DF_CENTRAL_CAPTURA['CAP DATA_CAPTURA'], format='%d/%m/%Y %H:%M').dt.date
+
+# Calcular a taxa de conversão por dia
+df_conversao = DF_CENTRAL_CAPTURA.groupby('DATA').agg(
+    total_entradas=('AVENDA', 'count'),
+    total_convertidos=('AVENDA', 'sum')
+).reset_index()
+
+df_conversao['taxa_conversao'] = (df_conversao['total_convertidos'] / df_conversao['total_entradas'])*100
+
+# Criar o gráfico de barras com número de entradas por dia
+fig = px.bar(df_conversao, x='DATA', y='total_convertidos',
+             title=f'Número de Entradas por Dia {PRODUTO}.{VERSAO_PRINCIPAL}',
+             text='total_convertidos',
+             labels={'DATA': 'Data', 'total_entradas': 'Total de Entradas'})
+
+# Mostrar os valores automaticamente sobre as barras
+fig.update_traces(textposition='outside')
+
+# Mostrar o gráfico
+fig
+
+# Criar o gráfico de barras com número de entradas por dia
+fig = px.bar(df_conversao, x='DATA', y='taxa_conversao',
+             title=f'Conversão por Dia  {PRODUTO}.{VERSAO_PRINCIPAL}',
+             text='taxa_conversao',
+             labels={'DATA': 'Data', 'taxa_conversao': 'Taxa de Conv'})
+
+fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+
+fig
 
 st.divider()

@@ -258,6 +258,14 @@ def gerar_barras_empilhadas(dataframe, colunas_renda, title):
 st.title('Evolução das métricas')
 st.divider()
 
+from libs.debriefing_generator import generate_debriefing2
+
+# Carregar informações sobre lançamento selecionado
+PRODUTO = st.session_state["PRODUTO"]
+VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+
+st.title("Gerar Relatório de Debriefing")
+
 tab1, tab2 = st.tabs(['Métricas', 'Dados Financeiros'])
 
 with tab1:

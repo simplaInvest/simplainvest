@@ -12,10 +12,6 @@ from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, 
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
 CPL = st.session_state['CPLs']
-#st.write(CPL)
-
-Cap = st.session_state['Captacao']
-#st.write(Cap)
 
 # Carregar DataFrames para lançamento selecionado
 loading_container = st.empty()
