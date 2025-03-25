@@ -543,25 +543,53 @@ df_conversao = DF_CENTRAL_CAPTURA.groupby('DATA').agg(
 
 df_conversao['taxa_conversao'] = (df_conversao['total_convertidos'] / df_conversao['total_entradas'])*100
 
-# Criar o gráfico de barras com número de entradas por dia
-fig = px.bar(df_conversao, x='DATA', y='total_convertidos',
-             title=f'Número de Entradas por Dia {PRODUTO}.{VERSAO_PRINCIPAL}',
-             text='total_convertidos',
-             labels={'DATA': 'Data', 'total_entradas': 'Total de Entradas'})
+# Criar a figura base
+fig = go.Figure()
 
-# Mostrar os valores automaticamente sobre as barras
-fig.update_traces(textposition='outside')
+# Adicionar as barras de taxa de conversão
+fig.add_trace(go.Bar(
+    x=df_conversao['DATA'],
+    y=df_conversao['taxa_conversao'],
+    name='Taxa de Conversão (%)',
+    text=df_conversao['taxa_conversao'].round(2).astype(str) + '%',
+    textposition='outside',
+    marker_color='cornflowerblue',
+    yaxis='y1'
+))
 
-# Mostrar o gráfico
-fig
+# Adicionar a linha de total de entradas com valores
+fig.add_trace(go.Scatter(
+    x=df_conversao['DATA'],
+    y=df_conversao['total_entradas'],
+    name='Total de Entradas',
+    mode='lines+markers+text',
+    line=dict(color='red', width=2),
+    text=df_conversao['total_entradas'],
+    textposition='top center',  # <- Correção aqui
+    yaxis='y2'
+))
 
-# Criar o gráfico de barras com número de entradas por dia
-fig = px.bar(df_conversao, x='DATA', y='taxa_conversao',
-             title=f'Conversão por Dia  {PRODUTO}.{VERSAO_PRINCIPAL}',
-             text='taxa_conversao',
-             labels={'DATA': 'Data', 'taxa_conversao': 'Taxa de Conv'})
+# Atualizar layout com dois eixos y
+fig.update_layout(
+    title=f'Conversão por Dia - {PRODUTO}.{VERSAO_PRINCIPAL}',
+    xaxis=dict(title='Data'),
+    yaxis=dict(
+        title='Taxa de Conversão (%)',
+        side='left',
+        showgrid=False
+    ),
+    yaxis2=dict(
+        title='Total de Entradas',
+        overlaying='y',
+        side='right',
+        showgrid=False,
+        fixedrange=True  # <- trava só o eixo da linha (total_entradas)
+    ),
+    legend=dict(x=0.01, y=0.99),
+    bargap=0.2
+)
 
-fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+#fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')
 
 fig
 
