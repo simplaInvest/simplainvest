@@ -184,7 +184,7 @@ if PRODUTO == 'EI':
         st.subheader('Página de Vendas')
 
         ### Visitas
-        df = get_conversion_data(slug = '/euinvestidor', start_date = '2025-01-20', end_date = '2025-03-10')
+        df = get_conversion_data(slug = '/euinvestidor', start_date = '2025-03-17', end_date = '2025-03-20')
         pagina_alvo = "/euinvestidor"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -196,7 +196,7 @@ if PRODUTO == 'EI':
             visitas_ven = 0
         
         ### Conversões
-        df = get_conversion_data(slug = 'X11050759S', start_date = '2025-01-20', end_date = '2025-03-10')
+        df = get_conversion_data(slug = 'X11050759S', start_date = '2025-03-17', end_date = '2025-03-20')
         pagina_alvo = "X11050759S"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -287,8 +287,3 @@ if PRODUTO == 'SC':
         if not visitas_ven == 0:
             tx_ven = f'{round((conv_ven/visitas_ven)*100, 2)}%'
             st.metric('Taxa de conversão', tx_ven)
-        
-        
-        
-
-

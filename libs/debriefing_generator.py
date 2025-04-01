@@ -710,14 +710,14 @@ def get_page_metrics(slug, start_date, end_date):
 
     request = RunReportRequest(
         property=f"properties/{PROPERTY_ID}",
-        dimensions=[Dimension(name="landingPage")],
+        dimensions=[Dimension(name="pagePath")],
         metrics=[
             Metric(name="totalUsers")
         ],
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
         dimension_filter=FilterExpression(
             filter=Filter(
-                field_name="landingPage",
+                field_name="pagePath",
                 string_filter=Filter.StringFilter(
                     match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
                     value=slug,
@@ -738,7 +738,7 @@ def get_conversion_data(slug, start_date="2024-01-01", end_date="2024-12-31"):
         users = int(row.metric_values[0].value)
         
         data.append({
-            "landing_page": row.dimension_values[0].value,
+            "landing_page": row.dimension_values[0].value or 0,
             "users": users
         })
 
@@ -764,13 +764,13 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
         property=f"properties/{PROPERTY_ID}",
         dimensions=[
             Dimension(name="sessionCampaignName"),  # <- UTM Campaign
-            Dimension(name="landingPage")
+            Dimension(name="pagePath")
         ],
         metrics=[Metric(name="totalUsers")],
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
         dimension_filter=FilterExpression(
             filter=Filter(
-                field_name="landingPage",
+                field_name="pagePath",
                 string_filter=Filter.StringFilter(
                     match_type=Filter.StringFilter.MatchType.EXACT,
                     value=conversion_slug
