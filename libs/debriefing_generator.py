@@ -738,7 +738,7 @@ def get_conversion_data(slug, start_date="2024-01-01", end_date="2024-12-31"):
         users = int(row.metric_values[0].value)
         
         data.append({
-            "landing_page": row.dimension_values[0].value or 0,
+            "landing_page": row.dimension_values[0].value,
             "users": users
         })
 
@@ -759,11 +759,11 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
 
     client = BetaAnalyticsDataClient(credentials=credentials)
 
-    # Requisição para buscar conversões por campanha (via utm_campaign)
-    request = RunReportRequest(
+    # ===== Parte 1: Conversões (/cg/inscricao-pendente) =====
+    conversion_request = RunReportRequest(
         property=f"properties/{PROPERTY_ID}",
         dimensions=[
-            Dimension(name="sessionCampaignName"),  # <- UTM Campaign
+            Dimension(name="sessionCampaignName"),
             Dimension(name="pagePath")
         ],
         metrics=[Metric(name="totalUsers")],
@@ -779,38 +779,90 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
         )
     )
 
-    response = client.run_report(request)
+    conversion_response = client.run_report(conversion_request)
 
-    # Processamento dos dados
-    data = []
-    for row in response.rows:
-        data.append({
+    # ===== Parte 2: Visitas (/cursogratuito) =====
+    visitas_request = RunReportRequest(
+        property=f"properties/{PROPERTY_ID}",
+        dimensions=[Dimension(name="sessionCampaignName")],
+        metrics=[Metric(name="totalUsers")],
+        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+        dimension_filter=FilterExpression(
+            filter=Filter(
+                field_name="pagePath",
+                string_filter=Filter.StringFilter(
+                    match_type=Filter.StringFilter.MatchType.EXACT,
+                    value='/cursogratuito'
+                )
+            )
+        )
+    )
+
+    visitas_response = client.run_report(visitas_request)
+
+
+
+    visitas_response = client.run_report(visitas_request)
+
+    # Processar as conversões
+    conversao_data = []
+    for row in conversion_response.rows:
+        conversao_data.append({
             "campaign": row.dimension_values[0].value or "(not set)",
             "landing_page": row.dimension_values[1].value,
             "conversions": int(row.metric_values[0].value)
         })
 
-    return pd.DataFrame(data)
+    df_conversoes = pd.DataFrame(conversao_data)
+
+    # Processar as visitas
+    visitas_data = []
+    for row in visitas_response.rows:
+        visitas_data.append({
+            "campaign": row.dimension_values[0].value or "(not set)",
+            "visitas": int(row.metric_values[0].value)
+        })
+
+    df_visitas = pd.DataFrame(visitas_data)
+
+
+    # Combinar os dois DataFrames por "campaign"
+    df_merged = pd.merge(df_conversoes, df_visitas, on="campaign", how="left")
+
+    return df_merged, df_visitas
 
 
 def process_campaign_data(df, versao_principal):
-    # Etapa 1: filtrar campanhas que contenham o número da versão
+    # Etapa 1: aplicar filtros
     padrao = f"{versao_principal}"
-    df_filtrado = df[df["campaign"].str.contains(padrao, case=False, na=False)]
-    df_filtrado = df_filtrado[df_filtrado["campaign"].str.contains("Captacao", case=False, na=False)]
+    filtro_principal = (
+        df["campaign"].str.contains(padrao, case=False, na=False) &
+        df["campaign"].str.contains("Captacao", case=False, na=False)
+    )
 
-    # Etapa 2: normalizar os nomes das campanhas
+    df_filtrado = df[filtro_principal].copy()
+    df_restante = df[~filtro_principal].copy()  # tudo que NÃO passou no filtro
+
+    # Etapa 2: normalizar nomes das campanhas filtradas
     def normalize_campaign(name):
-        # Substitui hífen por underline, remove símbolos desnecessários
         name = name.replace("-", "_").replace(".", "_").lower()
-        name = re.sub(r"\s+", "_", name)  # espaços para _
-        name = re.sub(r"[^a-z0-9_]", "", name)  # remove tudo que não for letra, número ou _
+        name = re.sub(r"\s+", "_", name)
+        name = re.sub(r"[^a-z0-9_]", "", name)
         return name
 
     df_filtrado["Nome da Campanha"] = df_filtrado["campaign"].apply(normalize_campaign)
 
-    # Etapa 3: agrupar e somar conversões
+    # Etapa 3: agrupar e somar conversões das campanhas filtradas
     df_grouped = df_filtrado.groupby("Nome da Campanha", as_index=False)["conversions"].sum()
+
+    # Etapa 4: adicionar linha "outros" com soma das campanhas restantes
+    if not df_restante.empty:
+        outros_total = df_restante["conversions"].sum()
+        df_outros = pd.DataFrame({
+            "Nome da Campanha": ["outros"],
+            "conversions": [outros_total]
+        })
+        df_grouped = pd.concat([df_grouped, df_outros], ignore_index=True)
 
     return df_grouped
 
