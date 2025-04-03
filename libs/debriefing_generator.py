@@ -772,7 +772,7 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
             filter=Filter(
                 field_name="pagePath",
                 string_filter=Filter.StringFilter(
-                    match_type=Filter.StringFilter.MatchType.EXACT,
+                    match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
                     value=conversion_slug
                 )
             )
@@ -784,14 +784,15 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
     # ===== Parte 2: Visitas (/cursogratuito) =====
     visitas_request = RunReportRequest(
         property=f"properties/{PROPERTY_ID}",
-        dimensions=[Dimension(name="sessionCampaignName")],
+        dimensions=[Dimension(name="sessionCampaignName"),
+                    Dimension(name="pagePath")],
         metrics=[Metric(name="totalUsers")],
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
         dimension_filter=FilterExpression(
             filter=Filter(
                 field_name="pagePath",
                 string_filter=Filter.StringFilter(
-                    match_type=Filter.StringFilter.MatchType.EXACT,
+                    match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
                     value='/cursogratuito'
                 )
             )
@@ -809,11 +810,12 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
     for row in conversion_response.rows:
         conversao_data.append({
             "campaign": row.dimension_values[0].value or "(not set)",
-            "landing_page": row.dimension_values[1].value,
             "conversions": int(row.metric_values[0].value)
         })
 
     df_conversoes = pd.DataFrame(conversao_data)
+
+    df_conversoes = df_conversoes.groupby("campaign", as_index=False)["conversions"].sum()
 
     # Processar as visitas
     visitas_data = []
@@ -825,11 +827,13 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
 
     df_visitas = pd.DataFrame(visitas_data)
 
+    df_visitas = df_visitas.groupby("campaign", as_index=False)["visitas"].sum()
 
     # Combinar os dois DataFrames por "campaign"
     df_merged = pd.merge(df_conversoes, df_visitas, on="campaign", how="left")
+    df_merged = df_merged.fillna(0)
 
-    return df_merged, df_visitas
+    return df_merged, df_conversoes, df_visitas
 
 
 def process_campaign_data(df, versao_principal):
@@ -852,17 +856,24 @@ def process_campaign_data(df, versao_principal):
 
     df_filtrado["Nome da Campanha"] = df_filtrado["campaign"].apply(normalize_campaign)
 
-    # Etapa 3: agrupar e somar conversões das campanhas filtradas
-    df_grouped = df_filtrado.groupby("Nome da Campanha", as_index=False)["conversions"].sum()
+    # Etapa 3: agrupar e somar conversões e vistas das campanhas filtradas
+    df_grouped = df_filtrado.groupby("Nome da Campanha", as_index=False).agg({
+    "visitas": "sum",
+    "conversions": "sum"
+    })
+
 
     # Etapa 4: adicionar linha "outros" com soma das campanhas restantes
     if not df_restante.empty:
         outros_total = df_restante["conversions"].sum()
+        visitas_total = df_restante["visitas"].sum()
         df_outros = pd.DataFrame({
             "Nome da Campanha": ["outros"],
+            "visitas": [visitas_total],
             "conversions": [outros_total]
         })
         df_grouped = pd.concat([df_grouped, df_outros], ignore_index=True)
+        df_grouped["Taxa de conversão (%)"] = round((df_grouped["conversions"]/df_grouped["visitas"])*100, 2)
 
     return df_grouped
 

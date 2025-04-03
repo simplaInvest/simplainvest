@@ -144,10 +144,9 @@ if PRODUTO == 'EI':
             tx_cap = f'{round((conv_cap/visitas_cap)*100, 2)}%'
             st.metric('Taxa de conversão', tx_cap)
 
-        df, df_visitas = get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_date = '2025-01-20', end_date = '2025-03-10')
-        st.dataframe(df_visitas)
+        df, df_conversoes, df_visitas = get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_date = '2025-01-20', end_date = '2025-03-10')
+        
         df_processado = process_campaign_data(df, versao_principal=VERSAO_PRINCIPAL)
-        df_processado["Taxa de Conversão (%)"] = round((df_processado['conversions']/visitas_cap)*100,2)
         
     with pag_cols[1]:
         st.subheader('Página de Pré-Matrícula')
