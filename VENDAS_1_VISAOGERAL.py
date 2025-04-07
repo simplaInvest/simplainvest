@@ -80,6 +80,28 @@ with col3:
     if PRODUTO == "EI":
         st.metric(label = '', value = f"{round((DF_CENTRAL_PREMATRICULA['Vendas'].sum()/DF_CENTRAL_PREMATRICULA.shape[0])*100,2)}%")
 
+st.divider()
+
+st.header("Anúncios de Vendas")
+
+# 1. Métricas de Vendas:
+# Agrupamos os dados de vendas por UTM_TERM para contar quantos alunos vieram por anúncio
+df_vendas_stage = DF_CENTRAL_VENDAS.groupby('UTM_TERM').agg(VENDAS_Alunos=('EMAIL', 'nunique')).reset_index()
+
+# Calcula o percentual relativo de alunos para cada anúncio
+total_vendas = DF_CENTRAL_VENDAS['EMAIL'].nunique()
+df_vendas_stage['VENDAS_Relativo'] = round(df_vendas_stage['VENDAS_Alunos'] / total_vendas * 100, 2)
+
+coll = st.columns([1,1])
+with coll[0]:
+    # Opcional: filtro para exibir apenas anúncios com um mínimo de alunos
+    threshold_vendas = st.number_input("Digite um número mínimo de alunos:", min_value=0, max_value=1000, value=10)
+    df_vendas_stage = df_vendas_stage[df_vendas_stage["VENDAS_Alunos"] >= threshold_vendas]
+
+    st.dataframe(df_vendas_stage)
+
+st.divider()
+
 tab1, tab2 = st.tabs(['Desempenho UTMs', 'Conversão'])
 
 with tab1:

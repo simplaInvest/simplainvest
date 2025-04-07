@@ -242,6 +242,48 @@ with tab1:
         if fig:
             st.altair_chart(fig, use_container_width=True)
 
+    st.divider()
+
+    st.header("Anúncios de Pré-Matrícula")
+
+    # 1. Métricas da Pré-Matrícula:
+    # Agrupamos os pré-matriculados por UTM_TERM para obter a contagem de leads
+    df_pm_stage = DF_CENTRAL_PREMATRICULA.groupby('UTM_TERM').agg(PM_Leads=('EMAIL', 'nunique')).reset_index()
+
+    # Calcula o percentual relativo de pré-matrículas de cada anúncio
+    total_pm = DF_CENTRAL_PREMATRICULA['EMAIL'].nunique()
+    df_pm_stage['PM_Relativo'] = round(df_pm_stage['PM_Leads'] / total_pm * 100, 2)
+
+    # 2. Métricas de Vendas a partir dos pré-matriculados:
+    # Realizamos merge entre pré-matrícula e vendas para identificar quantos leads pré-matriculados realizaram a compra
+    df_vendas_from_pm = pd.merge(
+        DF_CENTRAL_PREMATRICULA[['EMAIL', 'UTM_TERM']],
+        DF_CENTRAL_VENDAS[['EMAIL']],
+        on='EMAIL',
+        how='inner'
+    )
+    df_vendas_from_pm = df_vendas_from_pm.groupby('UTM_TERM').agg(VENDAS_Alunos=('EMAIL', 'nunique')).reset_index()
+
+    # 3. Junção das métricas de pré-matrícula e vendas:
+    df_pm_final = pd.merge(df_pm_stage, df_vendas_from_pm, on='UTM_TERM', how='left')
+    df_pm_final['VENDAS_Alunos'] = df_pm_final['VENDAS_Alunos'].fillna(0)
+
+    # Calcula a conversão de vendas: VENDAS_Conversao = VENDAS_Alunos / PM_Leads
+    df_pm_final['VENDAS_Conversao'] = round((df_pm_final['VENDAS_Alunos'] / df_pm_final['PM_Leads']) * 100, 2)
+
+    # Reordena as colunas conforme solicitado
+    df_pm_final = df_pm_final[['UTM_TERM', 'PM_Relativo', 'PM_Leads', 'VENDAS_Alunos', 'VENDAS_Conversao']]
+
+    coll=st.columns([1,1])
+    with coll[0]:
+        # Opcional: filtro para exibir apenas anúncios com um mínimo de pré-matrículas
+        threshold_pm = st.number_input("Digite um número mínimo de pré-matrículas:", min_value=0, max_value=1000, value=50)
+        df_pm_final = df_pm_final[df_pm_final["PM_Leads"] >= threshold_pm]
+
+        st.dataframe(df_pm_final)
+    
+    st.divider()
+
     with st.container(border=True):
         st.subheader('Source/Medium')
         fig = grafico_barras_horizontais_utm_source_medium(filtered_DF_CENTRAL_PREMATRICULA)

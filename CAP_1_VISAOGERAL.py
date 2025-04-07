@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.express as px
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, get_df
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
@@ -20,6 +20,7 @@ with loading_container:
     with status:
         try:
             DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
+            DF_CENTRAL_PREMATRICULA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_PRE_MATRICULA)
             DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
             DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
             DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
@@ -428,7 +429,98 @@ with st.container(border=True):
 
 st.divider()
 #------------------------------------------------------------
-#      03. CAPTAÇÃO: ORIGEM / MÍDIA
+#      03. Anúncios
+#------------------------------------------------------------
+st.header("Anúncios de Captação")
+
+cols_anun = st.columns(2)
+
+with cols_anun[0]:
+    # 1. Métricas da Captação
+    df_captura = DF_CENTRAL_CAPTURA.groupby('UTM_TERM').agg(CAPTURA_Leads=('EMAIL', 'nunique')).reset_index()
+    total_captura = DF_CENTRAL_CAPTURA['EMAIL'].nunique()
+    df_captura['CAPTURA_Relativo'] = round(df_captura['CAPTURA_Leads'] / total_captura * 100,2)
+
+    # 2. Métricas da Pré-Matrícula
+    # Merge para identificar quais leads capturados fizeram pré-matrícula
+    df_pm_merge = pd.merge(
+        DF_CENTRAL_CAPTURA[['EMAIL', 'UTM_TERM']],
+        DF_CENTRAL_PREMATRICULA[['EMAIL']],
+        on='EMAIL',
+        how='inner'
+    )
+    df_pm = df_pm_merge.groupby('UTM_TERM').agg(PM_Leads=('EMAIL', 'nunique')).reset_index()
+
+    # Junção dos dados de pré-matrícula com os dados de captação
+    df_final = pd.merge(df_captura, df_pm, on='UTM_TERM', how='left')
+    df_final['PM_Leads'] = df_final['PM_Leads'].fillna(0)
+    df_final['PM_Conversao'] = round((df_final['PM_Leads'] / df_final['CAPTURA_Leads']) * 100, 2)
+
+    # 3. Métricas de Vendas
+    # Merge para identificar quais leads capturados efetuaram a compra
+    df_vendas_merge = pd.merge(
+        DF_CENTRAL_CAPTURA[['EMAIL', 'UTM_TERM']],
+        DF_CENTRAL_VENDAS[['EMAIL']],
+        on='EMAIL',
+        how='inner'
+    )
+    df_vendas = df_vendas_merge.groupby('UTM_TERM').agg(VENDAS_Alunos=('EMAIL', 'nunique')).reset_index()
+
+    # Junção dos dados de vendas com o dataframe final
+    df_final = pd.merge(df_final, df_vendas, on='UTM_TERM', how='left')
+    df_final['VENDAS_Alunos'] = df_final['VENDAS_Alunos'].fillna(0)
+    df_final['VENDAS_Conversao'] = round((df_final['VENDAS_Alunos'] / df_final['CAPTURA_Leads']) * 100, 2)
+
+    # Reordenando as colunas conforme solicitado
+    df_final = df_final[['UTM_TERM', 'CAPTURA_Relativo', 'CAPTURA_Leads', 'PM_Leads', 'PM_Conversao', 'VENDAS_Alunos', 'VENDAS_Conversao']]
+
+    threshold = st.number_input("Digite um número:", min_value=0, max_value=1000, value=100)
+
+    df_final = df_final[df_final["CAPTURA_Leads"] >= threshold]
+
+    st.dataframe(df_final)
+
+with cols_anun[1]:
+    # Selecione a métrica de conversão a ser analisada
+    conversao_tipo = st.radio(
+        "Selecione a métrica de conversão",
+        ("Conversão Prematrícula", "Conversão Vendas")
+    )
+
+    # Define qual coluna utilizar de acordo com a seleção
+    if conversao_tipo == "Conversão Prematrícula":
+        coluna_metrica = "PM_Conversao"
+    else:
+        coluna_metrica = "VENDAS_Conversao"
+
+    # Seleciona os top 10 anúncios com maior conversão
+    df_top = df_final.sort_values(coluna_metrica, ascending=False).head(10)
+
+    # Cria o gráfico de barras horizontal com Plotly Express
+    fig = px.bar(
+        df_top,
+        x=coluna_metrica,
+        y='UTM_TERM',
+        orientation='h',
+        text=df_top[coluna_metrica],
+        title=f"Top 10 Anúncios com Maior {conversao_tipo}"
+    )
+
+    # Formata o texto para exibir em percentual com duas casas decimais
+    fig.update_traces(textposition='outside')
+
+    # Ajusta o layout
+    fig.update_layout(
+        yaxis=dict(autorange="reversed"),
+        xaxis_title='Taxa de Conversão',
+        yaxis_title='Anúncio (UTM_TERM)',
+        margin=dict(l=100, r=20, t=60, b=50)
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+#------------------------------------------------------------
+#      04. CAPTAÇÃO: ORIGEM / MÍDIA
 #------------------------------------------------------------
 st.header("Fontes de Leads")
 st.caption("Principais origem/mídias de captação")
