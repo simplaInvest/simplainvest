@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 import plotly.express as px
 
-from libs.data_loader import K_CENTRAL_CAPTURA, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_CLICKS_WPP, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_CLICKS_WPP, K_CENTRAL_LANCAMENTOS, get_df
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
@@ -17,6 +17,7 @@ with loading_container:
         DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
         DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
         DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
+        DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
@@ -36,103 +37,110 @@ st.title('Grupos de Whatsapp')
 #------------------------------------------------------------
 
 def plot_group_members_per_day_altair(df):
-    # Verify if the DataFrame is not empty
+    # Verifica se o DataFrame de entradas do grupo não está vazio
     if df.empty:
         st.warning("No data available for group entries.")
         return None
 
-    # Convert 'Date' column to datetime if not already
+    # Converte a coluna 'Date' para datetime, se ainda não estiver
     df["Date"] = pd.to_datetime(df["Date"])
 
-    # Create the line chart with Altair
+    # Cria o gráfico de linha principal com pontos e tooltips usando Altair
     line_chart = alt.Chart(df).mark_line(point=True).encode(
         x=alt.X('Date:T', title='Date', axis=alt.Axis(labelAngle=0, format="%d %B (%a)")),
         y=alt.Y('Members:Q', title='Number of Members'),
         tooltip=['Date:T', 'Members:Q']
     )
 
-    # Add text labels above the points
+    # Adiciona rótulos de texto acima dos pontos com o número de membros
     text_chart = alt.Chart(df).mark_text(
         align='center',
         baseline='bottom',
         color='lightblue',
-        dy=-10  # Adjust the vertical position of the text
+        dy=-10  # Ajuste na posição vertical do texto
     ).encode(
         x='Date:T',
         y='Members:Q',
         text=alt.Text('Members:Q', format=',')
     )
 
-    # Adicionar linhas verticais para os dias de CPL
-    if "CPLs" in st.session_state and st.session_state["CPLs"]:
-        cpl_df = pd.DataFrame({
-            "CPLs": pd.to_datetime(st.session_state["CPLs"]),
-            "CPL_Label": [f"CPL{i+1}" for i in range(len(st.session_state["CPLs"]))]
-        })
+    # =====================================================
+    # Extração das datas de CPL a partir de DF_CENTRAL_LANCAMENTOS
+    # =====================================================
+    cpl_df = pd.DataFrame()
+    if 'LANCAMENTO' in st.session_state:
+        lancamento = st.session_state['LANCAMENTO']
+        # Filtra a linha de DF_CENTRAL_LANCAMENTOS com base no lançamento selecionado
+        df_lancamento = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANCAMENTOS'] == lancamento]
+        if not df_lancamento.empty:
+            # Colunas que contêm as datas de CPL
+            cpl_columns = ['CPL01', 'CPL02', 'CPL03', 'CPL04']
+            cpl_dates = []
+            cpl_labels = []
+            # Itera sobre cada coluna para extrair a data de CPL, se disponível
+            for i, col in enumerate(cpl_columns):
+                valor = df_lancamento.iloc[0][col]
+                if pd.notnull(valor) and valor != '':
+                    try:
+                        # Converte para datetime
+                        data_cpl = pd.to_datetime(valor)
+                        cpl_dates.append(data_cpl)
+                        cpl_labels.append(f'CPL{i+1}')
+                    except Exception as e:
+                        # Em caso de erro na conversão, ignora o valor
+                        pass
 
-        # Filtrar datas dentro do intervalo do gráfico
-        min_date = df["Date"].min()
-        max_date = df["Date"].max()
-        cpl_df = cpl_df[(cpl_df["CPLs"] >= min_date) & (cpl_df["CPLs"] <= max_date)]
+            # Se houver datas válidas, monta o DataFrame de CPL
+            if cpl_dates:
+                cpl_df = pd.DataFrame({
+                    'CPLs': cpl_dates,
+                    'CPL_Label': cpl_labels
+                })
+                # Filtra as datas que estão dentro do intervalo do gráfico
+                min_date = df["Date"].min()
+                max_date = df["Date"].max()
+                cpl_df = cpl_df[(cpl_df["CPLs"] >= min_date) & (cpl_df["CPLs"] <= max_date)]
 
-        if not cpl_df.empty:
-            cpl_lines = alt.Chart(cpl_df).mark_rule(strokeDash=[4, 4], color='red').encode(
-                x='CPLs:T'
-            )
-
-            cpl_labels = alt.Chart(cpl_df).mark_text(
-                align='left',
-                baseline='top',
-                dy=15,
-                color='red'
-            ).encode(
-                x='CPLs:T',
-                text='CPL_Label'
-            )
-
-            chart = (line_chart + text_chart + cpl_lines + cpl_labels).properties(
-                title='Group Members Over Time with CPLs',
-                width=700,
-                height=400
-            ).configure_axis(
-                grid=False,
-                labelColor='white',
-                titleColor='white'
-            ).configure_view(
-                strokeWidth=0
-            ).configure_title(
-                color='white'
-            ).configure(background='rgba(0,0,0,0)')
-        
-        else:
-            chart = (line_chart + text_chart).properties(
-                title='Group Members Over Time',
-                width=700,
-                height=400
-            ).configure_axis(
-                grid=False,
-                labelColor='white',
-                titleColor='white'
-            ).configure_view(
-                strokeWidth=0
-            ).configure_title(
-                color='white'
-            ).configure(background='rgba(0,0,0,0)')
-
+    # ================================================================================
+    # Montagem do gráfico final, incorporando as linhas de CPL (caso haja datas válidas)
+    # ================================================================================
+    if not cpl_df.empty:
+        # Cria as linhas verticais pontilhadas para cada data de CPL
+        cpl_lines = alt.Chart(cpl_df).mark_rule(strokeDash=[4, 4], color='red').encode(
+            x='CPLs:T'
+        )
+        # Adiciona os rótulos para as datas de CPL
+        cpl_labels_chart = alt.Chart(cpl_df).mark_text(
+            align='left',
+            baseline='top',
+            dy=15,
+            color='red'
+        ).encode(
+            x='CPLs:T',
+            text='CPL_Label'
+        )
+        chart = (line_chart + text_chart + cpl_lines + cpl_labels_chart).properties(
+            title='Group Members Over Time with CPLs',
+            width=700,
+            height=400
+        )
     else:
         chart = (line_chart + text_chart).properties(
             title='Group Members Over Time',
             width=700,
             height=400
-        ).configure_axis(
-            grid=False,
-            labelColor='white',
-            titleColor='white'
-        ).configure_view(
-            strokeWidth=0
-        ).configure_title(
-            color='white'
-        ).configure(background='rgba(0,0,0,0)')
+        )
+
+    # Configurações finais de estilo do gráfico
+    chart = chart.configure_axis(
+        grid=False,
+        labelColor='white',
+        titleColor='white'
+    ).configure_view(
+        strokeWidth=0
+    ).configure_title(
+        color='white'
+    ).configure(background='rgba(0,0,0,0)')
 
     return chart
 

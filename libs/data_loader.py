@@ -15,6 +15,7 @@ K_PTRAFEGO_ANUNCIOS_SUBIDOS = "K_PTRAFEGO_ANUNCIOS_SUBIDOS"
 K_PCOPY_DADOS = "K_PCOPY_DADOS"
 K_GRUPOS_WPP = "K_GRUPOS_WPP"
 K_CLICKS_WPP = "K_CLICKS_WPP"
+K_CENTRAL_LANCAMENTOS = "K_CENTRAL_LANCAMENTOS"
 
 def setupSheets(produto, versao):
     lancamento = f"{produto}.{str(versao).zfill(2)}"
@@ -24,6 +25,7 @@ def setupSheets(produto, versao):
     SHEET_PESQUISA_TRAFEGO_ADS = lancamento + " - PESQUISA TRAFEGO"
     SHEET_PESQUISA_COPY = lancamento + " - PESQUISA DE COPY"
     SHEET_GRUPOS_WPP = lancamento + " - GRUPOS DE WHATSAPP"
+    SHEET_CENTRAL_LANCAMENTOS = "CENTRAL DE LANÇAMENTOS"
     # ABAS
     ABA_CENTRAL_CAPTURA = "CAPTURA"
     ABA_CENTRAL_PRE_MATRICULA = "PRE-MATRICULA"
@@ -34,6 +36,7 @@ def setupSheets(produto, versao):
     ABA_PCOPY_DADOS = 'pesquisa-copy-' + lancamento.replace(".", "")
     ABA_GRUPOS_WPP = 'SENDFLOW - ATIVIDADE EXPORT'
     ABA_CLICKS_WPP = 'CLICKS POR DIA - BOAS-VINDAS'
+    ABA_CENTRAL_LANCAMENTOS = 'DATAS'
 
     # PLANILHAS
     SHEETS = {
@@ -58,7 +61,7 @@ def setupSheets(produto, versao):
                             "dataframe": None,
                             },
         K_PTRAFEGO_META_ADS: { "id": "K_PTRAFEGO_META_ADS",
-                            "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
+                            "sheet": SHEET_PESQUISA_TRAFEGO_DADOS if st.session_state["PRODUTO"] == 'EI' and st.session_state["VERSAO_PRINCIPAL"] >= 22 else SHEET_PESQUISA_TRAFEGO_ADS,
                             "aba": ABA_PTRAFEGO_META_ADS,
                             "dataframe": None,
                             },
@@ -81,6 +84,11 @@ def setupSheets(produto, versao):
                             "sheet": SHEET_GRUPOS_WPP,
                             "aba": ABA_CLICKS_WPP,
                             "dataframe": None,
+                             },
+        K_CENTRAL_LANCAMENTOS: { "id": "K_CENTRAL_LANCAMENTOS",
+                            "sheet": SHEET_CENTRAL_LANCAMENTOS,
+                            "aba": ABA_CENTRAL_LANCAMENTOS,
+                            "dataframe": None,
                              }
     }
     
@@ -91,8 +99,10 @@ def get_df(PRODUTO, VERSAO_PRINCIPAL, K_PLANILHA):
     ui_status = st.empty()
     with ui_status:
         st.write(f"Carregando {K_PLANILHA.replace('K_', '').replace('_', ' ').title()}...")
-        
-    if K_PLANILHA in st.session_state:
+
+    if K_PLANILHA in st.session_state and K_PLANILHA == K_CENTRAL_LANCAMENTOS:
+        df = st.session_state[K_CENTRAL_LANCAMENTOS]
+    elif K_PLANILHA in st.session_state:
         df = st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PLANILHA}"]
     else:
         dataLoader = DataLoader(PRODUTO, VERSAO_PRINCIPAL)
@@ -192,6 +202,9 @@ class DataLoader:
                 df_sheet = format_grupos_wpp(df_sheet)
             case "K_CLICKS_WPP":
                 df_sheet = format_ptrafego_clicks(df_sheet)
+            case "K_CENTRAL_LANCAMENTOS":
+                df_sheet = df_sheet
+                return df_sheet
             case _:
                 raise ValueError(f"Planilha inválida: {K_PLANILHA}")
 

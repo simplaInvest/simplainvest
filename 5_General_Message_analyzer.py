@@ -8,6 +8,10 @@ from pyairtable import Table
 produto = st.session_state["PRODUTO"]
 versao = st.session_state["VERSAO_PRINCIPAL"]
 lancamento = st.session_state["VERSAO_PRINCIPAL"]
+url = "https://i.makeagif.com/media/1-13-2017/zOfbqD.gif"
+st.header("AGUARDE, ESTA PAGINA ESTÁ EM CONSTRUÇÃO")
+st.image(url, caption="Em breve novidades", use_container_width=False)
+st.divider()
 
 # Função para carregar dados do Airtable usando pyairtable
 @st.cache_data

@@ -15,6 +15,7 @@ from google.oauth2 import service_account
 
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+LANÇAMENTO = st.session_state["LANÇAMENTO"]
 
 def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
     # Carregar informações sobre lançamento selecionado
@@ -178,61 +179,60 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
             # Ajustando o layout
             plt.tight_layout()
 
-            
+
 
             # Retornando a figura corretamente
             return fig       
 
-        def graf_idade():
-            data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
-            var = 'Qual sua idade?'
-            titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
-            
-            # Removendo valores NaN
-            idade_data = data['Qual sua idade?'].dropna()
-            # Definindo o intervalo de idades e criando os bins que começam em 0 com intervalos de 5 anos
-            idade_max = data['Qual sua idade?'].max()
-            bins = np.arange(0, idade_max + 5, 5)
+        if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
+            def graf_idade():
+                data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
+                var = 'Qual sua idade?'
+                titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
+                
+                # Removendo valores NaN
+                idade_data = data['Qual sua idade?'].dropna()
+                # Definindo o intervalo de idades e criando os bins que começam em 0 com intervalos de 5 anos
+                idade_max = data['Qual sua idade?'].max()
+                bins = np.arange(0, idade_max + 5, 5)
 
-            # Calculando o total de respostas
-            total_respostas = idade_data.shape[0]
+                # Calculando o total de respostas
+                total_respostas = idade_data.shape[0]
 
-            if total_respostas <= 101:
-                warning = '⚠️ POUCAS RESPOSTAS'
-            else:
-                warning = ''
+                if total_respostas <= 101:
+                    warning = '⚠️ POUCAS RESPOSTAS'
+                else:
+                    warning = ''
 
-            # Calculando média e desvio-padrão
-            media_idade = data['Qual sua idade?'].mean()
-            desvio_padrao = data['Qual sua idade?'].std()
+                # Calculando média e desvio-padrão
+                media_idade = data['Qual sua idade?'].mean()
+                desvio_padrao = data['Qual sua idade?'].std()
 
-            # Criando a figura e o eixo
-            fig, ax = plt.subplots(figsize=(15, 6))
+                # Criando a figura e o eixo
+                fig, ax = plt.subplots(figsize=(15, 6))
 
-            # Criando o histograma
-            counts, edges, _ = ax.hist(data['Qual sua idade?'], bins=bins, color='green', edgecolor='black')
+                # Criando o histograma
+                counts, edges, _ = ax.hist(data['Qual sua idade?'], bins=bins, color='green', edgecolor='black')
 
-            # Adicionando o valor de cada bin no topo de cada barra
-            for i in range(len(counts)):
-                ax.text((edges[i] + edges[i+1]) / 2, counts[i] + 1, f"{int(counts[i])}", 
-                        ha='center', va='bottom')
+                # Adicionando o valor de cada bin no topo de cada barra
+                for i in range(len(counts)):
+                    ax.text((edges[i] + edges[i+1]) / 2, counts[i] + 1, f"{int(counts[i])}", 
+                            ha='center', va='bottom')
 
-            # Ajustando as marcas do eixo x para que correspondam aos intervalos de 5 anos
-            ax.set_xticks(bins)
-            ax.set_xticklabels(bins, rotation=0)
+                # Ajustando as marcas do eixo x para que correspondam aos intervalos de 5 anos
+                ax.set_xticks(bins)
+                ax.set_xticklabels(bins, rotation=0)
 
-            # Adicionando título, legenda e rótulos
-            ax.set_title(f'{titulo} {warning}')
-            ax.set_xlabel('Idade')
-            ax.set_ylabel('Frequência')
+                # Adicionando título, legenda e rótulos
+                ax.set_title(f'{titulo} {warning}')
+                ax.set_xlabel('Idade')
+                ax.set_ylabel('Frequência')
 
-            # Exibindo o gráfico no Streamlit
-            
+                # Exibindo o gráfico no Streamlit
+                
 
-            # Retornando a figura para ser salva no PDF
-            return fig
-
-
+                # Retornando a figura para ser salva no PDF
+                return fig
         def graf_renda():
             var = 'RENDA MENSAL'
             classes_order = ['Não Informado',
@@ -287,8 +287,6 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
             # Retornando a figura para ser salva no PDF
             return fig
-
-
         def graf_patrim():
             var = 'PATRIMONIO'
             classes_order = [
@@ -346,9 +344,6 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
             # Retornando a figura para ser salva no PDF
             return fig
-
-
-
         def graf_invest():
             # Access the specified column and transform it into a single string
             investment_column_string = ' '.join(data['Você já investe seu dinheiro atualmente?'].dropna().astype(str))
@@ -415,7 +410,8 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
         bar_filhos = graf_barras('Você tem filhos?')
         bar_civil = graf_barras('Qual sua situação amorosa hoje?')
         bar_exp = graf_barras('Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
-        graf_age = graf_idade()
+        if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
+            graf_age = graf_idade()
         graf_ren = graf_renda()
         graf_pat = graf_patrim()
         graf_inv = graf_invest()
@@ -626,8 +622,6 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
             # Retornando a figura para ser salva no PDF
             return fig
-
-
         def graf_patrim():
             var = 'PATRIMONIO'
             classes_order = [
@@ -689,9 +683,11 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
         graf_ren = graf_renda()
         graf_pat = graf_patrim()
 
-    if PRODUTO == 'EI':
+    if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
         return conv_traf, conv_copy, conv_wpp, lista_tabs, bar_sexo, bar_filhos, bar_civil, bar_exp, graf_age, graf_ren, graf_pat, graf_inv, disc_grafs
-    if PRODUTO == 'SC':
+    if PRODUTO == 'EI':
+        return conv_traf, conv_copy, conv_wpp, lista_tabs, bar_sexo, bar_filhos, bar_civil, bar_exp, graf_ren, graf_pat, graf_inv, disc_grafs
+    elif PRODUTO == 'SC':
         return conv_traf, conv_wpp, lista_tabs, graf_ren, graf_pat
 
 

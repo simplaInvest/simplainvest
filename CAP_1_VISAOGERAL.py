@@ -6,12 +6,11 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.express as px
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_LANCAMENTOS, get_df
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
-CPL = st.session_state['CPLs']
 
 # Carregar DataFrames para lançamento selecionado
 loading_container = st.empty()
@@ -27,11 +26,14 @@ with loading_container:
             DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
             DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
             DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
+            DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
             status.update(label="Carregados com sucesso!", state="complete", expanded=False)
         except Exception as e:
             status.update(label="Erro ao carregar dados: " + str(e), state="error", expanded=False)
 loading_container.empty()
 
+if 'LANÇAMENTO' in st.session_state:
+        lancamento = st.session_state['LANÇAMENTO']
 
 def plot_group_members_per_day_altair(DF_GRUPOS_WPP):
     # Verify if the DataFrame is not empty
@@ -144,102 +146,107 @@ def plot_group_members_per_day_altair(DF_GRUPOS_WPP):
     return chart
 
 def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
-    # Verificar se o DataFrame não está vazio
+    # Verifica se o DataFrame de captura não está vazio
     if DF_CENTRAL_CAPTURA.empty:
         st.warning("Os dados de Leads por Dia estão vazios.")
         return None
-    
-    # Contar o número de leads por dia
+
+    # Copia e agrupa os dados por data, contando a quantidade de leads (EMAIL)
     df_CONTALEADS = DF_CENTRAL_CAPTURA.copy()
     df_CONTALEADS = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
-
-    # Converter para datetime64 no Pandas para evitar erros de tipo
+    
+    # Converte a coluna de data para datetime
     df_CONTALEADS["CAP DATA_CAPTURA"] = pd.to_datetime(df_CONTALEADS["CAP DATA_CAPTURA"])
 
-    # Calcular o tempo total de captação
+    # Determina o intervalo de datas (mínima e máxima) e o total de dias de captação
     min_date = df_CONTALEADS["CAP DATA_CAPTURA"].min()
     max_date = df_CONTALEADS["CAP DATA_CAPTURA"].max()
     total_dias = (max_date - min_date).days
 
-    # Criar o gráfico de linhas com Altair
+    # Cria o gráfico de linha principal com pontos e tooltips usando Altair
     line_chart = alt.Chart(df_CONTALEADS).mark_line(point=True).encode(
         x=alt.X('CAP DATA_CAPTURA:T', title='Data', axis=alt.Axis(labelAngle=-0, format="%d %B (%a)")),
         y=alt.Y('EMAIL:Q', title='Número de Leads'),
         tooltip=['CAP DATA_CAPTURA:T', 'EMAIL:Q']
     )
 
-    # Adicionar valores como texto acima dos pontos
+    # Adiciona rótulos acima dos pontos com o número de leads
     text_chart = alt.Chart(df_CONTALEADS).mark_text(
         align='center',
         baseline='bottom',
-        dy=-10,  # Ajusta a posição vertical do texto
-        color='lightblue'  # Define a cor do texto
+        dy=-10,           # Ajusta a posição vertical do texto
+        color='lightblue' # Define a cor do texto
     ).encode(
         x='CAP DATA_CAPTURA:T',
         y='EMAIL:Q',
-        text=alt.Text('EMAIL:Q', format=',')  # Exibe o número formatado
+        text=alt.Text('EMAIL:Q', format=',')
     )
 
-    # Adicionar linhas verticais para os dias de CPL
-    if "CPLs" in st.session_state and st.session_state["CPLs"]:
-        cpl_df = pd.DataFrame({
-            "CPLs": pd.to_datetime(st.session_state["CPLs"]),
-            "CPL_Label": [f"CPL{i+1}" for i in range(len(st.session_state["CPLs"]))]
-        })
+    # ================================================================
+    # NOVA IMPLEMENTAÇÃO: Extração das datas de CPL a partir do DF_CENTRAL_LANCAMENTOS
+    # ================================================================
+    cpl_df = pd.DataFrame()
+    # Filtra a linha do DF_CENTRAL_LANCAMENTOS para o lançamento selecionado
+    df_lancamento = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == lancamento]
+    if not df_lancamento.empty:
+        # Lista com os nomes das colunas que contém as datas de CPL
+        cpl_columns = ['CPL01', 'CPL02', 'CPL03', 'CPL04']
+        cpl_dates = []
+        cpl_labels = []
+        # Itera sobre cada coluna para extrair a data, se disponível
+        for i, col in enumerate(cpl_columns):
+            valor = df_lancamento.iloc[0][col]
+            if pd.notnull(valor) and valor != '':
+                try:
+                    # Tenta converter o valor para datetime
+                    data_cpl = pd.to_datetime(valor)
+                    cpl_dates.append(data_cpl)
+                    cpl_labels.append(f'CPL{i+1}')
+                except Exception as e:
+                    # Se houver erro na conversão, ignora o valor
+                    pass
 
-        # Filtrar datas dentro do intervalo do gráfico
-        cpl_df = cpl_df[(cpl_df["CPLs"] >= min_date) & (cpl_df["CPLs"] <= max_date)]
+        # Se houverem datas válidas, monta o DataFrame de CPL
+        if cpl_dates:
+            cpl_df = pd.DataFrame({
+                'CPLs': cpl_dates,
+                'CPL_Label': cpl_labels
+            })
+            # Filtra as datas de CPL que estão dentro do intervalo de captação
+            cpl_df = cpl_df[(cpl_df['CPLs'] >= min_date) & (cpl_df['CPLs'] <= max_date)]
 
-        if not cpl_df.empty:
-            cpl_lines = alt.Chart(cpl_df).mark_rule(strokeDash=[4, 4], color='red').encode(
-                x='CPLs:T'
-            )
-
-            cpl_labels = alt.Chart(cpl_df).mark_text(
-                align='left',
-                baseline='top',
-                dy=15,
-                color='red'
-            ).encode(
-                x='CPLs:T',
-                text='CPL_Label'
-            )
-
-            chart = (line_chart + text_chart + cpl_lines + cpl_labels).properties(
-                title=f'Leads por Dia e Datas de CPLs\n{total_dias} dias de captação',
-                width=700,
-                height=400
-            ).configure_axis(
-                grid=False,
-                labelColor='white',
-                titleColor='white'
-            ).configure_view(
-                strokeWidth=0
-            ).configure_title(
-                color='white'
-            ).configure(background='rgba(0,0,0,0)')
-        
-        else:
-            chart = (line_chart + text_chart).properties(
-                title=f'Leads por Dia\n{total_dias} dias de captação',
-                width=700,
-                height=400
-            ).configure_axis(
-                grid=False,
-                labelColor='white',
-                titleColor='white'
-            ).configure_view(
-                strokeWidth=0
-            ).configure_title(
-                color='white'
-            ).configure(background='rgba(0,0,0,0)')
-
+    # ================================================================================
+    # Montagem do gráfico final, incorporando as linhas de CPL (caso haja datas válidas)
+    # ================================================================================
+    if not cpl_df.empty:
+        # Cria as linhas verticais pontilhadas para cada data de CPL
+        cpl_lines = alt.Chart(cpl_df).mark_rule(strokeDash=[4, 4], color='red').encode(
+            x='CPLs:T'
+        )
+        # Adiciona os rótulos para as datas de CPL
+        cpl_labels_chart = alt.Chart(cpl_df).mark_text(
+            align='left',
+            baseline='top',
+            dy=15,    # Deslocamento vertical para o texto
+            color='red'
+        ).encode(
+            x='CPLs:T',
+            text='CPL_Label'
+        )
+        chart = (line_chart + text_chart + cpl_lines + cpl_labels_chart).properties(
+            title=f'Leads por Dia e Datas de CPLs\n{total_dias} dias de captação',
+            width=700,
+            height=400
+        )
     else:
         chart = (line_chart + text_chart).properties(
             title=f'Leads por Dia\n{total_dias} dias de captação',
             width=700,
             height=400
-        ).configure_axis(
+        )
+
+    # Configurações finais de estilo do gráfico
+    chart = chart.configure_axis(
             grid=False,
             labelColor='white',
             titleColor='white'
@@ -409,7 +416,6 @@ with st.container(border=True):
             st.metric(label = "CPL Geral", value = f"R$ {round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA.shape[0],2)}")
             st.metric(label = "CPL Trafego", value = f"R$ {round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}")
 
-
 #------------------------------------------------------------
 #      02. GRUPOS DE WHATSAPP
 #------------------------------------------------------------
@@ -474,24 +480,23 @@ with cols_anun[0]:
     # Reordenando as colunas conforme solicitado
     df_final = df_final[['UTM_TERM', 'CAPTURA_Relativo', 'CAPTURA_Leads', 'PM_Leads', 'PM_Conversao', 'VENDAS_Alunos', 'VENDAS_Conversao']]
 
-    threshold = st.number_input("Digite um número:", min_value=0, max_value=1000, value=100)
+    threshold = st.number_input("Digite um número:", min_value=0, max_value=1000, value=100if PRODUTO == 'EI' else 50)
 
     df_final = df_final[df_final["CAPTURA_Leads"] >= threshold]
 
     st.dataframe(df_final)
 
 with cols_anun[1]:
-    # Selecione a métrica de conversão a ser analisada
-    conversao_tipo = st.radio(
-        "Selecione a métrica de conversão",
-        ("Conversão Prematrícula", "Conversão Vendas")
-    )
+    options = ("Conversão Prematrícula", "Conversão Vendas") if PRODUTO == 'EI' else ("Conversão Vendas",)
 
-    # Define qual coluna utilizar de acordo com a seleção
+    conversao_tipo = st.radio("Selecione a métrica de conversão", options)
+
+    # Define a coluna de métrica de acordo com a seleção
     if conversao_tipo == "Conversão Prematrícula":
         coluna_metrica = "PM_Conversao"
     else:
         coluna_metrica = "VENDAS_Conversao"
+
 
     # Seleciona os top 10 anúncios com maior conversão
     df_top = df_final.sort_values(coluna_metrica, ascending=False).head(10)
@@ -545,47 +550,48 @@ st.divider()
 
 ### TODO: FINALIZAR CÓDIGO ABAIXO (NÃO PRIORITÁRIA)
 # 04 - FUNIL: PERCURSO COMPLETO
-st.header("Trackeamento de Funil")
-st.caption("CAPTAÇÃO > PRÉ-MATRÍCULA > VENDAS")
-cols_captacao_utm = st.columns([5, 4])
+if PRODUTO == 'EI':
+    st.header("Trackeamento de Funil")
+    st.caption("CAPTAÇÃO > PRÉ-MATRÍCULA > VENDAS")
+    cols_captacao_utm = st.columns([5, 4])
 
-df_vendas_copy = DF_CENTRAL_VENDAS.copy()
-df_vendas_copy['CAP UTM_SOURCE'] = df_vendas_copy.apply(
-    lambda x: f"{x['CAP UTM_SOURCE']} {x['CAP UTM_MEDIUM']}" if x['CAP UTM_SOURCE'] == 'ig' else x['CAP UTM_SOURCE'],
-    axis=1
-       )
-df_vendas_copy['PERCURSO'] = df_vendas_copy['CAP UTM_SOURCE'].astype(str) + ' > ' + \
-                            df_vendas_copy['PM UTM_SOURCE'].astype(str) + ' > ' + \
-                            df_vendas_copy['UTM_SOURCE'].astype(str)
+    df_vendas_copy = DF_CENTRAL_VENDAS.copy()
+    df_vendas_copy['CAP UTM_SOURCE'] = df_vendas_copy.apply(
+        lambda x: f"{x['CAP UTM_SOURCE']} {x['CAP UTM_MEDIUM']}" if x['CAP UTM_SOURCE'] == 'ig' else x['CAP UTM_SOURCE'],
+        axis=1
+        )
+    df_vendas_copy['PERCURSO'] = df_vendas_copy['CAP UTM_SOURCE'].astype(str) + ' > ' + \
+                                df_vendas_copy['PM UTM_SOURCE'].astype(str) + ' > ' + \
+                                df_vendas_copy['UTM_SOURCE'].astype(str)
 
-percurso_counts = df_vendas_copy['PERCURSO'].value_counts().reset_index()
-percurso_counts.columns = ['PERCURSO', 'COUNT']
+    percurso_counts = df_vendas_copy['PERCURSO'].value_counts().reset_index()
+    percurso_counts.columns = ['PERCURSO', 'COUNT']
 
-top_20_percurso = percurso_counts.head(20)
+    top_20_percurso = percurso_counts.head(20)
 
-col1, col2 = st.columns([2, 2])
+    col1, col2 = st.columns([2, 2])
 
-with col1:
-    st.table(top_20_percurso)
+    with col1:
+        st.table(top_20_percurso)
 
-top_5_percurso = top_20_percurso.head(5).sort_values(by='COUNT', ascending=True)
+    top_5_percurso = top_20_percurso.head(5).sort_values(by='COUNT', ascending=True)
 
-with col2:
-    fig, ax = plt.subplots()
-    colors = cm.Blues(np.linspace(0.4, 1, len(top_5_percurso)))
-    ax.barh(top_5_percurso['PERCURSO'], top_5_percurso['COUNT'], color=colors)
-    ax.set_xlabel('Count', color='#FFFFFF')
-    ax.set_ylabel('PERCURSO', color='#FFFFFF')
-    ax.set_title('Top 5 Percursos Mais Comuns', color='#FFFFFF')
-    ax.set_facecolor('none')
-    fig.patch.set_facecolor('none')
-    ax.spines['bottom'].set_color('#FFFFFF')
-    ax.spines['top'].set_color('#FFFFFF')
-    ax.spines['right'].set_color('#FFFFFF')
-    ax.spines['left'].set_color('#FFFFFF')
-    ax.tick_params(axis='x', colors='#FFFFFF')
-    ax.tick_params(axis='y', colors='#FFFFFF')
-    plt.tight_layout()
-    st.pyplot(fig)
+    with col2:
+        fig, ax = plt.subplots()
+        colors = cm.Blues(np.linspace(0.4, 1, len(top_5_percurso)))
+        ax.barh(top_5_percurso['PERCURSO'], top_5_percurso['COUNT'], color=colors)
+        ax.set_xlabel('Count', color='#FFFFFF')
+        ax.set_ylabel('PERCURSO', color='#FFFFFF')
+        ax.set_title('Top 5 Percursos Mais Comuns', color='#FFFFFF')
+        ax.set_facecolor('none')
+        fig.patch.set_facecolor('none')
+        ax.spines['bottom'].set_color('#FFFFFF')
+        ax.spines['top'].set_color('#FFFFFF')
+        ax.spines['right'].set_color('#FFFFFF')
+        ax.spines['left'].set_color('#FFFFFF')
+        ax.tick_params(axis='x', colors='#FFFFFF')
+        ax.tick_params(axis='y', colors='#FFFFFF')
+        plt.tight_layout()
+        st.pyplot(fig)
 
-### TODO: FINALIZAR O CÓDIGO ACIMA (FIM)
+    ### TODO: FINALIZAR O CÓDIGO ACIMA (FIM)

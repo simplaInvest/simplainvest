@@ -1,14 +1,40 @@
 import streamlit as st
 import pandas as pd
 from libs.debriefing_generator import generate_debriefing2, get_conversion_data, get_conversions_by_campaign, process_campaign_data
+from libs.data_loader import K_CENTRAL_LANCAMENTOS, get_df
 
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+LANÇAMENTO = st.session_state["LANÇAMENTO"]
+
+DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
+def convert_dates_to_iso(df, date_columns):
+    """
+    Converte as datas das colunas especificadas no DataFrame do formato DD/MM/YYYY para YYYY-MM-DD.
+    
+    Parâmetros:
+        df (pd.DataFrame): DataFrame com datas no formato DD/MM/YYYY.
+        date_columns (list): Lista dos nomes das colunas que devem ser convertidas.
+        
+    Retorna:
+        pd.DataFrame: Cópia do DataFrame com as datas convertidas para o formato ISO.
+    """
+    df = df.copy()
+    for col in date_columns:
+        try:
+            # Converter a coluna utilizando o formato conhecido e formatar como string com YYYY-MM-DD
+            df[col] = pd.to_datetime(df[col], format='%d/%m/%Y').dt.strftime('%Y-%m-%d')
+        except Exception as e:
+            print(f"Erro ao converter a coluna {col}: {e}")
+    return df.copy()
+DF_CENTRAL_LANCAMENTOS = convert_dates_to_iso(DF_CENTRAL_LANCAMENTOS, ['CAPTACAO_INICIO', 'CAPTACAO_FIM', 'PM_INICIO', 'PM_FIM', 'VENDAS_INICIO', 'VENDAS_FIM'])
 
 st.header(f'Dados de Debriefing {PRODUTO}.{VERSAO_PRINCIPAL}')
 
-if PRODUTO == 'EI':
+if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
     conv_traf, conv_copy, conv_wpp, lista_tabs, bar_sexo, bar_filhos, bar_civil, bar_exp, graf_age, graf_ren, graf_pat, graf_inv, disc_grafs = generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL)
+if PRODUTO == 'EI':
+    conv_traf, conv_copy, conv_wpp, lista_tabs, bar_sexo, bar_filhos, bar_civil, bar_exp, graf_ren, graf_pat, graf_inv, disc_grafs = generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL)
 if PRODUTO == 'SC':
     conv_traf, conv_wpp, lista_tabs, graf_ren, graf_pat = generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL)
 
@@ -62,7 +88,8 @@ if PRODUTO == 'EI':
         
         with col_2:
             bar_exp
-            graf_age
+            if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
+                graf_age
 
     with tab_2:
         # Dividir a lista disc_grafs em duas metades
@@ -111,12 +138,20 @@ st.header('Analytics')
 if PRODUTO == 'EI':
 
     pag_cols = st.columns(3)
+    start_date_captura = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['CAPTACAO_INICIO'].values[0]
+    end_date_captura = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['CAPTACAO_FIM'].values[0]
+
+    start_date_pm = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['PM_INICIO'].values[0]
+    end_date_pm = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['PM_FIM'].values[0]
+
+    start_date_ven = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['VENDAS_INICIO'].values[0]
+    end_date_ven = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['VENDAS_FIM'].values[0]
 
     with pag_cols[0]:
         st.subheader('Página de Captura')
 
         ### Visitas 
-        df = get_conversion_data(slug = '/cursogratuito', start_date = '2025-01-20', end_date = '2025-03-10')
+        df = get_conversion_data(slug = '/cursogratuito', start_date = start_date_captura, end_date = end_date_captura)
         pagina_alvo = "/cursogratuito"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -128,7 +163,7 @@ if PRODUTO == 'EI':
             visitas_cap = 0
 
         ### Conversões
-        df = get_conversion_data(slug = '/cg/inscricao-pendente', start_date = '2025-01-20', end_date = '2025-03-10')
+        df = get_conversion_data(slug = '/cg/inscricao-pendente', start_date = start_date_captura, end_date = end_date_captura)
         pagina_alvo = "/cg/inscricao-pendente"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -144,7 +179,7 @@ if PRODUTO == 'EI':
             tx_cap = f'{round((conv_cap/visitas_cap)*100, 2)}%'
             st.metric('Taxa de conversão', tx_cap)
 
-        df, df_conversoes, df_visitas = get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_date = '2025-01-20', end_date = '2025-03-10')
+        df, df_conversoes, df_visitas = get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_date = start_date_captura, end_date = end_date_captura)
         
         df_processado = process_campaign_data(df, versao_principal=VERSAO_PRINCIPAL)
         
@@ -152,7 +187,7 @@ if PRODUTO == 'EI':
         st.subheader('Página de Pré-Matrícula')
 
         ### Visitas
-        df = get_conversion_data(slug = '/ei/prematricula', start_date = '2025-01-20', end_date = '2025-03-10')
+        df = get_conversion_data(slug = '/ei/prematricula', start_date = start_date_pm, end_date = end_date_pm)
         pagina_alvo = "/ei/prematricula"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -164,7 +199,7 @@ if PRODUTO == 'EI':
             visitas_pm = 0
         
         ### Conversões
-        df = get_conversion_data(slug = '/parabens-ei', start_date = '2025-01-20', end_date = '2025-03-10')
+        df = get_conversion_data(slug = '/parabens-ei', start_date = start_date_pm, end_date = end_date_pm)
         pagina_alvo = "/parabens-ei"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -184,7 +219,7 @@ if PRODUTO == 'EI':
         st.subheader('Página de Vendas')
 
         ### Visitas
-        df = get_conversion_data(slug = '/euinvestidor', start_date = '2025-03-17', end_date = '2025-03-20')
+        df = get_conversion_data(slug = '/euinvestidor', start_date = start_date_ven, end_date = end_date_ven)
         pagina_alvo = "/euinvestidor"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -196,7 +231,7 @@ if PRODUTO == 'EI':
             visitas_ven = 0
         
         ### Conversões
-        df = get_conversion_data(slug = 'X11050759S', start_date = '2025-03-17', end_date = '2025-03-20')
+        df = get_conversion_data(slug = 'X11050759S', start_date = start_date_ven, end_date = end_date_ven)
         pagina_alvo = "X11050759S"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -224,11 +259,17 @@ if PRODUTO == 'EI':
 if PRODUTO == 'SC':
     pag_cols = st.columns(2)
 
+    start_date_captura = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['CAPTACAO_INICIO'].values[0]
+    end_date_captura = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['CAPTACAO_FIM'].values[0]
+
+    start_date_ven = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['VENDAS_INICIO'].values[0]
+    end_date_ven = DF_CENTRAL_LANCAMENTOS[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO]['VENDAS_FIM'].values[0]
+
     with pag_cols[0]:
         st.subheader('Página de Captura')
 
         ### Visitas
-        df = get_conversion_data(slug = '/promocao', start_date = '2025-01-22', end_date = '2025-02-06')
+        df = get_conversion_data(slug = '/promocao', start_date = start_date_captura, end_date = end_date_captura)
         pagina_alvo = "/promocao"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -240,7 +281,7 @@ if PRODUTO == 'SC':
             visitas_cap = 0
 
         ### Conversões
-        df = get_conversion_data(slug = '/inscricao-pendente', start_date = '2025-01-22', end_date = '2025-02-06')
+        df = get_conversion_data(slug = '/inscricao-pendente', start_date = start_date_captura, end_date = end_date_captura)
         pagina_alvo = "/inscricao-pendente"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -260,7 +301,7 @@ if PRODUTO == 'SC':
         st.subheader('Página de Vendas')
 
         ### Visitas
-        df = get_conversion_data(slug = '/especial', start_date = '2025-01-22', end_date = '2025-02-06')
+        df = get_conversion_data(slug = '/especial', start_date = start_date_ven, end_date = end_date_ven)
         pagina_alvo = "/especial"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
@@ -272,7 +313,7 @@ if PRODUTO == 'SC':
             visitas_ven = 0
         
         ### Conversões
-        df = get_conversion_data(slug = '/oportunidade-wealth', start_date = '2025-01-22', end_date = '2025-02-06')
+        df = get_conversion_data(slug = '/oportunidade-wealth',start_date = start_date_ven, end_date = end_date_ven)
         pagina_alvo = "/oportunidade-wealth"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 

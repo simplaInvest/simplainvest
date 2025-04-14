@@ -23,7 +23,12 @@ def format_ptrafego_metaads(df_ptrafego_metaads):
     if df_ptrafego_metaads.empty:
         return df_ptrafego_metaads
     else:
-        df_ptrafego_metaads['VALOR USADO'] = df_ptrafego_metaads.loc[df_ptrafego_metaads['VALOR USADO'] != '']['VALOR USADO'].str.replace(",", "").str.replace("R$", "").astype(float)
+        # Verifica se a coluna já está em formato float
+        if not pd.api.types.is_numeric_dtype(df_ptrafego_metaads['VALOR USADO']):
+            # Remove R$ and commas, then convert to float
+            df_ptrafego_metaads['VALOR USADO'] = df_ptrafego_metaads['VALOR USADO'].astype(str).str.replace('R$', '').str.replace(',', '.').str.strip()
+            # Convert to float, replacing empty strings with NaN
+            df_ptrafego_metaads['VALOR USADO'] = pd.to_numeric(df_ptrafego_metaads['VALOR USADO'], errors='coerce')
         return df_ptrafego_metaads
     
 def format_ptrafego_clicks(df_ptrafego_clicks):
