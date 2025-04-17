@@ -3,11 +3,14 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, K_CENTRAL_LANCAMENTOS, get_df
+from libs.vendas_visaogeral_funcs import plot_pizza_utm_source, plot_pizza_utm_medium, plot_taxa_conversao, plot_taxa_conversao_por_faixa_etaria, create_conversion_heatmap, create_conversion_table, plot_conversao_por_dia
+from libs.safe_exec import executar_com_seguranca
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+LANCAMENTO = st.session_state["LANÇAMENTO"]
 
 # Carregar DataFrames para lançamento selecionado
 loading_container = st.empty()
@@ -21,6 +24,7 @@ with loading_container:
         DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
         DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
         DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+        DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
@@ -82,96 +86,17 @@ with col3:
 
 st.divider()
 
-st.header("Anúncios de Vendas")
-
-# 1. Métricas de Vendas:
-# Agrupamos os dados de vendas por UTM_TERM para contar quantos alunos vieram por anúncio
-df_vendas_stage = DF_CENTRAL_VENDAS.groupby('UTM_TERM').agg(VENDAS_Alunos=('EMAIL', 'nunique')).reset_index()
-
-# Calcula o percentual relativo de alunos para cada anúncio
-total_vendas = DF_CENTRAL_VENDAS['EMAIL'].nunique()
-df_vendas_stage['VENDAS_Relativo'] = round(df_vendas_stage['VENDAS_Alunos'] / total_vendas * 100, 2)
-
-coll = st.columns([1,1])
-with coll[0]:
-    # Opcional: filtro para exibir apenas anúncios com um mínimo de alunos
-    threshold_vendas = st.number_input("Digite um número mínimo de alunos:", min_value=0, max_value=1000, value=10)
-    df_vendas_stage = df_vendas_stage[df_vendas_stage["VENDAS_Alunos"] >= threshold_vendas]
-
-    st.dataframe(df_vendas_stage)
-
-st.divider()
-
 tab1, tab2 = st.tabs(['Desempenho UTMs', 'Conversão'])
 
 with tab1:
     col1, col2 = st.columns(2)
 
     with col1:
-        def plot_pizza_utm_source(dataframe):
-            """
-            Cria um gráfico de pizza para a coluna "CAP UTM_SOURCE" com as porcentagens de cada classe.
+        executar_com_seguranca("GRÁFICO DE PIZZA UTM SOURCE", lambda:plot_pizza_utm_source(DF_CENTRAL_VENDAS))
 
-            Parâmetros:
-            - dataframe: pd.DataFrame, o dataframe contendo os dados.
-
-            Retorna:
-            - fig: plotly.graph_objects.Figure, o gráfico gerado.
-            """
-            # Calcular a contagem de cada valor único na coluna 'CAP UTM_SOURCE'
-            source_counts = dataframe['CAP UTM_SOURCE'].value_counts()
-
-            # Criar o gráfico de pizza
-            fig = px.pie(
-                source_counts,
-                values=source_counts,
-                names=source_counts.index,
-                title="Distribuição de UTM_SOURCE",
-                labels={"value": "Proporção", "names": "Fonte UTM"}
-            )
-
-            # Adicionar as porcentagens nas legendas
-            fig.update_traces(textinfo='percent+label', pull=[0.1, 0.1, 0.1, 0.1])
-
-            return fig
-
-        # Exemplo de uso
-        fig_pizza_utm_source = plot_pizza_utm_source(DF_CENTRAL_VENDAS)
-        st.plotly_chart(fig_pizza_utm_source)
-
-
-    
     with col2:
-        def plot_pizza_utm_medium(dataframe):
-            """
-            Cria um gráfico de pizza para a coluna "CAP UTM_MEDIUM" com as porcentagens de cada classe.
-
-            Parâmetros:
-            - dataframe: pd.DataFrame, o dataframe contendo os dados.
-
-            Retorna:
-            - fig: plotly.graph_objects.Figure, o gráfico gerado.
-            """
-            # Calcular a contagem de cada valor único na coluna 'CAP UTM_MEDIUM'
-            medium_counts = dataframe['CAP UTM_MEDIUM'].value_counts()
-
-            # Criar o gráfico de pizza
-            fig = px.pie(
-                medium_counts,
-                values=medium_counts,
-                names=medium_counts.index,
-                title="Distribuição de UTM_MEDIUM",
-                labels={"value": "Proporção", "names": "Meio UTM"}
-            )
-
-            # Adicionar as porcentagens nas legendas
-            fig.update_traces(textinfo='percent+label', pull=[0.1, 0.1, 0.1, 0.1])
-
-            return fig
-
-        # Exemplo de uso
-        fig_pizza_utm_medium = plot_pizza_utm_medium(DF_CENTRAL_VENDAS)
-        st.plotly_chart(fig_pizza_utm_medium)
+        executar_com_seguranca("GRÁFICO DE PIZZA UTM MEDIUM", lambda:plot_pizza_utm_medium(DF_CENTRAL_VENDAS))
+        
 
 with tab2:
     st.subheader('Informações Financeiras')
@@ -321,57 +246,12 @@ with tab2:
     if PRODUTO == 'EI':
         st.subheader('Informações de Perfil')
 
-        def plot_taxa_conversao(dataframe, coluna):
-            # Calculando a taxa de conversão
-            taxa_conversao = (
-            dataframe.loc[dataframe[coluna] != '']  # Filtrar linhas onde a coluna não é vazia
-            .groupby(coluna)['Vendas']
-            .mean()
-            .reset_index()
-            .rename(columns={'Vendas': 'Taxa de Conversão'})
-        )
-            taxa_conversao['Taxa de Conversão (%)'] = taxa_conversao['Taxa de Conversão'] * 100
-
-            # Criando o gráfico
-            fig = px.bar(
-                taxa_conversao,
-                x='Taxa de Conversão (%)',
-                y=coluna,
-                orientation='h',
-                title=f"Taxa de Conversão: {coluna}",
-                labels={"Taxa de Conversão (%)": "Taxa de Conversão (%)", coluna : coluna}
-            )
-
-            # Adicionando valores acima das barras
-            for i, row in taxa_conversao.iterrows():
-                fig.add_annotation(
-                    x=row['Taxa de Conversão (%)'],
-                    y=row[coluna],
-                    text=f"{row['Taxa de Conversão (%)']:.2f}%",
-                    showarrow=False,
-                    font=dict(size=15),
-                    align='center',
-                    xanchor='left'
-                )
-
-            fig.update_layout(
-                xaxis_title="Taxa de Conversão (%)",
-                yaxis_title="Sexo"
-            )
-
-            return fig
-
         col1, col2 = st.columns(2)
 
         with col1:
-            fig_sexo = plot_taxa_conversao(DF_PCOPY_DADOS, 'Qual seu sexo?')
-            st.plotly_chart(fig_sexo)
-
-            fig_filhos = plot_taxa_conversao(DF_PCOPY_DADOS, 'Você tem filhos?')
-            st.plotly_chart(fig_filhos)
-
-
-
+            executar_com_seguranca("GRÁFICO DE PIZZA SEXO", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Qual seu sexo?'))
+            
+            executar_com_seguranca("GRÁFICO DE PIZZA FILHOS", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Você tem filhos?'))
 
         with col2:
             xp_order = ['Totalmente Iniciante',
@@ -380,239 +260,14 @@ with tab2:
                             'Profissional',
                             'Não Informado'
                             ]
-            fig_xp = plot_taxa_conversao(DF_PCOPY_DADOS, 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
-            st.plotly_chart(fig_xp)
+            executar_com_seguranca("CONVERSÃO POR XP", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'))
             if int(VERSAO_PRINCIPAL) >= 20:
-                def plot_taxa_conversao_por_faixa_etaria(dataframe, intervalo=5):
-                    """
-                    Plota a taxa de conversão por faixa etária.
+                executar_com_seguranca("CONVERSÃO POR FAIXA ETÁRIA", lambda:plot_taxa_conversao_por_faixa_etaria(DF_PCOPY_DADOS))
 
-                    Parâmetros:
-                    - dataframe: pd.DataFrame, o dataframe contendo os dados.
-                    - intervalo: int, tamanho dos intervalos de idade (padrão: 5 anos).
+    executar_com_seguranca("MAPA DE CONVERSÃO", lambda:create_conversion_heatmap(DF_PTRAFEGO_DADOS))
 
-                    Retorna:
-                    - fig: plotly.graph_objects.Figure, o gráfico gerado.
-                    """
-                    # Remover valores nulos e converter para numérico
-                    dataframe = dataframe.dropna(subset=['Qual sua idade?'])
-                    dataframe['Qual sua idade?'] = pd.to_numeric(dataframe['Qual sua idade?'], errors='coerce')
-                    dataframe = dataframe.dropna(subset=['Qual sua idade?'])
+executar_com_seguranca("TABELA DE CONVERSÃO", lambda:create_conversion_table(DF_PTRAFEGO_DADOS))
 
-                    # Criar faixas de idade
-                    dataframe['Faixa de Idade'] = pd.cut(
-                        dataframe['Qual sua idade?'],
-                        bins=range(int(dataframe['Qual sua idade?'].min()), int(dataframe['Qual sua idade?'].max()) + intervalo, intervalo),
-                        right=False
-                    )
-
-                    # Calcular a taxa de conversão por faixa etária
-                    taxa_conversao = (
-                        dataframe.groupby('Faixa de Idade')['Vendas']
-                        .mean()
-                        .reset_index()
-                        .rename(columns={'Vendas': 'Taxa de Conversão'})
-                    )
-                    taxa_conversao['Taxa de Conversão (%)'] = taxa_conversao['Taxa de Conversão'] * 100
-
-                    # Criar o gráfico de barras verticais
-                    taxa_conversao['Faixa de Idade'] = taxa_conversao['Faixa de Idade'].astype(str)  # Converter Interval para string
-                    fig = px.bar(
-                        taxa_conversao,
-                        x='Faixa de Idade',
-                        y='Taxa de Conversão (%)',
-                        title="Taxa de Conversão por Faixa Etária",
-                        labels={"Taxa de Conversão (%)": "Taxa de Conversão (%)", "Faixa de Idade": "Idade"}
-                    )
-
-                    # Adicionar valores acima das barras
-                    for i, row in taxa_conversao.iterrows():
-                        fig.add_annotation(
-                            x=row['Faixa de Idade'],
-                            y=row['Taxa de Conversão (%)'],
-                            text=f"{row['Taxa de Conversão (%)']:.2f}%",
-                            showarrow=False,
-                            font=dict(size=12),
-                            align='center',
-                            yanchor = 'bottom'
-                        )
-
-                    fig.update_layout(
-                        xaxis_title="Faixa de Idade",
-                        yaxis_title="Taxa de Conversão (%)"
-                    )
-                    return fig
-
-                fig_histograma_idade = plot_taxa_conversao_por_faixa_etaria(DF_PCOPY_DADOS)
-                st.plotly_chart(fig_histograma_idade)
-
-
-    def create_conversion_heatmap(dataframe):
-        """
-        Função para criar um heatmap de taxa de conversão com anotações.
-
-        Args:
-        dataframe (pd.DataFrame): DataFrame contendo as colunas 'PATRIMONIO', 'RENDA MENSAL', e 'Vendas'.
-
-        Returns:
-        plotly.graph_objects.Figure: Objeto do gráfico Plotly com anotações.
-        """
-        # Calcular a taxa de conversão e o número de instâncias por par de PATRIMÔNIO e RENDA MENSAL
-        grouped = dataframe.groupby(['PATRIMONIO', 'RENDA MENSAL']).agg(
-            total=('Vendas', 'size'),
-            vendas=('Vendas', 'sum')
-        ).reset_index()
-        grouped['conversion_rate'] = grouped['vendas'] / grouped['total']
-
-        # Pivotar os dados para o formato de heatmap
-        conversion_pivot = grouped.pivot_table(
-            index='PATRIMONIO', 
-            columns='RENDA MENSAL', 
-            values='conversion_rate', 
-            fill_value=0
-        )
-        count_pivot = grouped.pivot_table(
-            index='PATRIMONIO', 
-            columns='RENDA MENSAL', 
-            values='total', 
-            fill_value=0
-        )
-
-        # Criar heatmap com Plotly
-        fig = go.Figure(data=go.Heatmap(
-            z=conversion_pivot.values,
-            x=conversion_pivot.columns,
-            y=conversion_pivot.index,
-            colorscale='Blues',
-            colorbar=dict(title='Taxa de Conversão (%)')
-        ))
-
-        # Adicionar anotações com taxa de conversão e número de instâncias
-        for i, row in enumerate(conversion_pivot.index):
-            for j, col in enumerate(conversion_pivot.columns):
-                conversion_rate = conversion_pivot.loc[row, col] * 100  # Converter para porcentagem
-                total_instances = count_pivot.loc[row, col]
-                annotation_text = f"{conversion_rate:.1f}% ({total_instances})"
-                fig.add_annotation(
-                    x=col,
-                    y=row,
-                    text=annotation_text,
-                    showarrow=False,
-                    font=dict(color="black", size=13, family="Arial Black")
-                )
-
-        # Atualizar layout
-        fig.update_layout(
-            title='Mapa de Calor: Taxa de Conversão por PATRIMÔNIO e RENDA MENSAL',
-            xaxis_title="Faixa de Renda Mensal",
-            yaxis_title="Faixa de Patrimônio",
-            xaxis=dict(categoryorder='array', categoryarray=[
-                'Até R$1.500', 'Entre R$1.500 e R$2.500', 'Entre R$2.500 e R$5.000',
-                'Entre R$5.000 e R$10.000', 'Entre R$10.000 e R$20.000', 'Acima de R$20.000'
-            ]),
-            yaxis=dict(categoryorder='array', categoryarray=[
-                'Menos de R$5 mil', 'Entre R$5 mil e R$20 mil', 'Entre R$20 mil e R$100 mil',
-                'Entre R$100 mil e R$250 mil', 'Entre R$250 mil e R$500 mil', 'Entre R$500 mil e R$1 milhão',
-                'Acima de R$1 milhão'
-            ])
-        )
-
-        return fig
-
-    chart= create_conversion_heatmap(DF_PTRAFEGO_DADOS)
-    chart
-
-    # Calcular a taxa de conversão para cada faixa de patrimônio e renda
-    taxas_patrimonio = DF_PTRAFEGO_DADOS.groupby('PATRIMONIO')['Vendas'].mean() * 100
-    taxas_renda = DF_PTRAFEGO_DADOS.groupby('RENDA MENSAL')['Vendas'].mean() * 100
-
-    taxas_patrimonio = taxas_patrimonio.round(2).astype(str) + '%'
-    taxas_renda = taxas_renda.round(2).astype(str) + '%'
-
-    # Calculando número absoluto de leads
-    leads_patrimonio = DF_PTRAFEGO_DADOS.groupby('PATRIMONIO').size()
-    leads_renda = DF_PTRAFEGO_DADOS.groupby('RENDA MENSAL').size()
-
-    # Calculando número absoluto de compradores
-    compradores_patrimonio = DF_PTRAFEGO_DADOS.groupby('PATRIMONIO')['Vendas'].sum()
-    compradores_renda = DF_PTRAFEGO_DADOS.groupby('RENDA MENSAL')['Vendas'].sum()
-
-    # Criar os índices e estrutura do DataFrame
-    headers = [('Patrimônio', col) for col in taxas_patrimonio.index] + [('Renda', col) for col in taxas_renda.index]
-    multi_index = pd.MultiIndex.from_tuples(headers)
-
-    # Criar a tabela com 3 linhas (Taxa de conversão, Leads, Compradores)
-    tabela_taxas = pd.DataFrame([
-        list(taxas_patrimonio) + list(taxas_renda),
-        list(leads_patrimonio) + list(leads_renda),
-        list(compradores_patrimonio) + list(compradores_renda)
-    ], index=['Taxa de Conversão', 'Total de Leads', 'Total de Compradores'], columns=multi_index)
-
-  
-    st.dataframe(tabela_taxas, hide_index=False, use_container_width=True)
-
-# Criar a coluna AVENDA (1 se o e-mail está em DF_CENTRAL_VENDAS, 0 caso contrário)
-DF_CENTRAL_CAPTURA['AVENDA'] = DF_CENTRAL_CAPTURA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL']).astype(int)
-
-# Converter CAP DATA_CAPTURA para datetime e extrair apenas a data
-DF_CENTRAL_CAPTURA['DATA'] = pd.to_datetime(DF_CENTRAL_CAPTURA['CAP DATA_CAPTURA'], format='%d/%m/%Y %H:%M').dt.date
-
-# Calcular a taxa de conversão por dia
-df_conversao = DF_CENTRAL_CAPTURA.groupby('DATA').agg(
-    total_entradas=('AVENDA', 'count'),
-    total_convertidos=('AVENDA', 'sum')
-).reset_index()
-
-df_conversao['taxa_conversao'] = (df_conversao['total_convertidos'] / df_conversao['total_entradas'])*100
-
-# Criar a figura base
-fig = go.Figure()
-
-# Adicionar as barras de taxa de conversão
-fig.add_trace(go.Bar(
-    x=df_conversao['DATA'],
-    y=df_conversao['taxa_conversao'],
-    name='Taxa de Conversão (%)',
-    text=df_conversao['taxa_conversao'].round(2).astype(str) + '%',
-    textposition='outside',
-    marker_color='cornflowerblue',
-    yaxis='y1'
-))
-
-# Adicionar a linha de total de entradas com valores
-fig.add_trace(go.Scatter(
-    x=df_conversao['DATA'],
-    y=df_conversao['total_entradas'],
-    name='Total de Entradas',
-    mode='lines+markers+text',
-    line=dict(color='red', width=2),
-    text=df_conversao['total_entradas'],
-    textposition='top center',  # <- Correção aqui
-    yaxis='y2'
-))
-
-# Atualizar layout com dois eixos y
-fig.update_layout(
-    title=f'Conversão por Dia - {PRODUTO}.{VERSAO_PRINCIPAL}',
-    xaxis=dict(title='Data'),
-    yaxis=dict(
-        title='Taxa de Conversão (%)',
-        side='left',
-        showgrid=False
-    ),
-    yaxis2=dict(
-        title='Total de Entradas',
-        overlaying='y',
-        side='right',
-        showgrid=False,
-        fixedrange=True  # <- trava só o eixo da linha (total_entradas)
-    ),
-    legend=dict(x=0.01, y=0.99),
-    bargap=0.2
-)
-
-#fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')
-
-fig
+executar_com_seguranca("CONVERSÃO POR DIA", lambda:plot_conversao_por_dia(DF_CENTRAL_CAPTURA, DF_CENTRAL_VENDAS, DF_CENTRAL_LANCAMENTOS, LANCAMENTO, PRODUTO, VERSAO_PRINCIPAL))
 
 st.divider()

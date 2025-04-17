@@ -184,7 +184,7 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
             # Retornando a figura corretamente
             return fig       
 
-        if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
+        if PRODUTO == 'EI' and VERSAO_PRINCIPAL >= 21:
             def graf_idade():
                 data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
                 var = 'Qual sua idade?'
@@ -410,7 +410,7 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
         bar_filhos = graf_barras('Você tem filhos?')
         bar_civil = graf_barras('Qual sua situação amorosa hoje?')
         bar_exp = graf_barras('Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
-        if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
+        if PRODUTO == 'EI' and VERSAO_PRINCIPAL >= 21:
             graf_age = graf_idade()
         graf_ren = graf_renda()
         graf_pat = graf_patrim()
@@ -685,7 +685,7 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
     if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
         return conv_traf, conv_copy, conv_wpp, lista_tabs, bar_sexo, bar_filhos, bar_civil, bar_exp, graf_age, graf_ren, graf_pat, graf_inv, disc_grafs
-    if PRODUTO == 'EI':
+    elif PRODUTO == 'EI':
         return conv_traf, conv_copy, conv_wpp, lista_tabs, bar_sexo, bar_filhos, bar_civil, bar_exp, graf_ren, graf_pat, graf_inv, disc_grafs
     elif PRODUTO == 'SC':
         return conv_traf, conv_wpp, lista_tabs, graf_ren, graf_pat

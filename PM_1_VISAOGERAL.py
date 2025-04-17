@@ -1,12 +1,16 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import plotly.express as px
 
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, K_CENTRAL_LANCAMENTOS, get_df
+from libs.pm_visaogeral_funcs import grafico_linhas_cap_data_captura, grafico_barras_horizontais_utm_source_medium, grafico_barras_horizontais, grafico_pizza
+from libs.safe_exec import executar_com_seguranca
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+LANCAMENTO = st.session_state["LANÇAMENTO"]
 
 # Carregar DataFrames para lançamento selecionado
 loading_container = st.empty()
@@ -20,6 +24,7 @@ with loading_container:
         DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
         DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
         DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
+        DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
@@ -101,100 +106,6 @@ filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'] = pd.to_datetime(
     errors='coerce'
 )
 
-# Função para criar o gráfico de linhas de PM DATA_CAPTURA
-@st.cache_data
-def grafico_linhas_cap_data_captura(df, start_date, end_date):
-    # Convertendo start_date e end_date para datetime
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date)
-
-    # Filtrar dados com base no intervalo de tempo
-    if int(VERSAO_PRINCIPAL) == 20:
-        filtered_df = df[(df['CAP DATA_CAPTURA'] >= start_date) & (df['CAP DATA_CAPTURA'] <= end_date)]
-        df_grouped = filtered_df['CAP DATA_CAPTURA'].dt.date.value_counts().reset_index()
-    else:
-        filtered_df = df[(df['PM DATA_CAPTURA'] >= start_date) & (df['PM DATA_CAPTURA'] <= end_date)]
-        df_grouped = filtered_df['PM DATA_CAPTURA'].dt.date.value_counts().reset_index()
-    df_grouped.columns = ['Data', 'Contagem']
-    df_grouped.sort_values(by='Data', inplace=True)
-
-    # Gráfico de linhas com pontos
-    line_chart = alt.Chart(df_grouped).mark_line(point=alt.OverlayMarkDef(color='lightblue')).encode(
-        x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Contagem:Q', title='Número de Capturas'),
-        tooltip=['Data', 'Contagem']
-    )
-
-    # Anotações dos valores nos pontos
-    text_chart = alt.Chart(df_grouped).mark_text(
-        align='center',
-        baseline='bottom',
-        color='lightblue',
-        dx=0,
-        dy=-10  # Ajuste vertical da anotação
-    ).encode(
-        x=alt.X('Data:T'),
-        y=alt.Y('Contagem:Q'),
-        text=alt.Text('Contagem:Q')
-    )
-
-    # Combinar os gráficos
-    chart = (line_chart + text_chart).properties(
-        title='Gráfico de Linhas - DATA_CAPTURA'
-    )
-
-    return chart
-
-# Função para criar o gráfico de barras horizontais para UTM_SOURCE
-@st.cache_data
-def grafico_barras_horizontais_utm_source_medium(df):
-    df['PM UTM_SOURCE_MEDIUM'] = df['PM UTM_SOURCE'] + ' / ' + df['PM UTM_MEDIUM']
-    df_grouped = df['PM UTM_SOURCE_MEDIUM'].value_counts().reset_index()
-    df_grouped.columns = ['PM UTM_SOURCE_MEDIUM', 'Contagem']
-
-    chart = alt.Chart(df_grouped).mark_bar(color='lightblue').encode(
-        x=alt.X('Contagem:Q', title='Número de Ocorrências'),
-        y=alt.Y('PM UTM_SOURCE_MEDIUM:N', sort='-x', title='Fonte'),
-        tooltip=['PM UTM_SOURCE_MEDIUM', 'Contagem']
-    ).properties(
-        title='Gráfico de Barras Horizontais - UTM_SOURCE_MEDIUM'
-    )
-    return chart
-
-@st.cache_data
-def grafico_barras_horizontais(df, column):
-    df_grouped = df[column].value_counts().reset_index()
-    df_grouped.columns = [column, 'Contagem']
-    df_grouped = df_grouped.head(10)
-
-    chart = alt.Chart(df_grouped).mark_bar(color='lightblue').encode(
-        x=alt.X('Contagem:Q', title='Número de Ocorrências'),
-        y=alt.Y(f'{column}:N', sort='-x', title='Fonte'),
-        tooltip=[f'{column}', 'Contagem']
-    ).properties(
-        title=f'Gráfico de Barras Horizontais - {column}'
-    )
-    return chart
-
-# Função para criar o gráfico de pizza para UTM_MEDIUM
-@st.cache_data
-def grafico_pizza(df, column):
-    # Agrupar dados por UTM_MEDIUM
-    df_grouped = df[column].value_counts(normalize=True).reset_index()
-    df_grouped.columns = [column, 'Proporção']
-    df_grouped['Proporção (%)'] = (df_grouped['Proporção'] * 100).round(2)  # Convertendo para porcentagem
-
-    # Criar o gráfico de pizza
-    chart = alt.Chart(df_grouped).mark_arc().encode(
-        theta=alt.Theta(field='Proporção', type='quantitative', title='Proporção'),
-        color=alt.Color(field=f'{column}', type='nominal', title='Medium'),
-        tooltip=[f'{column}', alt.Tooltip('Proporção (%)', format='.2f')]
-    ).properties(
-        title=f'Gráfico de Pizza - {column}'
-    )
-
-    return chart
-
 # dataframes com os que responderam às pesquisa de trafego e copy
 pm_traf = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PTRAFEGO_DADOS['EMAIL'])]
 pm_copy = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PCOPY_DADOS['EMAIL'])]
@@ -223,8 +134,8 @@ with tab1:
     st.subheader('Captação')
     if int(VERSAO_PRINCIPAL) >= 20:
         # Preparar os dados para o slider
-        min_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'].min()).date()
-        max_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'].max()).date()
+        min_date = pd.to_datetime(DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO, 'PM_INICIO'].values[0], dayfirst=True).date()
+        max_date = pd.to_datetime(DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO, 'PM_FIM'].values[0], dayfirst=True).date()
 
         # Criar o slider para selecionar o intervalo de tempo
         start_date, end_date = st.slider(
@@ -238,57 +149,14 @@ with tab1:
         start_date = pd.to_datetime(start_date)
         end_date = pd.to_datetime(end_date)
 
-        fig = grafico_linhas_cap_data_captura(filtered_DF_CENTRAL_PREMATRICULA, start_date, end_date)
-        if fig:
-            st.altair_chart(fig, use_container_width=True)
+        executar_com_seguranca("GRÁFICO DE LINHAS DE CAP DATA CAPTURA", lambda:grafico_linhas_cap_data_captura(filtered_DF_CENTRAL_PREMATRICULA, start_date, end_date, VERSAO_PRINCIPAL))
+        
 
-    st.divider()
-
-    st.header("Anúncios de Pré-Matrícula")
-
-    # 1. Métricas da Pré-Matrícula:
-    # Agrupamos os pré-matriculados por UTM_TERM para obter a contagem de leads
-    df_pm_stage = DF_CENTRAL_PREMATRICULA.groupby('UTM_TERM').agg(PM_Leads=('EMAIL', 'nunique')).reset_index()
-
-    # Calcula o percentual relativo de pré-matrículas de cada anúncio
-    total_pm = DF_CENTRAL_PREMATRICULA['EMAIL'].nunique()
-    df_pm_stage['PM_Relativo'] = round(df_pm_stage['PM_Leads'] / total_pm * 100, 2)
-
-    # 2. Métricas de Vendas a partir dos pré-matriculados:
-    # Realizamos merge entre pré-matrícula e vendas para identificar quantos leads pré-matriculados realizaram a compra
-    df_vendas_from_pm = pd.merge(
-        DF_CENTRAL_PREMATRICULA[['EMAIL', 'UTM_TERM']],
-        DF_CENTRAL_VENDAS[['EMAIL']],
-        on='EMAIL',
-        how='inner'
-    )
-    df_vendas_from_pm = df_vendas_from_pm.groupby('UTM_TERM').agg(VENDAS_Alunos=('EMAIL', 'nunique')).reset_index()
-
-    # 3. Junção das métricas de pré-matrícula e vendas:
-    df_pm_final = pd.merge(df_pm_stage, df_vendas_from_pm, on='UTM_TERM', how='left')
-    df_pm_final['VENDAS_Alunos'] = df_pm_final['VENDAS_Alunos'].fillna(0)
-
-    # Calcula a conversão de vendas: VENDAS_Conversao = VENDAS_Alunos / PM_Leads
-    df_pm_final['VENDAS_Conversao'] = round((df_pm_final['VENDAS_Alunos'] / df_pm_final['PM_Leads']) * 100, 2)
-
-    # Reordena as colunas conforme solicitado
-    df_pm_final = df_pm_final[['UTM_TERM', 'PM_Relativo', 'PM_Leads', 'VENDAS_Alunos', 'VENDAS_Conversao']]
-
-    coll=st.columns([1,1])
-    with coll[0]:
-        # Opcional: filtro para exibir apenas anúncios com um mínimo de pré-matrículas
-        threshold_pm = st.number_input("Digite um número mínimo de pré-matrículas:", min_value=0, max_value=1000, value=50)
-        df_pm_final = df_pm_final[df_pm_final["PM_Leads"] >= threshold_pm]
-
-        st.dataframe(df_pm_final)
-    
     st.divider()
 
     with st.container(border=True):
         st.subheader('Source/Medium')
-        fig = grafico_barras_horizontais_utm_source_medium(filtered_DF_CENTRAL_PREMATRICULA)
-        if fig:
-            st.altair_chart(fig, use_container_width=True)
+        executar_com_seguranca("GRÁFICO DE BARRAS HORIZONTAIS UTM SOURCE MEDIUM", lambda:grafico_barras_horizontais_utm_source_medium(filtered_DF_CENTRAL_PREMATRICULA))
     
 
     lista_colunas = ['PM UTM_SOURCE', 'PM UTM_MEDIUM', 'PM UTM_ADSET', 'PM UTM_TERM']
@@ -298,14 +166,12 @@ with tab1:
 
         with col1:
             with st.container(border=True):
-                fig = grafico_barras_horizontais(filtered_DF_CENTRAL_PREMATRICULA, coluna)
-                if fig:
-                    st.altair_chart(fig, use_container_width=True)
+                executar_com_seguranca("GRÁFICO DE BARRAS HORIZONTAIS", lambda:grafico_barras_horizontais(filtered_DF_CENTRAL_PREMATRICULA, coluna))
+
         with col2:
             with st.container(border=True):
-                fig = grafico_pizza(filtered_DF_CENTRAL_PREMATRICULA, coluna)
-                if fig:
-                    st.altair_chart(fig, use_container_width=True)
+                executar_com_seguranca("GRÁFICO DE PIZZA", lambda:grafico_pizza(filtered_DF_CENTRAL_PREMATRICULA, coluna))
+
 
 with tab2:
     filtered_DF_CENTRAL_PREMATRICULA['EMAIL'] = filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower()

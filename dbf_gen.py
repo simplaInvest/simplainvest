@@ -31,11 +31,11 @@ DF_CENTRAL_LANCAMENTOS = convert_dates_to_iso(DF_CENTRAL_LANCAMENTOS, ['CAPTACAO
 
 st.header(f'Dados de Debriefing {PRODUTO}.{VERSAO_PRINCIPAL}')
 
-if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
+if PRODUTO == 'EI' and VERSAO_PRINCIPAL >= 21:
     conv_traf, conv_copy, conv_wpp, lista_tabs, bar_sexo, bar_filhos, bar_civil, bar_exp, graf_age, graf_ren, graf_pat, graf_inv, disc_grafs = generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL)
-if PRODUTO == 'EI':
+elif PRODUTO == 'EI':
     conv_traf, conv_copy, conv_wpp, lista_tabs, bar_sexo, bar_filhos, bar_civil, bar_exp, graf_ren, graf_pat, graf_inv, disc_grafs = generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL)
-if PRODUTO == 'SC':
+elif PRODUTO == 'SC':
     conv_traf, conv_wpp, lista_tabs, graf_ren, graf_pat = generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL)
 
 st.divider()
@@ -269,8 +269,8 @@ if PRODUTO == 'SC':
         st.subheader('Página de Captura')
 
         ### Visitas
-        df = get_conversion_data(slug = '/promocao', start_date = start_date_captura, end_date = end_date_captura)
-        pagina_alvo = "/promocao"
+        df = get_conversion_data(slug = 'promocao|bf-', start_date = start_date_captura, end_date = end_date_captura)
+        pagina_alvo = "promocao|bf-"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
         if not pagina.empty:
@@ -301,8 +301,8 @@ if PRODUTO == 'SC':
         st.subheader('Página de Vendas')
 
         ### Visitas
-        df = get_conversion_data(slug = '/especial', start_date = start_date_ven, end_date = end_date_ven)
-        pagina_alvo = "/especial"
+        df = get_conversion_data(slug = 'especial|blackfriday', start_date = start_date_ven, end_date = end_date_ven)
+        pagina_alvo = "especial|blackfriday"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
         if not pagina.empty:
@@ -313,8 +313,8 @@ if PRODUTO == 'SC':
             visitas_ven = 0
         
         ### Conversões
-        df = get_conversion_data(slug = '/oportunidade-wealth',start_date = start_date_ven, end_date = end_date_ven)
-        pagina_alvo = "/oportunidade-wealth"
+        df = get_conversion_data(slug = 'oportunidade', start_date = start_date_ven, end_date = end_date_ven)
+        pagina_alvo = "oportunidade"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
         if not pagina.empty:
