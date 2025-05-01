@@ -5,6 +5,7 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import plotly.graph_objects as go
+import datetime
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_CENTRAL_LANCAMENTOS, get_df
 from libs.cap_traf_funcs import create_distribution_chart, calcular_proporcoes_e_plotar, create_heatmap
@@ -96,6 +97,9 @@ with cols_filters[4]:
 # Filtrar os dados com base nos filtros selecionados
 filtered_DF_PTRAFEGO_DADOS = DF_PTRAFEGO_DADOS.copy()
 
+# Inicializar selected_dates como None
+selected_dates = None
+
 for column, selected_values in filters.items():
     if "TODOS" not in selected_values:
         filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS[column].isin(selected_values)]
@@ -129,7 +133,7 @@ else:
             )
 
     # 02.A: FILTROS POR ETAPA
-    cols_resumo = st.columns(2)
+    cols_resumo = st.columns(3)
     
     # 02.C: MÉTRICAS PRINCIPAIS
     patrimonio_order = [
@@ -171,6 +175,35 @@ else:
         
     with cols_resumo[0]:
         with st.container(border = True):
+            st.markdown("**Filtro por Data de Captura**")
+            # Remover NaT e pegar min/max das datas válidas
+            valid_dates = filtered_DF_PTRAFEGO_DADOS['DATA DE CAPTURA'].dropna()
+            
+            if not valid_dates.empty:
+                min_date = valid_dates.min().date()
+                max_date = valid_dates.max().date()
+                
+                selected_dates = st.date_input(
+                    "Selecione o período",
+                    value=(datetime.date.today(), datetime.date.today()),
+                    min_value=min_date,
+                    max_value=max_date,
+                    key="date_filter"
+                )
+                
+                if len(selected_dates) == 2:
+                    filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[
+                        filtered_DF_PTRAFEGO_DADOS['DATA DE CAPTURA'].dt.date.between(
+                            selected_dates[0],
+                            selected_dates[1]
+                        )
+                    ]
+            else:
+                st.warning("Não há datas válidas disponíveis para filtrar.")
+                selected_dates = None
+
+    with cols_resumo[1]:
+        with st.container(border = True):
             selected_patrimonio_start, selected_patrimonio_end = criar_slider(patrimonio_order, 'Patrimônio')
 
             patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
@@ -179,25 +212,24 @@ else:
                 )
             ]
 
-
-    with cols_resumo[1]:  
+    with cols_resumo[2]:
         with st.container(border = True):
             selected_renda_start, selected_renda_end = criar_slider(col2_order, f'{cols_finan_02}')
 
             renda_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
-                filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(
+                (filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(
                     col2_order[col2_order.index(selected_renda_start) : col2_order.index(selected_renda_end) + 1]
-                )
+                ))
             ]
 
-        renda_patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
-            (filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(
-                patrimonio_order[patrimonio_order.index(selected_patrimonio_start) : patrimonio_order.index(selected_patrimonio_end) + 1]
-            )) &
-            (filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(
-                col2_order[col2_order.index(selected_renda_start) : col2_order.index(selected_renda_end) + 1]
-            ))
-        ]
+    renda_patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+        (filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(
+            patrimonio_order[patrimonio_order.index(selected_patrimonio_start) : patrimonio_order.index(selected_patrimonio_end) + 1]
+        )) &
+        (filtered_DF_PTRAFEGO_DADOS[cols_finan_02].isin(
+            col2_order[col2_order.index(selected_renda_start) : col2_order.index(selected_renda_end) + 1]
+        ))
+    ]
 
 
 with st.container(border = True):

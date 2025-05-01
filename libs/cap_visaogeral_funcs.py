@@ -303,7 +303,6 @@ def plot_utm_source_counts_altair(df, column_name='UTM_SOURCE'):
     combined_chart = alt.layer(chart, text)
     st.altair_chart(combined_chart, use_container_width=True)
 
-
 def plot_utm_medium_pie_chart(df, column_name='UTM_MEDIUM', classes_to_include=None):
     """
     Função para gerar um gráfico de pizza comparando os valores filtrados de uma coluna específica.
@@ -360,8 +359,6 @@ def plot_utm_medium_pie_chart(df, column_name='UTM_MEDIUM', classes_to_include=N
     combined_chart = alt.layer(pie_chart, text)
     st.altair_chart(combined_chart, use_container_width=True)
 
-
-# Função para estilizar e exibir gráficos com fundo transparente e letras brancas
 def styled_bar_chart(x, y, title, colors=['#ADD8E6', '#5F9EA0']):
     fig = go.Figure(data=[
         go.Bar(x=[x[0]], y=[y[0]], marker_color=colors[0]),

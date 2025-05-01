@@ -1,4 +1,5 @@
 import pandas as pd
+import streamlit as st
 
 def format_central_captura(df_central_captura):
     if df_central_captura.empty:
@@ -50,4 +51,8 @@ def format_ptrafego_dados(df_ptrafego_dados):
     else:
         # converter a coluna 'DATA DE CAPTURA' para datetime no formato correto
         df_ptrafego_dados["DATA DE CAPTURA"] = pd.to_datetime(df_ptrafego_dados["DATA DE CAPTURA"], format="%d/%m/%Y %H:%M", errors="coerce")
+        # Verifica colunas duplicadas
+        if df_ptrafego_dados.columns.duplicated().any():
+            st.warning("Colunas duplicadas foram encontradas e excluídas.")
+            df_ptrafego_dados = df_ptrafego_dados.loc[:, ~df_ptrafego_dados.columns.duplicated()]
     return df_ptrafego_dados
