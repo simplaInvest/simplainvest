@@ -14,6 +14,7 @@ from libs.safe_exec import executar_com_seguranca
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
+LANÇAMENTO = st.session_state["LANÇAMENTO"]
 
 # Carregar DataFrames para lançamento selecionado
 loading_container = st.empty()
@@ -166,11 +167,11 @@ else:
                     'Acima de R$15.000'
             ]
         
-    def criar_slider(order, nome_da_var):
+    def criar_slider(order, nome_da_var,):
         return st.select_slider(
-                f'Selecione as faixas de {nome_da_var}', 
+                f'Selecione as faixas de {nome_da_var}',
                 options= order,
-                value=(order[0], order[-1])  # Define o valor inicial e final como padrão
+                value= (order[3], order[-1]) if order == patrimonio_order else (order[2], order[-1]) # Define o valor inicial e final como padrão
             )
         
     with cols_resumo[0]:
@@ -180,14 +181,21 @@ else:
             valid_dates = filtered_DF_PTRAFEGO_DADOS['DATA DE CAPTURA'].dropna()
             
             if not valid_dates.empty:
-                min_date = valid_dates.min().date()
-                max_date = valid_dates.max().date()
+                cap_inicio = pd.to_datetime(
+                    DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO, 'CAPTACAO_INICIO'].values[0],
+                    dayfirst=True
+                )
+
+                cap_fim = pd.to_datetime(
+                    DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANÇAMENTO, 'CAPTACAO_FIM'].values[0],
+                    dayfirst=True
+                )
                 
                 selected_dates = st.date_input(
                     "Selecione o período",
-                    value=(datetime.date.today(), datetime.date.today()),
-                    min_value=min_date,
-                    max_value=max_date,
+                    value=(cap_inicio, cap_fim),
+                    min_value=cap_inicio,
+                    max_value=cap_fim,
                     key="date_filter"
                 )
                 
