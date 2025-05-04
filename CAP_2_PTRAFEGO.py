@@ -57,7 +57,7 @@ columns_to_filter = ['UTM_TERM', 'UTM_CAMPAIGN', 'UTM_SOURCE', 'UTM_MEDIUM', 'UT
 cols_finan_01 = 'PATRIMONIO'
 cols_finan_02 = 'QUANTO_POUPA' if PRODUTO == "SW" else 'RENDA MENSAL'
 
-# Criar os filtros lado a lado
+# Criar os filtros lado a lado com session_state
 filters = {}
 cols_filters = st.columns(len(columns_to_filter))
 
@@ -65,31 +65,71 @@ cols_filters = st.columns(len(columns_to_filter))
 with cols_filters[0]:
     unique_terms = list(DF_PTRAFEGO_DADOS['UTM_TERM'].unique())
     unique_terms.insert(0, 'TODOS')
-    filters['UTM_TERM'] = st.multiselect("**Anúncios** *(utm_term)*", unique_terms, default="TODOS")
+    if "UTM_TERM" not in st.session_state:
+        st.session_state["UTM_TERM"] = ["TODOS"]
+    filters['UTM_TERM'] = st.multiselect(
+        "**Anúncios** *(utm_term)*",
+        unique_terms,
+        default=["TODOS"],
+        key="UTM_TERM"
+    )
 
 ## 1.B Campanhas (utm_campaign)
 with cols_filters[1]:
     unique_campaigns = list(DF_PTRAFEGO_DADOS['UTM_CAMPAIGN'].unique())
     unique_campaigns.insert(0, 'TODOS')
-    filters['UTM_CAMPAIGN'] = st.multiselect("**Campanhas** *(utm_campaign)*", unique_campaigns, default="TODOS")
+    if "UTM_CAMPAIGN" not in st.session_state:
+        st.session_state["UTM_CAMPAIGN"] = ["TODOS"]
+    filters['UTM_CAMPAIGN'] = st.multiselect(
+        "**Campanhas** *(utm_campaign)*",
+        unique_campaigns,
+        default=["TODOS"],
+        key="UTM_CAMPAIGN"
+    )
 
 ## 1.C Origens (utm_source)
 with cols_filters[2]:
     unique_sources = list(DF_PTRAFEGO_DADOS['UTM_SOURCE'].unique())
     unique_sources.insert(0, 'TODOS')
-    filters['UTM_SOURCE'] = st.multiselect("**Origens** *(utm_source)*", unique_sources, default="TODOS")
+    if "UTM_SOURCE" not in st.session_state:
+        st.session_state["UTM_SOURCE"] = ["TODOS"]
+    filters['UTM_SOURCE'] = st.multiselect(
+        "**Origens** *(utm_source)*",
+        unique_sources,
+        default=["TODOS"],
+        key="UTM_SOURCE"
+    )
 
 ## 1.D Mídias (utm_medium)
 with cols_filters[3]:
     unique_mediums = list(DF_PTRAFEGO_DADOS['UTM_MEDIUM'].unique())
     unique_mediums.insert(0, 'TODOS')
-    filters['UTM_MEDIUM'] = st.multiselect("**Mídias** *(utm_medium)*", unique_mediums, default="TODOS")
+    if "UTM_MEDIUM" not in st.session_state:
+        st.session_state["UTM_MEDIUM"] = ["TODOS"]
+    filters['UTM_MEDIUM'] = st.multiselect(
+        "**Mídias** *(utm_medium)*",
+        unique_mediums,
+        default=["TODOS"],
+        key="UTM_MEDIUM"
+    )
 
 ## 1.E Conjuntos (utm_adset)
 with cols_filters[4]:
-    unique_adsets = list(DF_PTRAFEGO_DADOS['UTM_ADSET'].unique())
-    unique_adsets.insert(0, 'TODOS')
-    filters['UTM_ADSET'] = st.multiselect("**Conjuntos** *(utm_adset)*", unique_adsets, default="TODOS")
+    unique_adsets = list(DF_PTRAFEGO_DADOS['UTM_ADSET'].dropna().unique())
+     # Adiciona opções especiais
+    if any('[LS]' in str(adset) for adset in unique_adsets):
+        unique_adsets = ['TODOS', 'LEADSCORE'] + unique_adsets
+    else:
+        unique_adsets = ['TODOS'] + unique_adsets
+
+    if "UTM_ADSET" not in st.session_state:
+        st.session_state["UTM_ADSET"] = ["TODOS"]
+    filters['UTM_ADSET'] = st.multiselect(
+        "**Conjuntos** *(utm_adset)*",
+        unique_adsets,
+        default=["TODOS"],
+        key="UTM_ADSET"
+    )
 
 #------------------------------------------------------------
 #      02. RESUMO
@@ -101,9 +141,29 @@ filtered_DF_PTRAFEGO_DADOS = DF_PTRAFEGO_DADOS.copy()
 # Inicializar selected_dates como None
 selected_dates = None
 
+filtered_DF_PTRAFEGO_DADOS = DF_PTRAFEGO_DADOS.copy()
+
 for column, selected_values in filters.items():
     if "TODOS" not in selected_values:
-        filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS[column].isin(selected_values)]
+
+        if column == "UTM_ADSET":
+            condicoes = []
+
+            if "LEADSCORE" in selected_values:
+                condicoes.append(filtered_DF_PTRAFEGO_DADOS['UTM_ADSET'].str.contains(r'\[LS\]', na=False))
+                selected_values = [x for x in selected_values if x != "LEADSCORE"]
+
+            if selected_values:
+                condicoes.append(filtered_DF_PTRAFEGO_DADOS['UTM_ADSET'].isin(selected_values))
+
+            if condicoes:
+                from functools import reduce
+                import operator
+                filtro_final = reduce(operator.or_, condicoes)
+                filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtro_final]
+
+        else:
+            filtered_DF_PTRAFEGO_DADOS = filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS[column].isin(selected_values)]
 
 # Verificar se o DataFrame filtrado está vazio
 if filtered_DF_PTRAFEGO_DADOS.empty:
@@ -327,16 +387,18 @@ with col2:
 
 st.divider()
 
-if VERSAO_PRINCIPAL >= 21:
-    col1, col2 = st.columns(2)
+# if VERSAO_PRINCIPAL >= 21:
+#     col1, col2 = st.columns(2)
 
-    with col1:
-        with st.container(border=True):
-            executar_com_seguranca("PATRIMÔNIO", lambda:calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'PATRIMONIO', patrimonio_order))
+#     with col1:
+#         with st.container(border=True):
+#             executar_com_seguranca("PATRIMÔNIO", lambda:calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, 'PATRIMONIO', patrimonio_order))
 
-    with col2:
-        with st.container(border=True):
-            executar_com_seguranca("RENDA MENSAL", lambda:calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, cols_finan_02, secondary_order))
+#     with col2:
+#         with st.container(border=True):
+#             executar_com_seguranca("RENDA MENSAL", lambda:calcular_proporcoes_e_plotar(DF_PTRAFEGO_DADOS, cols_finan_02, secondary_order))
+
+
 
 #------------------------------------------------------------
 #      04. HEATMAP
