@@ -168,7 +168,7 @@ closed_ended_columns = [
 
 # Open-ended response columns: free-text responses
 
-if int(VERSAO_PRINCIPAL) == 22:
+if int(VERSAO_PRINCIPAL) >= 22:
     open_ended_columns = [
         'Porque você quer a começar a investir?',
         'Como você imagina a vida que está buscando?',

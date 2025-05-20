@@ -73,8 +73,29 @@ with st.container(border=True):
     with col_cpl:
         if VERSAO_PRINCIPAL >= 17:
             st.subheader("CPL")
-            st.metric(label = "CPL Geral", value = f"R$ {round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA.shape[0],2)}")
-            st.metric(label = "CPL Trafego", value = f"R$ {round(DF_PTRAFEGO_META_ADS['VALOR USADO'].sum()/DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago'].shape[0],2)}")
+
+            # CPL Geral
+            if 'VALOR USADO' in DF_PTRAFEGO_META_ADS.columns:
+                denominador_geral = DF_CENTRAL_CAPTURA.shape[0]
+                if denominador_geral:
+                    cpl_geral = DF_PTRAFEGO_META_ADS['VALOR USADO'].sum() / denominador_geral
+                else:
+                    cpl_geral = 0
+            else:
+                cpl_geral = 0
+
+            st.metric(label="CPL Geral", value=f"R$ {round(cpl_geral, 2)}")
+
+            # CPL Tráfego
+            df_trafego_pago = DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago']
+            denominador_trafego = df_trafego_pago.shape[0]
+
+            if 'VALOR USADO' in DF_PTRAFEGO_META_ADS.columns and denominador_trafego:
+                cpl_trafego = DF_PTRAFEGO_META_ADS['VALOR USADO'].sum() / denominador_trafego
+            else:
+                cpl_trafego = 0
+
+            st.metric(label="CPL Tráfego", value=f"R$ {round(cpl_trafego, 2)}")
 
 #------------------------------------------------------------
 #      02. GRUPOS DE WHATSAPP
