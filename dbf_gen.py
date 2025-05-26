@@ -231,9 +231,8 @@ if PRODUTO == 'EI':
             visitas_ven = 0
         
         ### Conversões
-        df = get_conversion_data(slug = '/X11050759S', start_date = start_date_ven, end_date = end_date_ven)
-        df
-        pagina_alvo = "/X11050759S"
+        df = get_conversion_data(slug = '/?X11050759S', start_date = start_date_ven, end_date = end_date_ven)
+        pagina_alvo = "/?X11050759S"
         pagina = df[df["landing_page"].str.contains(pagina_alvo, case=False)]
 
         if not pagina.empty:
