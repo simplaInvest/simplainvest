@@ -710,7 +710,7 @@ def get_page_metrics(slug, start_date, end_date):
         PROPERTY_ID = "273168895"
     
     client = BetaAnalyticsDataClient(credentials=credentials)
-    st.write(slug, start_date, end_date, PROPERTY_ID)
+    #st.write(slug, start_date, end_date, PROPERTY_ID)
 
     request = RunReportRequest(
         property=f"properties/{PROPERTY_ID}",
@@ -737,7 +737,7 @@ def get_page_metrics(slug, start_date, end_date):
 
 def get_conversion_data(slug, start_date="2024-01-01", end_date="2024-12-31"):
     response = get_page_metrics(slug, start_date, end_date)
-    st.write(response)
+    #st.write(response)
     data = []
     for row in response.rows:
         users = int(row.metric_values[0].value)
