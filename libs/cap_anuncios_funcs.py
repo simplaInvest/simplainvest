@@ -165,7 +165,10 @@ def mostrar_analise_captacao(DF_CENTRAL_CAPTURA, DF_CENTRAL_PREMATRICULA, DF_CEN
 def mostrar_analise_pm(DF_CENTRAL_PREMATRICULA, DF_CENTRAL_VENDAS):
     st.subheader("🧪 Análise de Pré-Matrícula")
     # 0. Filtrar apenas anúncios pagos
-    DF_PM_FILTRADO = DF_CENTRAL_PREMATRICULA[DF_CENTRAL_PREMATRICULA['UTM_MEDIUM'] == 'pago'].copy()
+    DF_PM_FILTRADO = DF_CENTRAL_PREMATRICULA[
+        (DF_CENTRAL_PREMATRICULA['UTM_MEDIUM'] == 'pago') &
+        (DF_CENTRAL_PREMATRICULA['UTM_CAMPAIGN'].str.contains('PreMatricula', case=False, na=False))
+    ].copy()
 
     # 1. Métricas da Pré-Matrícula:
     df_pm_stage = DF_PM_FILTRADO.groupby('UTM_TERM').agg(PM_Leads=('EMAIL', 'nunique'))
@@ -229,7 +232,7 @@ def mostrar_analise_pm(DF_CENTRAL_PREMATRICULA, DF_CENTRAL_VENDAS):
     # Calcular média e definir DESTAQUE
     media_conversao_pm = df_base_pm['VENDAS_Conversao'].mean()
     df_base_pm['DESTAQUE'] = df_base_pm['VENDAS_Conversao'].apply(
-        lambda x: 'Alta' if x > media_conversao_pm * 1.5 else ('Baixa' if x < media_conversao_pm * 0.5 else None)
+        lambda x: 'Alta' if x > media_conversao_pm * 1 else ('Baixa' if x < media_conversao_pm * 1 else None)
     )
 
     # Campeões
@@ -281,7 +284,10 @@ def mostrar_analise_pm(DF_CENTRAL_PREMATRICULA, DF_CENTRAL_VENDAS):
 def mostrar_analise_vendas(DF_CENTRAL_VENDAS):
     st.subheader("💰 Análise de Vendas")
     # 0. Filtrar apenas anúncios pagos
-    DF_VENDAS_FILTRADO = DF_CENTRAL_VENDAS[DF_CENTRAL_VENDAS['UTM_MEDIUM'] == 'pago'].copy()
+    DF_VENDAS_FILTRADO = DF_CENTRAL_VENDAS[
+        (DF_CENTRAL_VENDAS['UTM_MEDIUM'] == 'pago') &
+        (DF_CENTRAL_VENDAS['UTM_CAMPAIGN'].str.contains('Vendas', case=False, na=False))
+    ].copy()
 
     # 1. Métricas de Vendas:
     df_vendas_stage = DF_VENDAS_FILTRADO.groupby('UTM_TERM').agg(VENDAS_Alunos=('EMAIL', 'nunique'))
