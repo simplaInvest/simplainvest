@@ -341,3 +341,5 @@ def plot_conversao_por_dia(
     )
 
     st.plotly_chart(fig, use_container_width=True)
+    print(min_date)
+    print(max_date)

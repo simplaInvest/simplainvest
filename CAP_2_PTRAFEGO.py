@@ -226,13 +226,20 @@ else:
                     'Entre R$5.000 e R$15.000',
                     'Acima de R$15.000'
             ]
-        
-    def criar_slider(order, nome_da_var,):
-        return st.select_slider(
-                f'Selecione as faixas de {nome_da_var}',
-                options= order,
-                value= (order[3], order[-1]) if order == patrimonio_order else (order[2], order[-1]) # Define o valor inicial e final como padrão
-            )
+    if PRODUTO == "EI" or PRODUTO == "SW":
+        def criar_slider(order, nome_da_var,):
+            return st.select_slider(
+                    f'Selecione as faixas de {nome_da_var}',
+                    options= order,
+                    value= (order[3], order[-1]) if order == patrimonio_order else (order[2], order[-1]) # Define o valor inicial e final como padrão
+                )
+    if PRODUTO == "SC":
+        def criar_slider(order, nome_da_var,):
+            return st.select_slider(
+                    f'Selecione as faixas de {nome_da_var}',
+                    options= order,
+                    value= (order[1], order[-1]) if order == patrimonio_order else (order[2], order[-1]) # Define o valor inicial e final como padrão
+                )
         
     with cols_resumo[0]:
         with st.container(border = True):
@@ -298,23 +305,31 @@ else:
             col2_order[col2_order.index(selected_renda_start) : col2_order.index(selected_renda_end) + 1]
         ))
     ]
-
-
+patrimonio_acima_selecionado.shape[0]
+renda_acima_selecionado.shape[0]
 with st.container(border = True):
-    metrics_cols = st.columns(3)
+    metrics_cols = st.columns(4)
     with metrics_cols[0]:
+        df_unido = pd.concat([patrimonio_acima_selecionado, renda_acima_selecionado])
+        df_unido = df_unido[~df_unido.index.duplicated(keep='first')]
+        st.metric(
+            label=f'TOTAL DE PESQUISAS',
+            value=f"{df_unido.shape[0]}  "
+                    f"({round((df_unido.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+        )
+    with metrics_cols[1]:
         st.metric(
             label=f'{cols_finan_01}',
             value=f"{patrimonio_acima_selecionado.shape[0]}  "
                     f"({round((patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
         )
-    with metrics_cols[1]:
+    with metrics_cols[2]:
         st.metric(
                 label=f'{cols_finan_02}:',
                 value=f"{renda_acima_selecionado.shape[0]}  "
                         f"({round((renda_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
             )
-    with metrics_cols[2]:
+    with metrics_cols[3]:
         st.metric(
                 label=f'{cols_finan_01} e {cols_finan_02}:',
                 value=f"{renda_patrimonio_acima_selecionado.shape[0]}  "

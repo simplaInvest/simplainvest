@@ -37,6 +37,7 @@ if PRODUTO == "EI":
             'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : ' Profissional'
     })
 
+
 DF_CENTRAL_CAPTURA['Vendas'] = DF_CENTRAL_CAPTURA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
 DF_PTRAFEGO_DADOS['Vendas'] = DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
 if PRODUTO == "EI":
