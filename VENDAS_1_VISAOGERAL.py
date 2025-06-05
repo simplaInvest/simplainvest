@@ -272,3 +272,65 @@ executar_com_seguranca("TABELA DE CONVERSÃO", lambda:create_conversion_table(DF
 executar_com_seguranca("CONVERSÃO POR DIA", lambda:plot_conversao_por_dia(DF_CENTRAL_CAPTURA, DF_CENTRAL_VENDAS, DF_CENTRAL_LANCAMENTOS, LANCAMENTO, PRODUTO, VERSAO_PRINCIPAL))
 
 st.divider()
+
+# Carregar dados
+DF_CENTRAL_VENDAS["VENDA DATA_VENDA"] = pd.to_datetime(DF_CENTRAL_VENDAS["VENDA DATA_VENDA"], errors='coerce')
+
+# Filtros
+col1, col2, col3, col4, col5 = st.columns(5)
+with col1:
+    campaign = st.selectbox("UTM_CAMPAIGN", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_CAMPAIGN"].dropna().unique()))
+with col2:
+    source = st.selectbox("UTM_SOURCE", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_SOURCE"].dropna().unique()))
+with col3:
+    medium = st.selectbox("UTM_MEDIUM", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_MEDIUM"].dropna().unique()))
+with col4:
+    adset = st.selectbox("UTM_ADSET", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_ADSET"].dropna().unique()))
+with col5:
+    content = st.selectbox("UTM_CONTENT", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_CONTENT"].dropna().unique()))
+
+# Aplicar filtros
+filtered_df = DF_CENTRAL_VENDAS.copy()
+if campaign != "Todos":
+    filtered_df = filtered_df[filtered_df["CAP UTM_CAMPAIGN"] == campaign]
+if source != "Todos":
+    filtered_df = filtered_df[filtered_df["CAP UTM_SOURCE"] == source]
+if medium != "Todos":
+    filtered_df = filtered_df[filtered_df["CAP UTM_MEDIUM"] == medium]
+if adset != "Todos":
+    filtered_df = filtered_df[filtered_df["CAP UTM_ADSET"] == adset]
+if content != "Todos":
+    filtered_df = filtered_df[filtered_df["CAP UTM_CONTENT"] == content]
+
+# Criar coluna de hora inteira
+filtered_df["Hora da Venda"] = filtered_df["VENDA DATA_VENDA"].dt.hour
+
+# Calcular histograma manualmente para pegar valor máximo
+hist_values = filtered_df["Hora da Venda"].value_counts().sort_index()
+max_count = hist_values.max()
+y_max = max_count * 1.2
+
+# Criar gráfico com Plotly
+fig = go.Figure(
+    data=[
+        go.Histogram(
+            x=filtered_df["Hora da Venda"],
+            xbins=dict(start=0, end=24, size=1),  # Largura dos bins = 1 hora
+            marker=dict(line=dict(width=1, color='black')),
+            hovertemplate='Hora: %{x}h<br>Vendas: %{y}<extra></extra>',
+            texttemplate="%{y}",
+            textposition="outside"
+        )
+    ]
+)
+
+fig.update_layout(
+    title="Distribuição de Vendas por Hora",
+    xaxis_title="Hora do Dia",
+    yaxis_title="Quantidade de Vendas",
+    xaxis=dict(tickmode='linear', tick0=0, dtick=1, range=[7, 24]),
+    yaxis=dict(range=[0, y_max]),
+    bargap=0.05
+)
+
+st.plotly_chart(fig)
