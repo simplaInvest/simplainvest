@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 
 def plot_pizza_utm_source(dataframe):
     """
-    Cria um gráfico de pizza para a coluna "CAP UTM_SOURCE" com as porcentagens de cada classe.
+    Cria um gráfico de pizza para a coluna "UTM_SOURCE" com as porcentagens de cada classe.
 
     Parâmetros:
     - dataframe: pd.DataFrame, o dataframe contendo os dados.
@@ -13,8 +13,8 @@ def plot_pizza_utm_source(dataframe):
     Retorna:
     - fig: plotly.graph_objects.Figure, o gráfico gerado.
     """
-    # Calcular a contagem de cada valor único na coluna 'CAP UTM_SOURCE'
-    source_counts = dataframe['CAP UTM_SOURCE'].value_counts()
+    # Calcular a contagem de cada valor único na coluna 'UTM_SOURCE'
+    source_counts = dataframe['UTM_SOURCE'].value_counts()
 
     # Criar o gráfico de pizza
     fig = px.pie(
@@ -32,7 +32,7 @@ def plot_pizza_utm_source(dataframe):
 
 def plot_pizza_utm_medium(dataframe):
     """
-    Cria um gráfico de pizza para a coluna "CAP UTM_MEDIUM" com as porcentagens de cada classe.
+    Cria um gráfico de pizza para a coluna "UTM_MEDIUM" com as porcentagens de cada classe.
 
     Parâmetros:
     - dataframe: pd.DataFrame, o dataframe contendo os dados.
@@ -40,8 +40,8 @@ def plot_pizza_utm_medium(dataframe):
     Retorna:
     - fig: plotly.graph_objects.Figure, o gráfico gerado.
     """
-    # Calcular a contagem de cada valor único na coluna 'CAP UTM_MEDIUM'
-    medium_counts = dataframe['CAP UTM_MEDIUM'].value_counts()
+    # Calcular a contagem de cada valor único na coluna 'UTM_MEDIUM'
+    medium_counts = dataframe['UTM_MEDIUM'].value_counts()
 
     # Criar o gráfico de pizza
     fig = px.pie(
@@ -343,3 +343,58 @@ def plot_conversao_por_dia(
     st.plotly_chart(fig, use_container_width=True)
     print(min_date)
     print(max_date)
+
+def utm_source_medium_vendas(DF_CENTRAL_VENDAS):
+    utm_df = DF_CENTRAL_VENDAS[['UTM_SOURCE', 'UTM_MEDIUM']]
+    utm_df['source/medium'] = utm_df['UTM_SOURCE'].fillna('indefinido') + ' / ' + utm_df['UTM_MEDIUM'].fillna('indefinido')
+
+    # Contar as ocorrências de cada combinação
+    combination_counts = utm_df['source/medium'].value_counts().reset_index()
+    combination_counts.columns = ['source/medium', 'Resultados']
+
+    # Calcular a porcentagem de cada combinação
+    total = combination_counts['Resultados'].sum()
+    combination_counts['%'] = (combination_counts['Resultados'] / total * 100).round(2)
+
+    return combination_counts
+
+def plot_utm_pie_chart(combination_counts):
+    fig = px.pie(
+        combination_counts,
+        names='source/medium',
+        values='%',
+        title='Distribuição de Combinações UTM (source/medium)',
+        hole=0.3  # opcional: transforma em gráfico de rosca
+    )
+    fig.update_traces(textinfo='percent+label')
+    return fig
+
+def vendas_por_hora(filtered_df):
+    # Calcular histograma manualmente para pegar valor máximo
+    hist_values = filtered_df["Hora da Venda"].value_counts().sort_index()
+    max_count = hist_values.max()
+    y_max = max_count * 1.2
+
+    # Criar gráfico com Plotly
+    fig = go.Figure(
+        data=[
+            go.Histogram(
+                x=filtered_df["Hora da Venda"],
+                xbins=dict(start=0, end=24, size=1),  # Largura dos bins = 1 hora
+                marker=dict(line=dict(width=1, color='black')),
+                hovertemplate='Hora: %{x}h<br>Vendas: %{y}<extra></extra>',
+                texttemplate="%{y}",
+                textposition="outside"
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title="Distribuição de Vendas por Hora",
+        xaxis_title="Hora do Dia",
+        yaxis_title="Quantidade de Vendas",
+        xaxis=dict(tickmode='linear', tick0=0, dtick=1, range=[7, 24]),
+        yaxis=dict(range=[0, y_max]),
+        bargap=0.05
+    )
+    return fig

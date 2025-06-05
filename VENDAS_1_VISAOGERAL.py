@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, K_CENTRAL_LANCAMENTOS, get_df
-from libs.vendas_visaogeral_funcs import plot_pizza_utm_source, plot_pizza_utm_medium, plot_taxa_conversao, plot_taxa_conversao_por_faixa_etaria, create_conversion_heatmap, create_conversion_table, plot_conversao_por_dia
+from libs.vendas_visaogeral_funcs import plot_pizza_utm_source, plot_pizza_utm_medium, plot_taxa_conversao, plot_taxa_conversao_por_faixa_etaria, create_conversion_heatmap, create_conversion_table, plot_conversao_por_dia, utm_source_medium_vendas, plot_utm_pie_chart, vendas_por_hora
 from libs.safe_exec import executar_com_seguranca
 
 # Carregar informações sobre lançamento selecionado
@@ -90,14 +90,15 @@ st.divider()
 tab1, tab2 = st.tabs(['Desempenho UTMs', 'Conversão'])
 
 with tab1:
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1,2])
 
     with col1:
-        executar_com_seguranca("GRÁFICO DE PIZZA UTM SOURCE", lambda:plot_pizza_utm_source(DF_CENTRAL_VENDAS))
+        combination_counts = executar_com_seguranca("GRÁFICO DE PIZZA UTM SOURCE", lambda:utm_source_medium_vendas(DF_CENTRAL_VENDAS))
+        combination_counts
 
     with col2:
-        executar_com_seguranca("GRÁFICO DE PIZZA UTM MEDIUM", lambda:plot_pizza_utm_medium(DF_CENTRAL_VENDAS))
-        
+        pie_chart = executar_com_seguranca("GRÁFICO DE PIZZA UTM MEDIUM", lambda:plot_utm_pie_chart(combination_counts))
+        st.plotly_chart(pie_chart)
 
 with tab2:
     st.subheader('Informações Financeiras')
@@ -279,58 +280,33 @@ DF_CENTRAL_VENDAS["VENDA DATA_VENDA"] = pd.to_datetime(DF_CENTRAL_VENDAS["VENDA 
 # Filtros
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
-    campaign = st.selectbox("UTM_CAMPAIGN", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_CAMPAIGN"].dropna().unique()))
+    campaign = st.selectbox("UTM_CAMPAIGN", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_CAMPAIGN"].dropna().unique()))
 with col2:
-    source = st.selectbox("UTM_SOURCE", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_SOURCE"].dropna().unique()))
+    source = st.selectbox("UTM_SOURCE", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_SOURCE"].dropna().unique()))
 with col3:
-    medium = st.selectbox("UTM_MEDIUM", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_MEDIUM"].dropna().unique()))
+    medium = st.selectbox("UTM_MEDIUM", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_MEDIUM"].dropna().unique()))
 with col4:
-    adset = st.selectbox("UTM_ADSET", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_ADSET"].dropna().unique()))
+    adset = st.selectbox("UTM_ADSET", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_ADSET"].dropna().unique()))
 with col5:
-    content = st.selectbox("UTM_CONTENT", ["Todos"] + sorted(DF_CENTRAL_VENDAS["CAP UTM_CONTENT"].dropna().unique()))
+    content = st.selectbox("UTM_CONTENT", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_CONTENT"].dropna().unique()))
 
 # Aplicar filtros
 filtered_df = DF_CENTRAL_VENDAS.copy()
 if campaign != "Todos":
-    filtered_df = filtered_df[filtered_df["CAP UTM_CAMPAIGN"] == campaign]
+    filtered_df = filtered_df[filtered_df["UTM_CAMPAIGN"] == campaign]
 if source != "Todos":
-    filtered_df = filtered_df[filtered_df["CAP UTM_SOURCE"] == source]
+    filtered_df = filtered_df[filtered_df["UTM_SOURCE"] == source]
 if medium != "Todos":
-    filtered_df = filtered_df[filtered_df["CAP UTM_MEDIUM"] == medium]
+    filtered_df = filtered_df[filtered_df["UTM_MEDIUM"] == medium]
 if adset != "Todos":
-    filtered_df = filtered_df[filtered_df["CAP UTM_ADSET"] == adset]
+    filtered_df = filtered_df[filtered_df["UTM_ADSET"] == adset]
 if content != "Todos":
-    filtered_df = filtered_df[filtered_df["CAP UTM_CONTENT"] == content]
+    filtered_df = filtered_df[filtered_df["UTM_CONTENT"] == content]
 
 # Criar coluna de hora inteira
 filtered_df["Hora da Venda"] = filtered_df["VENDA DATA_VENDA"].dt.hour
 
-# Calcular histograma manualmente para pegar valor máximo
-hist_values = filtered_df["Hora da Venda"].value_counts().sort_index()
-max_count = hist_values.max()
-y_max = max_count * 1.2
-
-# Criar gráfico com Plotly
-fig = go.Figure(
-    data=[
-        go.Histogram(
-            x=filtered_df["Hora da Venda"],
-            xbins=dict(start=0, end=24, size=1),  # Largura dos bins = 1 hora
-            marker=dict(line=dict(width=1, color='black')),
-            hovertemplate='Hora: %{x}h<br>Vendas: %{y}<extra></extra>',
-            texttemplate="%{y}",
-            textposition="outside"
-        )
-    ]
-)
-
-fig.update_layout(
-    title="Distribuição de Vendas por Hora",
-    xaxis_title="Hora do Dia",
-    yaxis_title="Quantidade de Vendas",
-    xaxis=dict(tickmode='linear', tick0=0, dtick=1, range=[7, 24]),
-    yaxis=dict(range=[0, y_max]),
-    bargap=0.05
-)
+fig = executar_com_seguranca("VENDAS POR HORA", lambda:vendas_por_hora(filtered_df))
 
 st.plotly_chart(fig)
+
