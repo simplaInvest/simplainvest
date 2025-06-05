@@ -305,8 +305,7 @@ else:
             col2_order[col2_order.index(selected_renda_start) : col2_order.index(selected_renda_end) + 1]
         ))
     ]
-patrimonio_acima_selecionado.shape[0]
-renda_acima_selecionado.shape[0]
+
 with st.container(border = True):
     metrics_cols = st.columns(4)
     with metrics_cols[0]:
@@ -342,7 +341,7 @@ st.divider()
 #      03. GRÁFICOS DE BARRAS & DATAFRAME
 #------------------------------------------------------------
 
-secondary_order = col2_order if PRODUTO == "SW" else col2_order
+secondary_order = col2_order
 
 # CONFIGURAÇÕES DOS GRÁFICOS
 CHART_CONFIG = {
@@ -360,14 +359,24 @@ CHART_CONFIG = {
     }
 }
 
+#  Filtrando dados com base nos valores permitidos
+filtered_patrimonio = filtered_DF_PTRAFEGO_DADOS[
+    filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_order)
+]
+
+renda_coluna = 'QUANTO POUPA' if PRODUTO == 'SW' else 'RENDA MENSAL'
+filtered_renda = filtered_DF_PTRAFEGO_DADOS[
+    filtered_DF_PTRAFEGO_DADOS[renda_coluna].isin(col2_order)
+]
+
 col1, col2 = st.columns(2)
 
 # 03.A: PATRIMÔNIO
 with col1:
     st.subheader("Patrimônio")
-    patrimonio_chart, patrimonio_df = executar_com_seguranca("PATRIMÔNIO", lambda:create_distribution_chart(
-        filtered_DF_PTRAFEGO_DADOS,
-        CHART_CONFIG['patrimonio']['column'],
+    patrimonio_chart, patrimonio_df = executar_com_seguranca("PATRIMÔNIO", lambda: create_distribution_chart(
+        filtered_patrimonio,
+        'PATRIMONIO',
         patrimonio_order,
         CHART_CONFIG['patrimonio']['color'],
         CHART_CONFIG['patrimonio']['title']
@@ -384,23 +393,24 @@ with col1:
 # 03.B: RENDA MENSAL
 with col2:
     st.subheader("Quanto poupa" if PRODUTO == "SW" else "Renda mensal")
-    renda_chart, renda_df = executar_com_seguranca("RENDA MENSAL", lambda:create_distribution_chart(
-        filtered_DF_PTRAFEGO_DADOS,
-        CHART_CONFIG['renda']['column'],
-        secondary_order,
+    renda_chart, renda_df = executar_com_seguranca("RENDA MENSAL", lambda: create_distribution_chart(
+        filtered_renda,
+        renda_coluna,
+        col2_order,
         CHART_CONFIG['renda']['color'],
         CHART_CONFIG['renda']['title']
     ))
-    renda_chart
+    st.altair_chart(renda_chart)
     st.dataframe(
-        renda_df[[cols_finan_02, 'count']].rename(
-            columns={cols_finan_02: "Quanto poupa" if PRODUTO == "SW" else "Renda mensal", 'count': 'Quantidade'}
+        renda_df[[renda_coluna, 'count']].rename(
+            columns={renda_coluna: "Quanto poupa" if PRODUTO == "SW" else "Renda mensal", 'count': 'Quantidade'}
         ),
         use_container_width=True,
         hide_index=True
     )
 
 st.divider()
+
 
 # if VERSAO_PRINCIPAL >= 21:
 #     col1, col2 = st.columns(2)

@@ -697,7 +697,6 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
     elif PRODUTO == 'SC':
         return conv_traf, conv_wpp, lista_tabs, graf_ren, graf_pat
 
-
 def get_page_metrics(slug, start_date, end_date):
     # Cria o objeto de credencial a partir do secrets
     credentials = service_account.Credentials.from_service_account_info(
@@ -733,7 +732,6 @@ def get_page_metrics(slug, start_date, end_date):
     response = client.run_report(request)
 
     return response
-
 
 def get_conversion_data(slug, start_date="2024-01-01", end_date="2024-12-31"):
     response = get_page_metrics(slug, start_date, end_date)
@@ -839,7 +837,6 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
     df_merged = df_merged.fillna(0)
 
     return df_merged, df_conversoes, df_visitas
-
 
 def process_campaign_data(df, versao_principal):
     # Etapa 1: aplicar filtros

@@ -90,11 +90,11 @@ st.divider()
 tab1, tab2 = st.tabs(['Desempenho UTMs', 'Conversão'])
 
 with tab1:
-    col1, col2 = st.columns([1,2])
+    col1, col2 = st.columns([2,3])
 
     with col1:
         combination_counts = executar_com_seguranca("GRÁFICO DE PIZZA UTM SOURCE", lambda:utm_source_medium_vendas(DF_CENTRAL_VENDAS))
-        combination_counts
+        st.table(combination_counts)
 
     with col2:
         pie_chart = executar_com_seguranca("GRÁFICO DE PIZZA UTM MEDIUM", lambda:plot_utm_pie_chart(combination_counts))
@@ -163,7 +163,7 @@ with tab2:
             fig.update_layout(
                 xaxis_title="Taxa de Conversão (%)",
                 yaxis_title="Faixa de Renda",
-                xaxis=dict(range=[0, 0.025])  # Limite do eixo X
+                xaxis=dict(range=[0, conversion_rate['Taxa de Conversão'].max() *1.2])  # Limite do eixo X
             )
             
             return fig
@@ -224,7 +224,7 @@ with tab2:
             fig.update_layout(
                 xaxis_title="Taxa de Conversão (%)",
                 yaxis_title=coluna_categoria,
-                xaxis=dict(range=[0, 0.03])  # Limite do eixo X
+                xaxis=dict(range=[0, conversion_rate['Taxa de Conversão'].max() *1.2])  # Limite do eixo X
             )
             
             return fig

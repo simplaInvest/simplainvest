@@ -102,32 +102,52 @@ def calcular_proporcoes_e_plotar(dataframe, coluna, lista_faixas):
 
 def create_heatmap(dataframe):
     """
-    Função para criar um heatmap com anotações dos valores de cada célula.
+    Cria um heatmap (mapa de calor) entre PATRIMÔNIO e RENDA MENSAL,
+    exibindo apenas as classes mapeadas nas listas de ordem.
     
     Args:
-    dataframe (pd.DataFrame): DataFrame contendo as colunas 'PATRIMONIO' e cols_finan_02.
+    - dataframe (pd.DataFrame): deve conter colunas 'PATRIMONIO' e cols_finan_02
     
     Returns:
-    plotly.graph_objects.Figure: Objeto do gráfico Plotly com anotações.
+    - Gráfico de heatmap com anotações
     """
-    # Criar tabela de contagem para o heatmap
-    heatmap_pivot = dataframe.pivot_table(
+
+    # Define as ordens explícitas
+    patrimonio_order = [
+        'Menos de R$5 mil', 'Entre R$5 mil e R$20 mil', 'Entre R$20 mil e R$100 mil',
+        'Entre R$100 mil e R$250 mil', 'Entre R$250 mil e R$500 mil',
+        'Entre R$500 mil e R$1 milhão', 'Acima de R$1 milhão'
+    ]
+
+    col2_order = [
+        'Até R$1.500', 'Entre R$1.500 e R$2.500', 'Entre R$2.500 e R$5.000',
+        'Entre R$5.000 e R$10.000', 'Entre R$10.000 e R$20.000', 'Acima de R$20.000'
+    ]
+
+    # Filtrar somente as classes mapeadas
+    df_filtrado = dataframe[
+        dataframe['PATRIMONIO'].isin(patrimonio_order) & 
+        dataframe[cols_finan_02].isin(col2_order)
+    ]
+
+    # Criar pivot e garantir ordem com reindex
+    heatmap_pivot = df_filtrado.pivot_table(
         index='PATRIMONIO', 
         columns=cols_finan_02, 
         aggfunc='size', 
         fill_value=0
-    )
-    
-    # Criar heatmap com Plotly
+    ).reindex(index=patrimonio_order, columns=col2_order, fill_value=0)
+
+    # Criar gráfico
     fig = go.Figure(data=go.Heatmap(
         z=heatmap_pivot.values,
-        x=heatmap_pivot.columns,
-        y=heatmap_pivot.index,
+        x=heatmap_pivot.columns.tolist(),
+        y=heatmap_pivot.index.tolist(),
         colorscale='Blues',
         colorbar=dict(title='Quantidade')
     ))
-    
-    # Adicionar anotações com valores de cada célula
+
+    # Anotações
     for i, row in enumerate(heatmap_pivot.index):
         for j, col in enumerate(heatmap_pivot.columns):
             fig.add_annotation(
@@ -135,23 +155,16 @@ def create_heatmap(dataframe):
                 y=row,
                 text=str(heatmap_pivot.loc[row, col]),
                 showarrow=False,
-                font=dict(color="black", size = 15, family="Arial", weight="bold")
+                font=dict(color="black", size=15, family="Arial")
             )
-    
-    # Atualizar layout
+
+    # Layout
     fig.update_layout(
-        title='Mapa de calor: PATRIMÔNIO vs RENDA MENSAL',
+        title='Mapa de Calor: PATRIMÔNIO vs RENDA MENSAL',
         xaxis_title="Faixa de Renda Mensal",
         yaxis_title="Faixa de Patrimônio",
-        xaxis=dict(categoryorder='array', categoryarray=[
-            'Até R$1.500', 'Entre R$1.500 e R$2.500', 'Entre R$2.500 e R$5.000',
-            'Entre R$5.000 e R$10.000', 'Entre R$10.000 e R$20.000', 'Acima de R$20.000'
-        ]),
-        yaxis=dict(categoryorder='array', categoryarray=[
-            'Menos de R$5 mil', 'Entre R$5 mil e R$20 mil', 'Entre R$20 mil e R$100 mil',
-            'Entre R$100 mil e R$250 mil', 'Entre R$250 mil e R$500 mil', 'Entre R$500 mil e R$1 milhão',
-            'Acima de R$1 milhão'
-        ])
+        xaxis=dict(categoryorder='array', categoryarray=col2_order),
+        yaxis=dict(categoryorder='array', categoryarray=patrimonio_order)
     )
-    
+
     return st.plotly_chart(fig, use_container_width=True)

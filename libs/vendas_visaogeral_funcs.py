@@ -366,7 +366,9 @@ def plot_utm_pie_chart(combination_counts):
         title='Distribuição de Combinações UTM (source/medium)',
         hole=0.3  # opcional: transforma em gráfico de rosca
     )
-    fig.update_traces(textinfo='percent+label')
+    fig.update_layout(showlegend=True, legend_title_text='Combinations')
+    fig.update_traces(textinfo='percent', rotation=90)  # apenas percentual dentro da fatia
+
     return fig
 
 def vendas_por_hora(filtered_df):
