@@ -3,60 +3,6 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-def plot_pizza_utm_source(dataframe):
-    """
-    Cria um gráfico de pizza para a coluna "UTM_SOURCE" com as porcentagens de cada classe.
-
-    Parâmetros:
-    - dataframe: pd.DataFrame, o dataframe contendo os dados.
-
-    Retorna:
-    - fig: plotly.graph_objects.Figure, o gráfico gerado.
-    """
-    # Calcular a contagem de cada valor único na coluna 'UTM_SOURCE'
-    source_counts = dataframe['UTM_SOURCE'].value_counts()
-
-    # Criar o gráfico de pizza
-    fig = px.pie(
-        source_counts,
-        values=source_counts,
-        names=source_counts.index,
-        title="Distribuição de UTM_SOURCE",
-        labels={"value": "Proporção", "names": "Fonte UTM"}
-    )
-
-    # Adicionar as porcentagens nas legendas
-    fig.update_traces(textinfo='percent+label', pull=[0.1, 0.1, 0.1, 0.1])
-
-    st.plotly_chart(fig, use_container_width=True)
-
-def plot_pizza_utm_medium(dataframe):
-    """
-    Cria um gráfico de pizza para a coluna "UTM_MEDIUM" com as porcentagens de cada classe.
-
-    Parâmetros:
-    - dataframe: pd.DataFrame, o dataframe contendo os dados.
-
-    Retorna:
-    - fig: plotly.graph_objects.Figure, o gráfico gerado.
-    """
-    # Calcular a contagem de cada valor único na coluna 'UTM_MEDIUM'
-    medium_counts = dataframe['UTM_MEDIUM'].value_counts()
-
-    # Criar o gráfico de pizza
-    fig = px.pie(
-        medium_counts,
-        values=medium_counts,
-        names=medium_counts.index,
-        title="Distribuição de UTM_MEDIUM",
-        labels={"value": "Proporção", "names": "Meio UTM"}
-    )
-
-    # Adicionar as porcentagens nas legendas
-    fig.update_traces(textinfo='percent+label', pull=[0.1, 0.1, 0.1, 0.1])
-
-    st.plotly_chart(fig, use_container_width=True)
-
 def plot_taxa_conversao(dataframe, coluna):
     # Calculando a taxa de conversão
     taxa_conversao = (
