@@ -1,3 +1,4 @@
+# main_api.py - Sua API FastAPI atualizada
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 import pandas as pd
@@ -10,6 +11,10 @@ from typing import Dict, Optional, List
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import streamlit as st
+import asyncio
+import uvicorn
+from threading import Thread
+import time
 
 from libs.data_formatter import (
     format_central_captura, 
@@ -19,7 +24,7 @@ from libs.data_formatter import (
     format_ptrafego_dados
 )
 
-# Constantes importadas do seu data_loader
+# Constantes
 K_CENTRAL_CAPTURA = "K_CENTRAL_CAPTURA"
 K_CENTRAL_PRE_MATRICULA = "K_CENTRAL_PRE_MATRICULA"
 K_CENTRAL_VENDAS = "K_CENTRAL_VENDAS"
@@ -49,7 +54,7 @@ class APIDataLoader:
         return gspread.authorize(creds)
 
     def _setup_sheets(self, produto: str, versao: int) -> dict:
-        """Configuração das planilhas baseada na função setupSheets"""
+        """Configuração das planilhas"""
         lancamento = f"{produto}.{str(versao).zfill(2)}"
         
         # PLANILHAS
@@ -72,7 +77,7 @@ class APIDataLoader:
         ABA_CLICKS_WPP = 'CLICKS POR DIA - BOAS-VINDAS'
         ABA_CENTRAL_LANCAMENTOS = 'DATAS'
 
-        # Lógica condicional das planilhas baseada na sua implementação
+        # Lógica condicional das planilhas
         ptrafego_dados_sheet = (SHEET_PESQUISA_TRAFEGO_DADOS 
                                if (produto == 'EI' and versao >= 21) or 
                                   produto == 'SW' or 
@@ -137,7 +142,7 @@ class APIDataLoader:
         }
 
     def load_gsheet(self, sheet_name: str, aba_name: str) -> pd.DataFrame:
-        """Carrega os dados do Google Sheets - baseado na sua implementação"""
+        """Carrega os dados do Google Sheets"""
         try:
             data = self.client.open(sheet_name).worksheet(aba_name).get_all_values()
             return pd.DataFrame() if not data else pd.DataFrame(data[1:], columns=data[0])
@@ -149,7 +154,7 @@ class APIDataLoader:
             )
 
     def load_gsheet_paginated(self, sheet_name: str, aba_name: str, page_size: int = 5000) -> pd.DataFrame:
-        """Carregamento paginado para planilhas grandes - sua implementação"""
+        """Carregamento paginado para planilhas grandes"""
         try:
             worksheet = self.client.open(sheet_name).worksheet(aba_name)
             headers = worksheet.row_values(1)
@@ -176,7 +181,7 @@ class APIDataLoader:
             )
 
     def load_df(self, k_planilha: str, use_pagination: bool = False) -> pd.DataFrame:
-        """Carrega e formata o dataframe - baseado na sua implementação"""
+        """Carrega e formata o dataframe"""
         if k_planilha not in self.sheets:
             raise HTTPException(
                 status_code=400, 
@@ -192,7 +197,7 @@ class APIDataLoader:
         else:
             df_sheet = self.load_gsheet(sheet["sheet"], sheet["aba"])
 
-        # Formatação usando suas funções existentes
+        # Formatação usando as funções existentes
         match k_planilha:
             case "K_CENTRAL_CAPTURA":
                 df_sheet = format_central_captura(df_sheet)
@@ -317,7 +322,7 @@ class DataCacheManager:
             "detalhes": cache_info
         }
 
-# Função auxiliar para conversão de gráficos (exemplos simples)
+# Função para conversão de gráficos
 def fig_to_image_response(fig: go.Figure) -> Response:
     """Converte figura para resposta HTTP de imagem PNG"""
     img_bytes = fig.to_image(format="png", engine="kaleido")
@@ -358,6 +363,14 @@ def validate_planilha(k_planilha: str):
             detail=f"Planilha inválida. Disponíveis: {valid_planilhas}"
         )
 
+# Função para carregar credenciais do Streamlit
+def load_google_credentials():
+    """Carrega credenciais do Streamlit secrets"""
+    try:
+        return dict(st.secrets["gcp_service_account"])
+    except KeyError:
+        raise ValueError("Credenciais não encontradas no st.secrets['gcp_service_account']")
+
 # Inicialização da aplicação
 app = FastAPI(
     title="Dashboard Lançamentos API",
@@ -365,41 +378,46 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Variáveis globais (você deve configurar as credenciais)
-CREDENTIALS_DICT = {
-    st.secrets["gcp_service_account"]
-}
-
+# Variáveis globais
 cache_manager = None
 
 @app.on_event("startup")
 async def startup_event():
     """Inicializa o cache manager na startup"""
     global cache_manager
-    cache_manager = DataCacheManager(
-        cache_ttl_minutes=30,  # Cache por 30 minutos
-        credentials_dict=CREDENTIALS_DICT
-    )
-    print("🚀 API iniciada com sistema de cache")
+    try:
+        credentials_dict = load_google_credentials()
+        cache_manager = DataCacheManager(
+            cache_ttl_minutes=30,
+            credentials_dict=credentials_dict
+        )
+        print("🚀 API iniciada com sistema de cache")
+    except Exception as e:
+        print(f"❌ Erro ao inicializar API: {e}")
+        raise
 
+# Endpoints da API
 @app.get("/")
 def root():
     """Endpoint raiz com informações da API"""
     return {
         "message": "Dashboard Lançamentos API",
+        "status": "running",
         "produtos_validos": VALID_PRODUTOS,
         "planilhas_disponiveis": [
             K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS,
             K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_PTRAFEGO_ANUNCIOS_SUBIDOS,
             K_PCOPY_DADOS, K_GRUPOS_WPP, K_CLICKS_WPP, K_CENTRAL_LANCAMENTOS
-        ],
-        "endpoints": [
-            "/dados/{produto}/{versao}/{planilha}",
-            "/grafico/{tipo}/{produto}/{versao}",
-            "/imagem/{tipo}/{produto}/{versao}",
-            "/admin/cache/status",
-            "/admin/cache/limpar"
         ]
+    }
+
+@app.get("/health")
+def health_check():
+    """Health check da API"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "cache_items": len(cache_manager.cache) if cache_manager else 0
     }
 
 @app.get("/dados/{produto}/{versao}/{planilha}")
@@ -417,7 +435,8 @@ def get_dados(produto: str, versao: int, planilha: str, force_reload: bool = Fal
             "planilha": planilha,
             "total_registros": len(df),
             "colunas": list(df.columns),
-            "dados": df.to_dict('records'),  # Cuidado: pode ser grande!
+            "dados": df.to_dict('records')[:1000],  # Limita a 1000 registros para evitar sobrecarga
+            "total_dados": len(df),
             "ultima_atualizacao": datetime.now().isoformat()
         }
     except Exception as e:
@@ -448,56 +467,18 @@ def get_dados_info(produto: str, versao: int, planilha: str):
             "planilha": planilha,
             "total_registros": len(df),
             "colunas": list(df.columns),
-            "tipos_dados": df.dtypes.to_dict(),
+            "tipos_dados": df.dtypes.astype(str).to_dict(),
             "informacoes_datas": date_info,
             "registros_nulos": df.isnull().sum().to_dict(),
             "ultima_atualizacao": datetime.now().isoformat()
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao carregar informações: {str(e)}")
-    
-@app.get("/teste/{teste}")
-def teste(teste):
-    return print(f'{teste}')
 
-@app.get("/grafico/{tipo}/{produto}/{versao}")
-def get_grafico_exemplo(tipo: str, produto: str, versao: int):
-    """Endpoint de exemplo para gráficos - você implementará os gráficos reais"""
-    validate_parameters(produto, versao)
-    
-    # Exemplo simples - você substituirá por suas funções de gráfico
-    try:
-        if tipo == "captura":
-            df = cache_manager.get_dataframe(produto, versao, K_CENTRAL_CAPTURA)
-            fig = px.line(df.head(100), title=f"Exemplo Captura {produto} v{versao}")
-        elif tipo == "vendas":
-            df = cache_manager.get_dataframe(produto, versao, K_CENTRAL_VENDAS)
-            fig = px.bar(df.head(100), title=f"Exemplo Vendas {produto} v{versao}")
-        else:
-            raise HTTPException(status_code=400, detail="Tipo de gráfico não implementado")
-        
-        return fig.to_dict()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar gráfico: {str(e)}")
-
-@app.get("/imagem/{tipo}/{produto}/{versao}")
-def get_imagem_exemplo(tipo: str, produto: str, versao: int):
-    """Endpoint de exemplo para imagens - para WhatsApp"""
-    validate_parameters(produto, versao)
-    
-    try:
-        if tipo == "captura":
-            df = cache_manager.get_dataframe(produto, versao, K_CENTRAL_CAPTURA)
-            fig = px.line(df.head(100), title=f"Captura {produto} v{versao}")
-        elif tipo == "vendas":
-            df = cache_manager.get_dataframe(produto, versao, K_CENTRAL_VENDAS)
-            fig = px.bar(df.head(100), title=f"Vendas {produto} v{versao}")
-        else:
-            raise HTTPException(status_code=400, detail="Tipo de gráfico não implementado")
-        
-        return fig_to_image_response(fig)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar imagem: {str(e)}")
+@app.get("/admin/cache/status")
+def status_cache():
+    """Mostra status do cache"""
+    return cache_manager.get_cache_status()
 
 @app.post("/admin/cache/limpar")
 def limpar_cache():
@@ -505,41 +486,59 @@ def limpar_cache():
     cache_manager.invalidate_cache()
     return {"message": "Cache limpo com sucesso"}
 
-@app.post("/admin/cache/limpar/{produto}/{versao}")
-def limpar_cache_produto(produto: str, versao: int):
-    """Limpa cache de um produto/versão específico"""
-    validate_parameters(produto, versao)
-    cache_manager.invalidate_cache(produto, versao)
-    return {"message": f"Cache limpo para {produto} v{versao}"}
-
-@app.post("/admin/cache/limpar/{produto}/{versao}/{planilha}")
-def limpar_cache_planilha(produto: str, versao: int, planilha: str):
-    """Limpa cache de uma planilha específica"""
-    validate_parameters(produto, versao)
-    validate_planilha(planilha)
-    cache_manager.invalidate_cache(produto, versao, planilha)
-    return {"message": f"Cache limpo para {produto} v{versao} - {planilha}"}
-
-@app.get("/admin/cache/status")
-def status_cache():
-    """Mostra status do cache"""
-    return cache_manager.get_cache_status()
-
-@app.get("/planilhas/{produto}/{versao}")
-def listar_planilhas_disponiveis(produto: str, versao: int):
-    """Lista todas as planilhas disponíveis para um produto/versão"""
-    validate_parameters(produto, versao)
+# Classe para gerenciar a API em background
+class APIManager:
+    def __init__(self, host="127.0.0.1", port=8000):
+        self.host = host
+        self.port = port
+        self.server = None
+        self.thread = None
+        self.is_running = False
     
-    return {
-        "produto": produto,
-        "versao": versao,
-        "planilhas_disponiveis": [
-            K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS,
-            K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_PTRAFEGO_ANUNCIOS_SUBIDOS,
-            K_PCOPY_DADOS, K_GRUPOS_WPP, K_CLICKS_WPP, K_CENTRAL_LANCAMENTOS
-        ]
-    }
+    def start(self):
+        """Inicia a API em background"""
+        if not self.is_running:
+            print(f"🚀 Iniciando API em {self.host}:{self.port}")
+            
+            def run_server():
+                config = uvicorn.Config(
+                    app, 
+                    host=self.host, 
+                    port=self.port, 
+                    log_level="error"  # Reduz logs para não poluir o Streamlit
+                )
+                self.server = uvicorn.Server(config)
+                asyncio.run(self.server.serve())
+            
+            self.thread = Thread(target=run_server, daemon=True)
+            self.thread.start()
+            self.is_running = True
+            
+            # Aguarda um pouco para a API iniciar
+            time.sleep(2)
+            print(f"✅ API rodando em http://{self.host}:{self.port}")
+        else:
+            print("ℹ️ API já está rodando")
+    
+    def stop(self):
+        """Para a API"""
+        if self.is_running and self.server:
+            self.server.should_exit = True
+            self.is_running = False
+            print("🛑 API parada")
+    
+    def is_healthy(self):
+        """Verifica se a API está saudável"""
+        try:
+            import requests
+            response = requests.get(f"http://{self.host}:{self.port}/health", timeout=5)
+            return response.status_code == 200
+        except:
+            return False
+
+# Instância global do gerenciador da API
+api_manager = APIManager()
 
 if __name__ == "__main__":
-    import uvicorn
+    # Se executado diretamente, roda apenas a API
     uvicorn.run(app, host="0.0.0.0", port=8000)

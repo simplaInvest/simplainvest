@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, K_CENTRAL_LANCAMENTOS, get_df
-from libs.vendas_visaogeral_funcs import plot_pizza_utm_source, plot_pizza_utm_medium, plot_taxa_conversao, plot_taxa_conversao_por_faixa_etaria, create_conversion_heatmap, create_conversion_table, plot_conversao_por_dia, utm_source_medium_vendas, plot_utm_pie_chart, vendas_por_hora
+from libs.vendas_visaogeral_funcs import plot_taxa_conversao, plot_taxa_conversao_por_faixa_etaria, create_conversion_heatmap, create_conversion_table, plot_conversao_por_dia, utm_source_medium_vendas, plot_utm_pie_chart, vendas_por_hora
 from libs.safe_exec import executar_com_seguranca
 
 # Carregar informações sobre lançamento selecionado

@@ -141,7 +141,7 @@ def plot_group_members_per_day_altair(DF_GRUPOS_WPP):
             strokeWidth=0
         ).configure_title(
             color='white'
-        ).configure(background='rgba(0,0,0,0)')
+        ).configure(background='rgba(0, 0, 0, 0)')
 
     return st.altair_chart(chart, use_container_width=True)
 
