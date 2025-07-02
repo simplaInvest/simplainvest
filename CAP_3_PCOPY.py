@@ -9,6 +9,10 @@ from sklearn.feature_extraction.text import CountVectorizer
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, get_df
 from libs.safe_exec import executar_com_seguranca
 from libs.cap_copy_funcs import plot_bar_chart, graf_idade, graf_renda, graf_invest, graf_patrim, plot_confusion_matrix_renda_patrimonio, plot_top_bigrams_by_column, stopwords_portugues
+from libs.auth_funcs import require_authentication
+
+# Verificação obrigatória no início
+require_authentication()
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]

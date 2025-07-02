@@ -9,6 +9,10 @@ import plotly.graph_objects as go
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, get_df
 from libs.cap_anuncios_funcs import mostrar_analise_captacao, mostrar_analise_pm, mostrar_analise_vendas
 from libs.safe_exec import executar_com_seguranca
+from libs.auth_funcs import require_authentication
+
+# Verificação obrigatória no início
+require_authentication()
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]

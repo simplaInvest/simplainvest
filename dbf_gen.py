@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 from libs.debriefing_generator import generate_debriefing2, get_conversion_data, get_conversions_by_campaign, process_campaign_data
 from libs.data_loader import K_CENTRAL_LANCAMENTOS, get_df
+from libs.auth_funcs import require_authentication
+
+# Verificação obrigatória no início
+require_authentication()
 
 PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]

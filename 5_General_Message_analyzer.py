@@ -4,6 +4,10 @@ import numpy as np
 import requests
 import re
 from pyairtable import Table
+from libs.auth_funcs import require_authentication
+
+# Verificação obrigatória no início
+require_authentication()
 
 produto = st.session_state["PRODUTO"]
 versao = st.session_state["VERSAO_PRINCIPAL"]

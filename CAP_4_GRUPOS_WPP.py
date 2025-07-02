@@ -6,6 +6,10 @@ import plotly.express as px
 from libs.data_loader import K_CENTRAL_CAPTURA, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_CLICKS_WPP, K_CENTRAL_LANCAMENTOS, get_df
 from libs.cap_wpp_funcs import plot_group_members_per_day_altair, plot_entry_per_day, plot_exit_per_day, plot_ratio_per_day, calculate_stay_duration_and_plot_histogram, plot_clicks_over_time
 from libs.safe_exec import executar_com_seguranca
+from libs.auth_funcs import require_authentication
+
+# Verificação obrigatória no início
+require_authentication()
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]

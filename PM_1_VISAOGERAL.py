@@ -6,6 +6,10 @@ import plotly.express as px
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, K_CENTRAL_LANCAMENTOS, get_df
 from libs.pm_visaogeral_funcs import grafico_linhas_cap_data_captura, grafico_barras_horizontais_utm_source_medium, grafico_barras_horizontais, grafico_pizza
 from libs.safe_exec import executar_com_seguranca
+from libs.auth_funcs import require_authentication
+
+# Verificação obrigatória no início
+require_authentication()
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
