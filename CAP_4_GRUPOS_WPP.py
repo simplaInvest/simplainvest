@@ -16,6 +16,9 @@ PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
 LANCAMENTO = st.session_state["LANÇAMENTO"]
 
+logo = "Logo-EUINVESTIDOR-Light.png" if PRODUTO == "EI" else "Logo-SIMPLA-Light.png"
+st.logo(image = logo)
+
 # Carregar DataFrames para lançamento selecionado
 loading_container = st.empty()
 with loading_container:

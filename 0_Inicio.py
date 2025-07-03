@@ -4,8 +4,12 @@ import numpy as np
 from sheet_loader import load_sheet
 from datetime import datetime
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_PTRAFEGO_ANUNCIOS_SUBIDOS, K_PCOPY_DADOS, K_GRUPOS_WPP, K_CENTRAL_LANCAMENTOS
+from libs.auth_funcs import require_authentication
 
-st.title("Central de Lançamentos")
+# Verificação obrigatória no início
+require_authentication()
+
+st.image("Logo-SIMPLAINVEST-Light.png")
 st.divider()
 
 # Perguntar qual lançamento a pessoa gostaria de analisar
