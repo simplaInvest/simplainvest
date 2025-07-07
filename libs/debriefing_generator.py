@@ -419,7 +419,7 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
         ################################
         #          Discursivas         #
         ################################
-        if int(VERSAO_PRINCIPAL) == 23:
+        if int(VERSAO_PRINCIPAL) >= 23:
             open_ended_columns = [
                 'Porque você quer a começar a investir?',
                 'Como você imagina a vida que está buscando?',
