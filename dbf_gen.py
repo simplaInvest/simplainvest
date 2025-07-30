@@ -73,8 +73,8 @@ with tab1:
 with tab2:
     st.dataframe(lista_tabs[1][1], use_container_width = True, hide_index=True)
 
-#with tab3:
-    #st.dataframe(lista_tabs[2][1], use_container_width = True, hide_index=True)
+with tab3:
+    st.dataframe(lista_tabs[2][1], use_container_width = True, hide_index=True)
 
 st.divider()
 
