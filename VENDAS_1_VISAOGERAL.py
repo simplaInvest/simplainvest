@@ -103,11 +103,15 @@ if not DF_CENTRAL_VENDAS.empty:
 
         with col1:
             combination_counts = executar_com_seguranca("GRÁFICO DE PIZZA UTM SOURCE", lambda:utm_source_medium_vendas(DF_CENTRAL_VENDAS))
-            st.table(combination_counts)
+            if combination_counts:
+                st.table(combination_counts)
 
         with col2:
             pie_chart = executar_com_seguranca("GRÁFICO DE PIZZA UTM MEDIUM", lambda:plot_utm_pie_chart(combination_counts))
-            st.plotly_chart(pie_chart)
+            if pie_chart:
+                st.plotly_chart(pie_chart)
+            else:
+                st.warning("❌ Gráfico de Pizza vazio")
 
     with tab2:
         st.subheader('Informações Financeiras')
@@ -288,36 +292,42 @@ if not DF_CENTRAL_VENDAS.empty:
 
     # Filtros
     col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        campaign = st.selectbox("UTM_CAMPAIGN", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_CAMPAIGN"].dropna().unique()))
-    with col2:
-        source = st.selectbox("UTM_SOURCE", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_SOURCE"].dropna().unique()))
-    with col3:
-        medium = st.selectbox("UTM_MEDIUM", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_MEDIUM"].dropna().unique()))
-    with col4:
-        adset = st.selectbox("UTM_ADSET", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_ADSET"].dropna().unique()))
-    with col5:
-        content = st.selectbox("UTM_CONTENT", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_CONTENT"].dropna().unique()))
+    required_cols = ["UTM_CAMPAIGN", "UTM_SOURCE", "UTM_MEDIUM", "UTM_ADSET", "UTM_CONTENT"]
 
-    # Aplicar filtros
-    filtered_df = DF_CENTRAL_VENDAS.copy()
-    if campaign != "Todos":
-        filtered_df = filtered_df[filtered_df["UTM_CAMPAIGN"] == campaign]
-    if source != "Todos":
-        filtered_df = filtered_df[filtered_df["UTM_SOURCE"] == source]
-    if medium != "Todos":
-        filtered_df = filtered_df[filtered_df["UTM_MEDIUM"] == medium]
-    if adset != "Todos":
-        filtered_df = filtered_df[filtered_df["UTM_ADSET"] == adset]
-    if content != "Todos":
-        filtered_df = filtered_df[filtered_df["UTM_CONTENT"] == content]
+    if all(col in DF_CENTRAL_VENDAS.columns for col in required_cols):
+        # todas as colunas estão presentes
+        with col1:
+            campaign = st.selectbox("UTM_CAMPAIGN", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_CAMPAIGN"].dropna().unique()))
+        with col2:
+            source = st.selectbox("UTM_SOURCE", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_SOURCE"].dropna().unique()))
+        with col3:
+            medium = st.selectbox("UTM_MEDIUM", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_MEDIUM"].dropna().unique()))
+        with col4:
+            adset = st.selectbox("UTM_ADSET", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_ADSET"].dropna().unique()))
+        with col5:
+            content = st.selectbox("UTM_CONTENT", ["Todos"] + sorted(DF_CENTRAL_VENDAS["UTM_CONTENT"].dropna().unique()))
 
-    # Criar coluna de hora inteira
-    filtered_df["Hora da Venda"] = filtered_df["VENDA DATA_VENDA"].dt.hour
+        # Aplicar filtros
+        filtered_df = DF_CENTRAL_VENDAS.copy()
+        if campaign != "Todos":
+            filtered_df = filtered_df[filtered_df["UTM_CAMPAIGN"] == campaign]
+        if source != "Todos":
+            filtered_df = filtered_df[filtered_df["UTM_SOURCE"] == source]
+        if medium != "Todos":
+            filtered_df = filtered_df[filtered_df["UTM_MEDIUM"] == medium]
+        if adset != "Todos":
+            filtered_df = filtered_df[filtered_df["UTM_ADSET"] == adset]
+        if content != "Todos":
+            filtered_df = filtered_df[filtered_df["UTM_CONTENT"] == content]
 
-    fig = executar_com_seguranca("VENDAS POR HORA", lambda:vendas_por_hora(filtered_df))
+        # Criar coluna de hora inteira
+        filtered_df["Hora da Venda"] = filtered_df["VENDA DATA_VENDA"].dt.hour
 
-    st.plotly_chart(fig)
+        fig = executar_com_seguranca("VENDAS POR HORA", lambda:vendas_por_hora(filtered_df))
+
+        st.plotly_chart(fig)
+    else:
+        st.warning("❌ Alguma(s) destas colunas não existe na planilha Central de Vendas: UTM_CAMPAIGN, UTM_SOURCE, UTM_MEDIUM, UTM_ADSET, UTM_CONTENT")
 
 else:
     st.info("""

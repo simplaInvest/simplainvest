@@ -153,14 +153,18 @@ def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
 
     # Copia e agrupa os dados por data, contando a quantidade de leads (EMAIL)
     df_CONTALEADS = DF_CENTRAL_CAPTURA.copy()
+    df_Lancamentos = DF_CENTRAL_LANCAMENTOS.copy()
     df_CONTALEADS = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
+    
     
     # Converte a coluna de data para datetime
     df_CONTALEADS["CAP DATA_CAPTURA"] = pd.to_datetime(df_CONTALEADS["CAP DATA_CAPTURA"])
+    df_Lancamentos['CAPTACAO_INICIO'] = pd.to_datetime(df_Lancamentos['CAPTACAO_INICIO'], dayfirst=True)
+    df_Lancamentos['CAPTACAO_FIM'] = pd.to_datetime(df_Lancamentos['CAPTACAO_FIM'], dayfirst=True)
 
     # Determina o intervalo de datas (mínima e máxima) e o total de dias de captação
-    min_date = df_CONTALEADS["CAP DATA_CAPTURA"].min()
-    max_date = df_CONTALEADS["CAP DATA_CAPTURA"].max()
+    min_date = df_Lancamentos.loc[df_Lancamentos['LANÇAMENTO'] == lancamento, 'CAPTACAO_INICIO']
+    max_date = df_Lancamentos.loc[df_Lancamentos['LANÇAMENTO'] == lancamento, 'CAPTACAO_FIM']
     total_dias = (max_date - min_date).days
 
     # Cria o gráfico de linha principal com pontos e tooltips usando Altair

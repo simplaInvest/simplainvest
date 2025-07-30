@@ -72,14 +72,14 @@ cols_filters = st.columns(len(columns_to_filter))
 with cols_filters[0]:
     unique_terms = list(DF_PTRAFEGO_DADOS['UTM_TERM'].unique())
     unique_terms.insert(0, 'TODOS')
-    if "UTM_TERM" not in st.session_state:
-        st.session_state["UTM_TERM"] = ["TODOS"]
+
     filters['UTM_TERM'] = st.multiselect(
         "**Anúncios** *(utm_term)*",
-        unique_terms,
+        options=unique_terms,
         default=["TODOS"],
         key="UTM_TERM"
     )
+
 
 ## 1.B Campanhas (utm_campaign)
 with cols_filters[1]:
