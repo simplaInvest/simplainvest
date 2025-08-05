@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_PTRAFEGO_DADOS, K_PCOPY_DADOS, K_GRUPOS_WPP, K_CENTRAL_LANCAMENTOS, get_df
-from libs.vendas_visaogeral_funcs import plot_taxa_conversao, plot_taxa_conversao_por_faixa_etaria, create_conversion_heatmap, create_conversion_table, plot_conversao_por_dia, utm_source_medium_vendas, plot_utm_pie_chart, vendas_por_hora
+from libs.vendas_visaogeral_funcs import plot_taxa_conversao, plot_taxa_conversao_por_faixa_etaria, create_conversion_heatmap, create_conversion_table, plot_conversao_por_dia, utm_source_medium_vendas, plot_utm_pie_chart, vendas_por_hora, plot_taxa_conversao_investimentos
 from libs.safe_exec import executar_com_seguranca
 from libs.auth_funcs import require_authentication
 
@@ -156,8 +156,8 @@ if not DF_CENTRAL_VENDAS.empty:
                     x="Taxa de Conversão",
                     y=coluna_renda,
                     orientation='h',
-                    title="Taxa de Conversão por Faixa de Renda",
-                    labels={"Taxa de Conversão": "Taxa de Conversão (%)", coluna_renda: "Faixa de Renda"}
+                    title=f"Taxa de Conversão por Faixa de {coluna_renda}",
+                    labels={"Taxa de Conversão": "Taxa de Conversão (%)", coluna_renda: f"Faixa de {coluna_renda}"}
                 )
 
                 # Adicionando as anotações de valores
@@ -175,7 +175,7 @@ if not DF_CENTRAL_VENDAS.empty:
                 # Ajustando layout do gráfico e configurando o limite do eixo X
                 fig.update_layout(
                     xaxis_title="Taxa de Conversão (%)",
-                    yaxis_title="Faixa de Renda",
+                    yaxis_title=f"Faixa de {coluna_renda}",
                     xaxis=dict(range=[0, conversion_rate['Taxa de Conversão'].max() *1.2])  # Limite do eixo X
                 )
                 
@@ -185,6 +185,20 @@ if not DF_CENTRAL_VENDAS.empty:
             fig = calcular_e_plotar_taxa_conversao(DF_PTRAFEGO_DADOS, "RENDA MENSAL", "Vendas", renda_order)
 
             # Mostrar o gráfico no Streamlit
+            st.plotly_chart(fig)
+
+        escolaridade_order = [
+            'Ensino médio',
+            'Ensino técnico',
+            'Ensino superior incompleto',
+            'Ensino superior completo',
+            'Mestrado',
+            'Doutorado'
+        ]
+
+        if 'ESCOLARIDADE' in DF_PTRAFEGO_DADOS:
+            fig = calcular_e_plotar_taxa_conversao(DF_PTRAFEGO_DADOS, "ESCOLARIDADE", "Vendas", escolaridade_order)
+
             st.plotly_chart(fig)
                 
             
@@ -267,6 +281,8 @@ if not DF_CENTRAL_VENDAS.empty:
                 executar_com_seguranca("GRÁFICO DE PIZZA SEXO", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Qual seu sexo?'))
                 
                 executar_com_seguranca("GRÁFICO DE PIZZA FILHOS", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Você tem filhos?'))
+
+                executar_com_seguranca("CONVERSÃO INVESTIMENTOS", lambda:plot_taxa_conversao_investimentos(DF_PCOPY_DADOS, DF_CENTRAL_VENDAS))
 
             with col2:
                 xp_order = ['Totalmente Iniciante',

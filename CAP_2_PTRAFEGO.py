@@ -214,6 +214,15 @@ else:
             'Acima de R$1 milhão'
         ]
     
+    escolaridade_order = [
+        'Ensino técnico',
+        'Ensino médio',
+        'Ensino superior incompleto',
+        'Ensino superior completo',
+        'Mestrado',
+        'Doutorado'
+    ]
+    
     if PRODUTO != 'SW':
         col2_order = [
                 'Até R$1.500',
@@ -363,6 +372,12 @@ CHART_CONFIG = {
         'color': 'lightgreen',
         'title': '',
         'display_name': 'Renda' if PRODUTO == "SW" else 'Quanto poupa'
+    },
+    'escolaridade': {
+        'column': 'ESCOLARIDADE',
+        'color': 'lightyellow',
+        'title': '',
+        'display_name': 'Escolaridade'
     }
 }
 
@@ -375,6 +390,11 @@ renda_coluna = 'QUANTO POUPA' if PRODUTO == 'SW' else 'RENDA MENSAL'
 filtered_renda = filtered_DF_PTRAFEGO_DADOS[
     filtered_DF_PTRAFEGO_DADOS[renda_coluna].isin(col2_order)
 ]
+
+if 'ESCOLARIDADE' in filtered_DF_PTRAFEGO_DADOS.columns:
+    filtered_escolaridade = filtered_DF_PTRAFEGO_DADOS[
+        filtered_DF_PTRAFEGO_DADOS['ESCOLARIDADE'].isin(escolaridade_order)
+    ]
 
 col1, col2 = st.columns(2)
 
@@ -396,6 +416,24 @@ with col1:
         use_container_width=True,
         hide_index=True
     )
+
+    if 'ESCOLARIDADE' in filtered_DF_PTRAFEGO_DADOS.columns:
+        st.subheader("Escolaridade")
+        escolaridade_chart, escolaridade_df = executar_com_seguranca("ESCOLARIDADE", lambda: create_distribution_chart(
+            filtered_escolaridade,
+            'ESCOLARIDADE',
+            escolaridade_order,
+            CHART_CONFIG['escolaridade']['color'],
+            CHART_CONFIG['escolaridade']['title']
+        ))
+        st.altair_chart(escolaridade_chart)
+        st.dataframe(
+            escolaridade_df[['ESCOLARIDADE', 'count']].rename(
+                columns={'ESCOLARIDADE': 'Escolaridade', 'count': 'Quantidade'}
+            ),
+            use_container_width=True,
+            hide_index=True
+        )
 
 # 03.B: RENDA MENSAL
 with col2:

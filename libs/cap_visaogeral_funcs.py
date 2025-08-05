@@ -145,7 +145,7 @@ def plot_group_members_per_day_altair(DF_GRUPOS_WPP):
 
     return st.altair_chart(chart, use_container_width=True)
 
-def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
+def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA, DF_CENTRAL_LANCAMENTOS, lancamento):
     # Verifica se o DataFrame de captura não está vazio
     if DF_CENTRAL_CAPTURA.empty:
         st.warning("Os dados de Leads por Dia estão vazios.")
@@ -155,21 +155,28 @@ def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
     df_CONTALEADS = DF_CENTRAL_CAPTURA.copy()
     df_Lancamentos = DF_CENTRAL_LANCAMENTOS.copy()
     df_CONTALEADS = df_CONTALEADS[['EMAIL', 'CAP DATA_CAPTURA']].groupby('CAP DATA_CAPTURA').count().reset_index()
-    
-    
+
     # Converte a coluna de data para datetime
     df_CONTALEADS["CAP DATA_CAPTURA"] = pd.to_datetime(df_CONTALEADS["CAP DATA_CAPTURA"])
     df_Lancamentos['CAPTACAO_INICIO'] = pd.to_datetime(df_Lancamentos['CAPTACAO_INICIO'], dayfirst=True)
-    df_Lancamentos['CAPTACAO_FIM'] = pd.to_datetime(df_Lancamentos['CAPTACAO_FIM'], dayfirst=True)
+    df_Lancamentos['VENDAS_FIM'] = pd.to_datetime(df_Lancamentos['VENDAS_FIM'], dayfirst=True)
 
     # Determina o intervalo de datas (mínima e máxima) e o total de dias de captação
-    min_date = df_Lancamentos.loc[df_Lancamentos['LANÇAMENTO'] == lancamento, 'CAPTACAO_INICIO']
-    max_date = df_Lancamentos.loc[df_Lancamentos['LANÇAMENTO'] == lancamento, 'CAPTACAO_FIM']
+    min_date = df_Lancamentos.loc[df_Lancamentos['LANÇAMENTO'] == lancamento, 'CAPTACAO_INICIO'].iloc[0]
+    max_date = df_Lancamentos.loc[df_Lancamentos['LANÇAMENTO'] == lancamento, 'VENDAS_FIM'].iloc[0]
     total_dias = (max_date - min_date).days
+
+    # Define a escala do eixo X
+    x_scale = alt.Scale(domain=[min_date, max_date])
 
     # Cria o gráfico de linha principal com pontos e tooltips usando Altair
     line_chart = alt.Chart(df_CONTALEADS).mark_line(point=True).encode(
-        x=alt.X('CAP DATA_CAPTURA:T', title='Data', axis=alt.Axis(labelAngle=-0, format="%d %B (%a)")),
+        x=alt.X(
+            'CAP DATA_CAPTURA:T',
+            title='Data',
+            axis=alt.Axis(labelAngle=-0, format="%d %B (%a)"),
+            scale=x_scale
+        ),
         y=alt.Y('EMAIL:Q', title='Número de Leads'),
         tooltip=['CAP DATA_CAPTURA:T', 'EMAIL:Q']
     )
@@ -178,10 +185,13 @@ def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
     text_chart = alt.Chart(df_CONTALEADS).mark_text(
         align='center',
         baseline='bottom',
-        dy=-10,           # Ajusta a posição vertical do texto
-        color='lightblue' # Define a cor do texto
+        dy=-10,
+        color='lightblue'
     ).encode(
-        x='CAP DATA_CAPTURA:T',
+        x=alt.X(
+            'CAP DATA_CAPTURA:T',
+            scale=x_scale
+        ),
         y='EMAIL:Q',
         text=alt.Text('EMAIL:Q', format=',')
     )
@@ -225,16 +235,16 @@ def plot_leads_per_day_altair(DF_CENTRAL_CAPTURA):
     if not cpl_df.empty:
         # Cria as linhas verticais pontilhadas para cada data de CPL
         cpl_lines = alt.Chart(cpl_df).mark_rule(strokeDash=[4, 4], color='red').encode(
-            x='CPLs:T'
+            x=alt.X('CPLs:T', scale=x_scale)
         )
         # Adiciona os rótulos para as datas de CPL
         cpl_labels_chart = alt.Chart(cpl_df).mark_text(
             align='left',
             baseline='top',
-            dy=15,    # Deslocamento vertical para o texto
+            dy=15,
             color='red'
         ).encode(
-            x='CPLs:T',
+            x=alt.X('CPLs:T', scale=x_scale),
             text='CPL_Label'
         )
         chart = (line_chart + text_chart + cpl_lines + cpl_labels_chart).properties(

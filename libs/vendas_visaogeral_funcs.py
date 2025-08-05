@@ -103,6 +103,73 @@ def plot_taxa_conversao_por_faixa_etaria(dataframe, intervalo=5):
     )
     st.plotly_chart(fig, use_container_width=True)
 
+def plot_taxa_conversao_investimentos(
+    df_pesquisa: pd.DataFrame,
+    df_compradores: pd.DataFrame,
+    coluna_email: str = 'EMAIL',
+    coluna_investimentos: str = 'Você já investe seu dinheiro atualmente?',
+    investment_classes: list = None
+):
+    if investment_classes is None:
+        investment_classes = [
+            'Ainda não invisto',
+            'Poupança',
+            'Renda Fixa (CDB, Tesouro direto, LCIs, LCAs)',
+            'Renda Variável (Ações, Fundos imobiliários)',
+            'Investimentos estrangeiros (Stocks, ETFs REITs)',
+            'Previdência'
+        ]
+    
+    # Explodir a coluna de listas em linhas (um investimento por linha por email)
+    df_expanded = df_pesquisa.explode(coluna_investimentos)
+
+    # Limpar dados fora da lista de opções válidas
+    df_expanded = df_expanded[df_expanded[coluna_investimentos].isin(investment_classes)]
+
+    # Contar respondentes únicos por investimento
+    total_by_investment = (
+        df_expanded.groupby(coluna_investimentos)[coluna_email]
+        .nunique()
+        .reindex(investment_classes, fill_value=0)
+    )
+
+    # Identificar quem comprou
+    emails_que_compraram = set(df_compradores[coluna_email])
+    df_expanded['COMPROU'] = df_expanded[coluna_email].isin(emails_que_compraram)
+
+    # Contar compradores únicos por investimento
+    comprou_by_investment = (
+        df_expanded[df_expanded['COMPROU']]
+        .groupby(coluna_investimentos)[coluna_email]
+        .nunique()
+        .reindex(investment_classes, fill_value=0)
+    )
+
+    # Calcular taxa de conversão (%)
+    taxa_conversao = (comprou_by_investment / total_by_investment * 100).round(2).fillna(0)
+
+    # Montar dataframe para plot
+    df_plot = pd.DataFrame({
+        'Classe de Investimento': investment_classes,
+        'Conversão (%)': taxa_conversao.values,
+        'Total Respondentes': total_by_investment.values,
+        'Total Compraram': comprou_by_investment.values
+    })
+
+    # Plotar gráfico com Plotly
+    fig = px.bar(
+        df_plot, 
+        x='Conversão (%)', 
+        y='Classe de Investimento', 
+        orientation='h',
+        text='Conversão (%)',
+        hover_data=['Total Respondentes', 'Total Compraram'],
+        title='Taxa de Conversão por Classe de Investimento'
+    )
+    fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+    fig.update_layout(xaxis_title='Conversão (%)', yaxis_title='Classe de Investimento')
+    st.plotly_chart(fig, use_container_width=True)
+
 def create_conversion_heatmap(dataframe):
         """
         Função para criar um heatmap de taxa de conversão com anotações.

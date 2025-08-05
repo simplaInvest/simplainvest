@@ -110,7 +110,7 @@ with st.container(border=True):
 
 # ---- 02.A - LEADS POR DIA  
 with st.container(border=True):
-    executar_com_seguranca("LEADS POR DIA", lambda:plot_leads_per_day_altair(DF_CENTRAL_CAPTURA))
+    executar_com_seguranca("LEADS POR DIA", lambda:plot_leads_per_day_altair(DF_CENTRAL_CAPTURA, DF_CENTRAL_LANCAMENTOS, lancamento))
     
 
 # ---- 02.B - TOTAL DE LEADS POR DIA NOS GRUPOS
