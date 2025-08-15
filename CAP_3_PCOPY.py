@@ -135,7 +135,7 @@ if int(VERSAO_PRINCIPAL) >= 20:
     ]
 
 # Filter columns layout
-colu1, colu2, colu3 = st.columns([1,1,4])
+colu1, colu2, colu3 = st.columns([1,1,3])
 with colu1:
     with st.container(border = True):
         st.subheader('Pré-Matrícula:')

@@ -1,15 +1,174 @@
-/* styles.css */
-.stContainerMetric {
-    background-color: #1e1e1e;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 20px;
+/* ---------- Base ---------- */
+:root{
+  --bg:#0B1020;
+  --bg-2:#11172A;
+  --ink:#E5EAF5;
+  --muted:#9BA8C7;
+  --primary:#60A5FA;
+  --success:#22C55E;
+  --warning:#F59E0B;
+  --danger:#EF4444;
+  --card:#0F1628;
+  --border:#1F2A44;
+  --shadow:0 4px 24px rgba(0,0,0,.35);
+  --radius:14px;
+}
+html,body{ color:var(--ink)!important; }
+.block-container{ padding-top:1.2rem; padding-bottom:4rem; }
+
+/* ---------- Tipografia ---------- */
+h1,h2,h3{ letter-spacing:.2px; color:var(--ink); }
+h1{ font-size:1.7rem; }
+h2{ font-size:1.35rem; color:#D8E2FF; }
+h3{ font-size:1.1rem; color:#C7D2FE; }
+p,li,span{ color:var(--ink); }
+small, .small, .stCaption, .st-emotion-cache-7oyrr6{ color:var(--muted)!important; }
+
+/* ---------- Cards “prontos” ---------- */
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06)) , var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px 16px;
+  box-shadow:var(--shadow);
+}
+.card + .card{ margin-top:12px; }
+
+/* ---------- Métricas ---------- */
+[data-testid="stMetric"]{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px 14px;
+  box-shadow:var(--shadow);
+}
+[data-testid="stMetric"] [data-testid="stMetricLabel"]{ color:#C7D2FE; font-weight:600; }
+[data-testid="stMetric"] [data-testid="stMetricValue"]{ color:#FFFFFF; font-size:1.4rem; }
+[data-testid="stMetricDelta"]{ font-weight:600; }
+[data-testid="stMetricDelta"] svg{ transform:translateY(1px); }
+
+/* ---------- Botões ---------- */
+.stButton>button{
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.24)) , var(--primary);
+  color:#071427;
+  border:1px solid #2B6CB0;
+  border-radius:12px;
+  padding:8px 14px;
+  font-weight:700;
+  transition:transform .06s ease, filter .15s ease;
+}
+.stButton>button:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+.stButton>button:active{ transform:translateY(0); }
+
+/* Botão secundário (use class="btn--ghost" num st.markdown se quiser variação) */
+.btn--ghost{
+  display:inline-block; padding:8px 14px; border-radius:12px;
+  border:1px solid var(--border); color:var(--ink); background:var(--bg-2);
 }
 
-.stMetricLabel {
-    color: #ffffff;
+/* ---------- Inputs / Selects ---------- */
+.stTextInput>div>div>input,
+.stTextArea textarea,
+.stNumberInput input,
+.stSelectbox>div>div>div{
+  background:var(--bg-2)!important;
+  color:var(--ink)!important;
+  border:1px solid var(--border)!important;
+  border-radius:10px!important;
+}
+.stSelectbox [data-baseweb="select"] div{ background:transparent; }
+
+/* ---------- Abas ---------- */
+.stTabs [role="tablist"]{
+  border-bottom:1px solid var(--border);
+}
+.stTabs [role="tab"]{
+  color:var(--muted);
+  border:1px solid transparent;
+  border-bottom:none;
+  border-top-left-radius:10px; border-top-right-radius:10px;
+  background:transparent; padding:.6rem 1rem;
+}
+.stTabs [aria-selected="true"]{
+  color:var(--ink)!important;
+  background:var(--card);
+  border-color:var(--border);
 }
 
-.stMetricValue {
-    color: #ffffff;
+/* ---------- Sidebar ---------- */
+.sidebar .block-container, [data-testid="stSidebar"]{
+  background:var(--bg-2)!important;
 }
+[data-testid="stSidebar"] .stButton>button{
+  width:100%;
+}
+
+/* ---------- Tabelas nativas ---------- */
+table{ border-collapse:separate; border-spacing:0; }
+thead th{
+  background:var(--bg-2); color:#C7D2FE; border-bottom:1px solid var(--border);
+}
+tbody td{
+  border-bottom:1px solid var(--border);
+}
+tbody tr:hover td{ background:#0C1427; }
+
+/* ---------- AgGrid (dark refinado) ---------- */
+.ag-theme-alpine-dark{
+  --ag-background-color: var(--bg-2);
+  --ag-odd-row-background-color: #0E1527;
+  --ag-header-background-color: #121A2F;
+  --ag-foreground-color: var(--ink);
+  --ag-data-color: var(--ink);
+  --ag-header-foreground-color: #D8E2FF;
+  --ag-border-color: var(--border);
+  --ag-row-border-color: var(--border);
+  --ag-selected-row-background-color: #0D1E36;
+  --ag-range-selection-border-color: var(--primary);
+  --ag-font-size: 13px;
+  --ag-card-radius: 10px;
+}
+.ag-theme-alpine-dark .ag-root-wrapper{
+  border:1px solid var(--border);
+  border-radius:12px; box-shadow:var(--shadow);
+}
+.ag-theme-alpine-dark .ag-row:hover .ag-cell{
+  background-color:#0C1427 !important;
+}
+.ag-theme-alpine-dark .ag-cell{
+  border-right:1px solid #15203A;
+}
+.ag-theme-alpine-dark .ag-header-cell{
+  border-right:1px solid #1A2747;
+  font-weight:600;
+}
+
+/* ---------- Chips (para status/labels) ---------- */
+.chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 10px; border-radius:999px; border:1px solid var(--border);
+  background:#0E172A; color:#DCE7FF; font-size:.85rem; font-weight:600;
+}
+.chip--ok{ border-color:#134E2A; background:rgba(34,197,94,.12); color:#7EE3A2;}
+.chip--warn{ border-color:#7C4A0A; background:rgba(245,158,11,.12); color:#FFD68A;}
+.chip--bad{ border-color:#6A1A1A; background:rgba(239,68,68,.12); color:#FF9A9A;}
+
+/* ---------- Scrollbar ---------- */
+*::-webkit-scrollbar{ height:10px; width:10px; }
+*::-webkit-scrollbar-thumb{ background:#1C2744; border-radius:10px; border:2px solid #0B1020; }
+*::-webkit-scrollbar-track{ background:transparent; }
+
+/* ---------- Feedbacks ---------- */
+.success{ color:#B4F5C7; }
+.warn{ color:#FFD68A; }
+.danger{ color:#FF9A9A; }
+
+/* ---------- Cabeçalho / Branding (opcional) ---------- */
+.header{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin:8px 0 18px 0;
+}
+.header__brand{ display:flex; gap:10px; align-items:center; }
+.header__logo{ width:28px; height:28px; border-radius:8px; }
+.header__title{ font-weight:800; letter-spacing:.3px; color:#E8EDFF; }
+

@@ -45,12 +45,19 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
         conv_copy = f"{round(DF_PCOPY_DADOS.shape[0] / DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%"
     conv_wpp = f"{round(DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo'].shape[0] / DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%"
 
-    # ✅ Mantendo a lógica das suas tabelas
-    dic_terms = {
-        "DF_CENTRAL_CAPTURA": ("CAP", DF_CENTRAL_CAPTURA),
-        "DF_CENTRAL_PREMATRICULA": ("PM", DF_CENTRAL_PREMATRICULA),
-        "DF_CENTRAL_VENDAS": ("VENDAS", DF_CENTRAL_VENDAS)
-    }
+    if PRODUTO == 'EI':
+        # ✅ Mantendo a lógica das suas tabelas
+        dic_terms = {
+            "DF_CENTRAL_CAPTURA": ("CAP", DF_CENTRAL_CAPTURA),
+            "DF_CENTRAL_PREMATRICULA": ("PM", DF_CENTRAL_PREMATRICULA),
+            "DF_CENTRAL_VENDAS": ("VENDAS", DF_CENTRAL_VENDAS)
+        }
+    elif PRODUTO == 'SC':
+        # ✅ Mantendo a lógica das suas tabelas
+        dic_terms = {
+            "DF_CENTRAL_CAPTURA": ("CAP", DF_CENTRAL_CAPTURA),
+            "DF_CENTRAL_VENDAS": ("VENDAS", DF_CENTRAL_VENDAS)
+        }
 
     lista_tabs = []
     for nome, (prefixo, df) in dic_terms.items():

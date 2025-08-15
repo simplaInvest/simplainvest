@@ -50,31 +50,42 @@ st.divider()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.subheader("Conversão da pesquisa de tráfego")
-    st.metric(label="", value= conv_traf)
+    st.metric(label="Conversão da pesquisa de tráfego", value= conv_traf)
 
 with col2:
     if PRODUTO == 'EI':
-        st.subheader("Conversão da pesquisa de copy")
-        st.metric(label="", value= conv_copy)
+        st.metric(label="Conversão da pesquisa de copy", value= conv_copy)
+    elif PRODUTO == 'SC':
+        st.metric(label="Conversão dos grupos de whatsapp", value= conv_wpp)
 
 with col3:
-    st.subheader("Conversão dos grupos de whatsapp")
-    st.metric(label="", value= conv_wpp)
+    if PRODUTO == 'EI':
+        st.metric(label="Conversão dos grupos de whatsapp", value= conv_wpp)
 
 st.divider()
 
-st.subheader('Anúncios')
-tab1, tab2, tab3 = st.tabs(["Captura", "Pré-matrícula", "Vendas"])
+if PRODUTO == 'EI': 
+    st.subheader('Anúncios')
+    tab1, tab2, tab3 = st.tabs(["Captura", "Pré-matrícula", "Vendas"])
 
-with tab1:
-    st.dataframe(lista_tabs[0][1], use_container_width = True, hide_index=True)
+    with tab1:
+        st.dataframe(lista_tabs[0][1], use_container_width = True, hide_index=True)
 
-with tab2:
-    st.dataframe(lista_tabs[1][1], use_container_width = True, hide_index=True)
+    with tab2:
+        st.dataframe(lista_tabs[1][1], use_container_width = True, hide_index=True)
 
-with tab3:
-    st.dataframe(lista_tabs[2][1], use_container_width = True, hide_index=True)
+    with tab3:
+        st.dataframe(lista_tabs[2][1], use_container_width = True, hide_index=True)
+
+elif PRODUTO == 'SC':
+    st.subheader('Anúncios')
+    tab1, tab2 = st.tabs(["Captura", "Vendas"])
+
+    with tab1:
+        st.dataframe(lista_tabs[0][1], use_container_width = True, hide_index=True)
+
+    with tab2:
+        st.dataframe(lista_tabs[1][1], use_container_width = True, hide_index=True)
 
 st.divider()
 

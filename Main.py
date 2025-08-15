@@ -1,6 +1,10 @@
-import streamlit as st
+import streamlit as st, pathlib
 from datetime import datetime
 import hashlib
+
+# Carrega CSS
+css = pathlib.Path("styles.css").read_text(encoding="utf-8")
+st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 def check_authentication():
     """Verifica se o usuário está autenticado"""

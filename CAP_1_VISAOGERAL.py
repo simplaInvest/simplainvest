@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
 import altair as alt
 import matplotlib.pyplot as plt
@@ -10,6 +9,7 @@ from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, 
 from libs.cap_visaogeral_funcs import plot_leads_per_day_altair, plot_group_members_per_day_altair, plot_utm_source_counts_altair, plot_utm_medium_pie_chart
 from libs.safe_exec import executar_com_seguranca
 from libs.auth_funcs import require_authentication
+import pandas as pd
 
 # Verificação obrigatória no início
 require_authentication()
