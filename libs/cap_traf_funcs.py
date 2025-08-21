@@ -116,7 +116,8 @@ def create_heatmap(dataframe):
     patrimonio_order = [
         'Menos de R$5 mil', 'Entre R$5 mil e R$20 mil', 'Entre R$20 mil e R$100 mil',
         'Entre R$100 mil e R$250 mil', 'Entre R$250 mil e R$500 mil',
-        'Entre R$500 mil e R$1 milhão', 'Acima de R$1 milhão'
+        'Entre R$500 mil e R$1 milhão', 'Acima de R$1 milhão',
+        'Entre R$1 milhão e R$5 milhões', 'Acima de R$5 milhões'
     ]
 
     col2_order = [

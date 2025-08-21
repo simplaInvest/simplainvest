@@ -264,7 +264,9 @@ if not DF_CENTRAL_VENDAS.empty:
                 'Entre R$100 mil e R$250 mil',
                 'Entre R$250 mil e R$500 mil',
                 'Entre R$500 mil e R$1 milhão',
-                'Acima de R$1 milhão'
+                'Acima de R$1 milhão',
+                'Entre R$1 milhão e R$5 milhões',
+                'Acima de R$5 milhões'
             ]
 
             fig = calcular_e_plotar_taxa_conversao(DF_PTRAFEGO_DADOS, "PATRIMONIO", "Vendas", patrimonio_order)

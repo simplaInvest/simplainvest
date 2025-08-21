@@ -325,7 +325,9 @@ with tab2:
                             'Alunos: Entre R$100 mil e R$250 mil',
                             'Alunos: Entre R$250 mil e R$500 mil',
                             'Alunos: Entre R$500 mil e R$1 milhão',
-                            'Alunos: Acima de R$1 milhão']
+                            'Alunos: Acima de R$1 milhão',
+                            'Entre R$1 milhão e R$5 milhões',
+                            'Acima de R$5 milhões']
             # Gráfico de Patrimônio dos Alunos
             chart = gerar_barras_empilhadas(dados, alunos_patrim, 'Alunos: Patrimônio')
             chart

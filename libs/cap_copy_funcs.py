@@ -144,6 +144,8 @@ def graf_patrim(data, missing_data_summary):
     var = 'PATRIMONIO'
     classes_order = [
     'Não Informado',
+    'Acima de R$5 milhões',
+    'Entre R$1 milhão e R$5 milhões',
     'Acima de R$1 milhão',
     'Entre R$500 mil e R$1 milhão',
     'Entre R$250 mil e R$500 mil',
