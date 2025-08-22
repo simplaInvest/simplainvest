@@ -10,7 +10,7 @@ import datetime
 
 from libs.data_loader import (
     K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS,
-    K_PTRAFEGO_DADOS, K_CENTRAL_LANCAMENTOS, get_df
+    K_PTRAFEGO_DADOS, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, get_df
 )
 from libs.cap_traf_funcs import create_distribution_chart, calcular_proporcoes_e_plotar, create_heatmap
 from libs.safe_exec import executar_com_seguranca
@@ -45,6 +45,7 @@ with loading_container:
         DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
         DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
         DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
+        DF_PESQUISA_TRAFEGO_PORCAMPANHA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORCAMPANHA)
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
@@ -295,7 +296,7 @@ else:
 
     # Métricas-resumo em cards
     with st.container(border=True):
-        metrics_cols = st.columns(4)
+        metrics_cols = st.columns(6)
         with metrics_cols[0]:
             df_unido = pd.concat([patrimonio_acima_selecionado, renda_acima_selecionado])
             df_unido = df_unido[~df_unido.index.duplicated(keep='first')]
@@ -318,9 +319,31 @@ else:
             )
         with metrics_cols[3]:
             st.metric(
-                label=f'{cols_finan_01} e {cols_finan_02}:',
+                label=f'{cols_finan_01} e\n{cols_finan_02}:',
                 value=f"{renda_patrimonio_acima_selecionado.shape[0]}  "
                       f"({round((renda_patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+            )
+        with metrics_cols[4]:
+            n_qualificados = len(filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int) >= 80] == True)
+            st.metric(
+                label = 'Nº de leads qualificados\n(LEADSCORE)',
+                value = f'{len(filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int) >= 80] == True)} '
+                        f'({round((n_qualificados / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)'
+            )
+        with metrics_cols[5]:
+            DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"] = (
+                            DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"]
+                            .str.strip()          
+                            .str.replace("R$", "", regex=False)  
+                            .str.replace(" ", "", regex=False)
+                            .str.replace(".", "")
+                            .str.replace(",", ".")
+                        )
+            total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].astype(str).astype(float).sum()
+            cpl_qualificados = total_gasto / n_qualificados
+            st.metric(
+                label = 'CPL QUALIFICADO:',
+                value = f'R$ {round(cpl_qualificados, 2)}'
             )
 
     st.divider()

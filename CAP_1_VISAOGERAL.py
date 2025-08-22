@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.express as px
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_LANCAMENTOS, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, get_df
 from libs.cap_visaogeral_funcs import plot_leads_per_day_altair, plot_group_members_per_day_altair, plot_utm_source_counts_altair, plot_utm_medium_pie_chart
 from libs.safe_exec import executar_com_seguranca
 from libs.auth_funcs import require_authentication
@@ -31,11 +31,11 @@ with loading_container:
             DF_CENTRAL_PREMATRICULA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_PRE_MATRICULA)
             DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
             DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
-            DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
             DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
             DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
             DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
             DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
+            DF_PESQUISA_TRAFEGO_PORCAMPANHA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORCAMPANHA)
             status.update(label="Carregados com sucesso!", state="complete", expanded=False)
         except Exception as e:
             status.update(label="Erro ao carregar dados: " + str(e), state="error", expanded=False)
@@ -78,31 +78,25 @@ with st.container(border=True):
         st.metric(label="Conversão", value=f"{round(wpp_members.shape[0]/DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%", delta="")
     
     with col_cpl:
-        if VERSAO_PRINCIPAL >= 17:
+        if not DF_PESQUISA_TRAFEGO_PORCAMPANHA.empty:
+            DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"] = (
+                    DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"]
+                    .str.strip()          
+                    .str.replace("R$", "", regex=False)  
+                    .str.replace(" ", "", regex=False)
+                    .str.replace(".", "")
+                    .str.replace(",", ".")
+                ) 
+            total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].astype(str).astype(float).sum()
+            n_qualificados = len(DF_PTRAFEGO_DADOS[DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int) >= 80] == True)
+            n_total = DF_CENTRAL_CAPTURA.shape[0]
+            cpl_qualificados = total_gasto / n_qualificados
             st.subheader("CPL")
+            st.metric(label = "Total", value = f'R$ {round(total_gasto/n_total, 2)}')
+            st.metric(label = "Qualificados", value = f'R$ {round(total_gasto/n_qualificados, 2)}')
+        else:
+            print()
 
-            # CPL Geral
-            if 'VALOR USADO' in DF_PTRAFEGO_META_ADS.columns:
-                denominador_geral = DF_CENTRAL_CAPTURA.shape[0]
-                if denominador_geral:
-                    cpl_geral = DF_PTRAFEGO_META_ADS['VALOR USADO'].sum() / denominador_geral
-                else:
-                    cpl_geral = 0
-            else:
-                cpl_geral = 0
-
-            st.metric(label="CPL Geral", value=f"R$ {round(cpl_geral, 2)}")
-
-            # CPL Tráfego
-            df_trafego_pago = DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'pago']
-            denominador_trafego = df_trafego_pago.shape[0]
-
-            if 'VALOR USADO' in DF_PTRAFEGO_META_ADS.columns and denominador_trafego:
-                cpl_trafego = DF_PTRAFEGO_META_ADS['VALOR USADO'].sum() / denominador_trafego
-            else:
-                cpl_trafego = 0
-
-            st.metric(label="CPL Tráfego", value=f"R$ {round(cpl_trafego, 2)}")
 
 #------------------------------------------------------------
 #      02. GRUPOS DE WHATSAPP

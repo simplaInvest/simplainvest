@@ -16,6 +16,7 @@ K_PCOPY_DADOS = "K_PCOPY_DADOS"
 K_GRUPOS_WPP = "K_GRUPOS_WPP"
 K_CLICKS_WPP = "K_CLICKS_WPP"
 K_CENTRAL_LANCAMENTOS = "K_CENTRAL_LANCAMENTOS"
+K_PESQUISA_TRAFEGO_PORCAMPANHA = "K_PESQUISA_TRAFEGO_PORCAMPANHA"
 
 def setupSheets(produto, versao):
     lancamento = f"{produto}.{str(versao).zfill(2)}"
@@ -37,6 +38,7 @@ def setupSheets(produto, versao):
     ABA_GRUPOS_WPP = 'SENDFLOW - ATIVIDADE EXPORT'
     ABA_CLICKS_WPP = 'CLICKS POR DIA - BOAS-VINDAS'
     ABA_CENTRAL_LANCAMENTOS = 'DATAS'
+    ABA_PESQUISA_TRAFEGO_PORCAMPANHA = 'POR CAMPANHA'
 
     # PLANILHAS
     SHEETS = {
@@ -89,7 +91,12 @@ def setupSheets(produto, versao):
                             "sheet": SHEET_CENTRAL_LANCAMENTOS,
                             "aba": ABA_CENTRAL_LANCAMENTOS,
                             "dataframe": None,
-                             }
+                             },
+        K_PESQUISA_TRAFEGO_PORCAMPANHA: { "id": "K_PESQUISA_TRAFEGO_PORCAMPANHA",
+                                         "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
+                                         "aba": ABA_PESQUISA_TRAFEGO_PORCAMPANHA,
+                                         "dataframe": None,
+                                         }
     }
     
     return SHEETS
@@ -203,6 +210,9 @@ class DataLoader:
             case "K_CLICKS_WPP":
                 df_sheet = format_ptrafego_clicks(df_sheet)
             case "K_CENTRAL_LANCAMENTOS":
+                df_sheet = df_sheet
+                return df_sheet
+            case "K_PESQUISA_TRAFEGO_PORCAMPANHA":
                 df_sheet = df_sheet
                 return df_sheet
             case _:
