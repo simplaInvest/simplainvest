@@ -481,6 +481,9 @@ else:
             st.dataframe(proxy_pct.T, use_container_width=True)
 
     with tab3:
-        df_leadscore = filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int)
-        fig = px.histogram(df_leadscore, x = 'LEADSCORE', nbins = 15, text_auto=True, title= 'Distribuição dos leadscores (qualidade geral da captação)')
-        st.plotly_chart(fig)
+        if 'LEADSCORE' in DF_PTRAFEGO_DADOS.columns:
+            df_leadscore = filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int)
+            fig = px.histogram(df_leadscore, x = 'LEADSCORE', nbins = 15, text_auto=True, title= 'Distribuição dos leadscores (qualidade geral da captação)')
+            st.plotly_chart(fig)
+        else:
+            print()
