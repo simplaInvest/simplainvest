@@ -331,144 +331,156 @@ else:
                         f'({round((n_qualificados / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)'
             )
         with metrics_cols[5]:
-            DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"] = (
-                            DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"]
-                            .str.strip()          
-                            .str.replace("R$", "", regex=False)  
-                            .str.replace(" ", "", regex=False)
-                            .str.replace(".", "")
-                            .str.replace(",", ".")
-                        )
-            total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].astype(str).astype(float).sum()
-            cpl_qualificados = total_gasto / n_qualificados
-            st.metric(
-                label = 'CPL QUALIFICADO:',
-                value = f'R$ {round(cpl_qualificados, 2)}'
-            )
+            if not DF_PESQUISA_TRAFEGO_PORCAMPANHA.empty:
+                DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"] = (
+                                DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"]
+                                .str.strip()          
+                                .str.replace("R$", "", regex=False)  
+                                .str.replace(" ", "", regex=False)
+                                .str.replace(".", "")
+                                .str.replace(",", ".")
+                            )
+                total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].astype(str).astype(float).sum()
+                cpl_qualificados = total_gasto / n_qualificados
+                st.metric(
+                    label = 'CPL QUALIFICADO:',
+                    value = f'R$ {round(cpl_qualificados, 2)}'
+                )
+            else:
+                print()
 
     st.divider()
 
     # ------------------------------------------------------------
     # 03. GRÁFICOS DE BARRAS & DATAFRAME
     # ------------------------------------------------------------
-    secondary_order = col2_order
-    CHART_CONFIG = {
-        'patrimonio': {'column': 'PATRIMONIO', 'color': 'lightblue', 'title': '', 'display_name': 'Patrimônio'},
-        'renda': {'column': cols_finan_02, 'color': 'lightgreen', 'title': '', 'display_name': 'Renda' if PRODUTO == "SW" else 'Quanto poupa'},
-        'escolaridade': {'column': 'ESCOLARIDADE', 'color': 'lightyellow', 'title': '', 'display_name': 'Escolaridade'}
-    }
+    tab1, tab2, tab3 = st.tabs(['Perfil', 'Heatmap & Proxy', 'LEADSCORE'])
 
-    filtered_patrimonio = filtered_DF_PTRAFEGO_DADOS[
-        filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_order)
-    ]
+    with tab1:
+        secondary_order = col2_order
+        CHART_CONFIG = {
+            'patrimonio': {'column': 'PATRIMONIO', 'color': 'lightblue', 'title': '', 'display_name': 'Patrimônio'},
+            'renda': {'column': cols_finan_02, 'color': 'lightgreen', 'title': '', 'display_name': 'Renda' if PRODUTO == "SW" else 'Quanto poupa'},
+            'escolaridade': {'column': 'ESCOLARIDADE', 'color': 'lightyellow', 'title': '', 'display_name': 'Escolaridade'}
+        }
 
-    renda_coluna = 'QUANTO POUPA' if PRODUTO == 'SW' else 'RENDA MENSAL'
-    filtered_renda = filtered_DF_PTRAFEGO_DADOS[
-        filtered_DF_PTRAFEGO_DADOS[renda_coluna].isin(col2_order)
-    ]
-
-    if 'ESCOLARIDADE' in filtered_DF_PTRAFEGO_DADOS.columns:
-        filtered_escolaridade = filtered_DF_PTRAFEGO_DADOS[
-            filtered_DF_PTRAFEGO_DADOS['ESCOLARIDADE'].isin(escolaridade_order)
+        filtered_patrimonio = filtered_DF_PTRAFEGO_DADOS[
+            filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(patrimonio_order)
         ]
 
-    col1, col2 = st.columns(2)
-
-    # 03.A Patrimônio + Escolaridade
-    with col1:
-        with st.container(border=True):
-            st.subheader("Patrimônio")
-            st.caption("Distribuição por faixa")
-            patrimonio_chart, patrimonio_df = executar_com_seguranca(
-                "PATRIMÔNIO",
-                lambda: create_distribution_chart(
-                    filtered_patrimonio, 'PATRIMONIO', patrimonio_order,
-                    CHART_CONFIG['patrimonio']['color'], CHART_CONFIG['patrimonio']['title']
-                )
-            )
-            st.altair_chart(patrimonio_chart, use_container_width=True)
-            st.dataframe(
-                patrimonio_df[['PATRIMONIO', 'count']].rename(columns={'PATRIMONIO': 'Patrimônio', 'count': 'Quantidade'}),
-                use_container_width=True, hide_index=True
-            )
+        renda_coluna = 'QUANTO POUPA' if PRODUTO == 'SW' else 'RENDA MENSAL'
+        filtered_renda = filtered_DF_PTRAFEGO_DADOS[
+            filtered_DF_PTRAFEGO_DADOS[renda_coluna].isin(col2_order)
+        ]
 
         if 'ESCOLARIDADE' in filtered_DF_PTRAFEGO_DADOS.columns:
+            filtered_escolaridade = filtered_DF_PTRAFEGO_DADOS[
+                filtered_DF_PTRAFEGO_DADOS['ESCOLARIDADE'].isin(escolaridade_order)
+            ]
+
+        col1, col2 = st.columns(2)
+
+        # 03.A Patrimônio + Escolaridade
+        with col1:
             with st.container(border=True):
-                st.subheader("Escolaridade")
-                st.caption("Distribuição por nível")
-                escolaridade_chart, escolaridade_df = executar_com_seguranca(
-                    "ESCOLARIDADE",
+                st.subheader("Patrimônio")
+                st.caption("Distribuição por faixa")
+                patrimonio_chart, patrimonio_df = executar_com_seguranca(
+                    "PATRIMÔNIO",
                     lambda: create_distribution_chart(
-                        filtered_escolaridade, 'ESCOLARIDADE', escolaridade_order,
-                        CHART_CONFIG['escolaridade']['color'], CHART_CONFIG['escolaridade']['title']
+                        filtered_patrimonio, 'PATRIMONIO', patrimonio_order,
+                        CHART_CONFIG['patrimonio']['color'], CHART_CONFIG['patrimonio']['title']
                     )
                 )
-                st.altair_chart(escolaridade_chart, use_container_width=True)
+                st.altair_chart(patrimonio_chart, use_container_width=True)
                 st.dataframe(
-                    escolaridade_df[['ESCOLARIDADE', 'count']].rename(columns={'ESCOLARIDADE': 'Escolaridade', 'count': 'Quantidade'}),
+                    patrimonio_df[['PATRIMONIO', 'count']].rename(columns={'PATRIMONIO': 'Patrimônio', 'count': 'Quantidade'}),
                     use_container_width=True, hide_index=True
                 )
 
-    # 03.B Renda/Quanto poupa
-    with col2:
-        with st.container(border=True):
-            st.subheader("Quanto poupa" if PRODUTO == "SW" else "Renda mensal")
-            st.caption("Distribuição por faixa")
-            renda_chart, renda_df = executar_com_seguranca(
-                "RENDA MENSAL",
-                lambda: create_distribution_chart(
-                    filtered_renda, renda_coluna, col2_order,
-                    CHART_CONFIG['renda']['color'], CHART_CONFIG['renda']['title']
+            if 'ESCOLARIDADE' in filtered_DF_PTRAFEGO_DADOS.columns:
+                with st.container(border=True):
+                    st.subheader("Escolaridade")
+                    st.caption("Distribuição por nível")
+                    escolaridade_chart, escolaridade_df = executar_com_seguranca(
+                        "ESCOLARIDADE",
+                        lambda: create_distribution_chart(
+                            filtered_escolaridade, 'ESCOLARIDADE', escolaridade_order,
+                            CHART_CONFIG['escolaridade']['color'], CHART_CONFIG['escolaridade']['title']
+                        )
+                    )
+                    st.altair_chart(escolaridade_chart, use_container_width=True)
+                    st.dataframe(
+                        escolaridade_df[['ESCOLARIDADE', 'count']].rename(columns={'ESCOLARIDADE': 'Escolaridade', 'count': 'Quantidade'}),
+                        use_container_width=True, hide_index=True
+                    )
+
+        # 03.B Renda/Quanto poupa
+        with col2:
+            with st.container(border=True):
+                st.subheader("Quanto poupa" if PRODUTO == "SW" else "Renda mensal")
+                st.caption("Distribuição por faixa")
+                renda_chart, renda_df = executar_com_seguranca(
+                    "RENDA MENSAL",
+                    lambda: create_distribution_chart(
+                        filtered_renda, renda_coluna, col2_order,
+                        CHART_CONFIG['renda']['color'], CHART_CONFIG['renda']['title']
+                    )
                 )
-            )
-            st.altair_chart(renda_chart, use_container_width=True)
-            st.dataframe(
-                renda_df[[renda_coluna, 'count']].rename(
-                    columns={renda_coluna: "Quanto poupa" if PRODUTO == "SW" else "Renda mensal", 'count': 'Quantidade'}
-                ),
-                use_container_width=True, hide_index=True
-            )
+                st.altair_chart(renda_chart, use_container_width=True)
+                st.dataframe(
+                    renda_df[[renda_coluna, 'count']].rename(
+                        columns={renda_coluna: "Quanto poupa" if PRODUTO == "SW" else "Renda mensal", 'count': 'Quantidade'}
+                    ),
+                    use_container_width=True, hide_index=True
+                )
 
-    st.divider()
+        st.divider()
 
-    # ------------------------------------------------------------
-    # 04. HEATMAP
-    # ------------------------------------------------------------
-    col1, col2, col3 = st.columns([1, 7, 1])
-    with col2:
+    with tab2:
+        # ------------------------------------------------------------
+        # 04. HEATMAP
+        # ------------------------------------------------------------
+        col1, col2, col3 = st.columns([1, 7, 1])
+        with col2:
+            with st.container(border=True):
+                st.subheader("Mapa de calor de respostas")
+                st.caption("Correlação visual entre variáveis-chave da pesquisa")
+                executar_com_seguranca("HEATMAP", lambda: create_heatmap(filtered_DF_PTRAFEGO_DADOS))
+
+        st.divider()
+
+        # ------------------------------------------------------------
+        # 05. Proxy de Vendas (tabelas + exibição formatada)
+        # ------------------------------------------------------------
+        df_ptrafego_dados = DF_PTRAFEGO_DADOS.copy()
+        df_central_vendas = DF_CENTRAL_VENDAS.copy()
+
+        # Dummy de compra
+        df_ptrafego_dados["Comprou"] = df_ptrafego_dados["EMAIL"].isin(df_central_vendas["EMAIL"]).astype(int)
+
+        # Tabelas de leads e vendas por faixa
+        tabela_leads = df_ptrafego_dados.pivot_table(
+            index="RENDA MENSAL", columns="PATRIMONIO", values="EMAIL", aggfunc="count", fill_value=0
+        )
+        tabela_vendas = df_ptrafego_dados.pivot_table(
+            index="RENDA MENSAL", columns="PATRIMONIO", values="Comprou", aggfunc="sum", fill_value=0
+        )
+
+        # Ordenação
+        tabela_leads = tabela_leads.reindex(index=col2_order, columns=patrimonio_order, fill_value=0)
+        tabela_vendas = tabela_vendas.reindex(index=col2_order, columns=patrimonio_order, fill_value=0)
+
+        # Proxy de conversão
+        proxy_vendas = tabela_vendas / tabela_leads
+        proxy_pct = (proxy_vendas * 100).round(1)
+
         with st.container(border=True):
-            st.subheader("Mapa de calor de respostas")
-            st.caption("Correlação visual entre variáveis-chave da pesquisa")
-            executar_com_seguranca("HEATMAP", lambda: create_heatmap(filtered_DF_PTRAFEGO_DADOS))
+            st.subheader("Proxy de Vendas por Renda × Patrimônio")
+            st.caption("Taxa de conversão (%) = vendas / leads, por faixa")
+            st.dataframe(proxy_pct.T, use_container_width=True)
 
-    st.divider()
-
-    # ------------------------------------------------------------
-    # 05. Proxy de Vendas (tabelas + exibição formatada)
-    # ------------------------------------------------------------
-    df_ptrafego_dados = DF_PTRAFEGO_DADOS.copy()
-    df_central_vendas = DF_CENTRAL_VENDAS.copy()
-
-    # Dummy de compra
-    df_ptrafego_dados["Comprou"] = df_ptrafego_dados["EMAIL"].isin(df_central_vendas["EMAIL"]).astype(int)
-
-    # Tabelas de leads e vendas por faixa
-    tabela_leads = df_ptrafego_dados.pivot_table(
-        index="RENDA MENSAL", columns="PATRIMONIO", values="EMAIL", aggfunc="count", fill_value=0
-    )
-    tabela_vendas = df_ptrafego_dados.pivot_table(
-        index="RENDA MENSAL", columns="PATRIMONIO", values="Comprou", aggfunc="sum", fill_value=0
-    )
-
-    # Ordenação
-    tabela_leads = tabela_leads.reindex(index=col2_order, columns=patrimonio_order, fill_value=0)
-    tabela_vendas = tabela_vendas.reindex(index=col2_order, columns=patrimonio_order, fill_value=0)
-
-    # Proxy de conversão
-    proxy_vendas = tabela_vendas / tabela_leads
-    proxy_pct = (proxy_vendas * 100).round(1)
-
-    with st.container(border=True):
-        st.subheader("Proxy de Vendas por Renda × Patrimônio")
-        st.caption("Taxa de conversão (%) = vendas / leads, por faixa")
-        st.dataframe(proxy_pct.T, use_container_width=True)
+    with tab3:
+        df_leadscore = filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int)
+        fig = px.histogram(df_leadscore, x = 'LEADSCORE', nbins = 15, text_auto=True, title= 'Distribuição dos leadscores (qualidade geral da captação)')
+        st.plotly_chart(fig)
