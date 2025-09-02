@@ -354,7 +354,7 @@ else:
     # ------------------------------------------------------------
     # 03. GRÁFICOS DE BARRAS & DATAFRAME
     # ------------------------------------------------------------
-    tab1, tab2, tab3 = st.tabs(['Perfil', 'Heatmap & Proxy', 'LEADSCORE'])
+    tab1, tab2, tab3, tab4 = st.tabs(['Perfil', 'Heatmap & Proxy', 'LEADSCORE', 'Por Anúncio'])
 
     with tab1:
         secondary_order = col2_order
@@ -487,3 +487,100 @@ else:
             st.plotly_chart(fig)
         else:
             print()
+    
+    with tab4:
+        df_anuncios = DF_PTRAFEGO_DADOS.copy()
+
+        # --- opção do usuário ---
+        modo = st.radio(
+            "Exibir leads desqualificados em:",
+            ["Números absolutos" , "Percentual (%)"],
+            horizontal=True
+        )
+
+        # --- Sanitizar LEADSCORE e criar coluna QUALIFICADO ---
+        df_anuncios["LEADSCORE_NUM"] = (
+            df_anuncios["LEADSCORE"]
+            .astype(str)
+            .str.replace("%", "", regex=False)
+            .str.replace(",", ".", regex=False)
+            .str.extract(r"(\d+\.?\d*)")[0]
+            .astype(float)
+        )
+        df_anuncios["QUALIFICADO"] = df_anuncios["LEADSCORE_NUM"] >= 80
+
+        # Garantir strings em UTMs e tratar vazios/NaN
+        for col in ["UTM_ADSET", "UTM_CAMPAIGN", "UTM_TERM"]:
+            if col in df_anuncios.columns:
+                df_anuncios[col] = df_anuncios[col].astype(str)
+                df_anuncios[col] = df_anuncios[col].replace(["nan", "None", ""], None)
+                df_anuncios[col] = df_anuncios[col].fillna("indefinido")
+
+        # --- Cálculo base (uma vez só) ---
+        def calc_stats(df, utm_col):
+            stats = (
+                df.groupby(utm_col, dropna=False)
+                .agg(total=("EMAIL", "count"),
+                    desqualificados=("QUALIFICADO", lambda x: (~x).sum()))
+                .reset_index()
+            )
+            stats["perc_desqualificados"] = (stats["desqualificados"] / stats["total"]) * 100
+            return stats
+
+        stats_adset = calc_stats(df_anuncios, "UTM_ADSET")
+        stats_camp  = calc_stats(df_anuncios, "UTM_CAMPAIGN")
+        stats_term  = calc_stats(df_anuncios, "UTM_TERM")
+
+        # --- Função para pegar o Top 10 dependendo do modo selecionado ---
+        def get_top(stats_df, metric_col, top_n=10):
+            # nlargest garante Top 10 por métrica correta
+            top = stats_df.nlargest(top_n, metric_col).copy()
+            # ordenar para exibir em ordem decrescente no gráfico horizontal
+            top = top.sort_values(metric_col, ascending=True)
+            return top
+
+        # Escolher métrica e rótulos conforme o modo
+        if modo == "Percentual (%)":
+            x_col = "perc_desqualificados"
+            text_fmt = "%{text:.2f}%"
+            title_suf = " (%)"
+        else:
+            x_col = "desqualificados"
+            text_fmt = "%{text}"
+            title_suf = " (absoluto)"
+
+        top_adset = get_top(stats_adset, x_col, top_n=10)
+        top_camp  = get_top(stats_camp,  x_col, top_n=10)
+        top_term  = get_top(stats_term,  x_col, top_n=10)
+
+        # --- Gráfico ---
+        def make_chart(data, name):
+            # garante a ordem visual (maior no topo)
+            categorias = data[name].tolist()
+            fig = px.bar(
+                data,
+                x=x_col,
+                y=name,
+                orientation="h",
+                text=x_col,
+                title=f"Top 10 {name} com maiores leads desqualificados{title_suf}",
+                labels={x_col: "Desqualificados", name: name},
+                hover_data={
+                    "total": True,
+                    "desqualificados": True,
+                    "perc_desqualificados": ':.2f'
+                }
+            )
+            fig.update_traces(texttemplate=text_fmt, textposition="outside", cliponaxis=False)
+            fig.update_layout(
+                yaxis=dict(categoryorder="array", categoryarray=categorias),
+                margin=dict(l=10, r=10, t=60, b=40)
+            )
+            return fig
+
+        st.plotly_chart(make_chart(top_adset, "UTM_ADSET"), use_container_width=True)
+        st.plotly_chart(make_chart(top_camp,  "UTM_CAMPAIGN"), use_container_width=True)
+        st.plotly_chart(make_chart(top_term,  "UTM_TERM"), use_container_width=True)
+
+        
+        
