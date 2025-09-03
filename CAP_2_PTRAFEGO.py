@@ -259,6 +259,7 @@ else:
                             selected_dates[0], selected_dates[1]
                         )
                     ]
+                    df_anuncios = filtered_DF_PTRAFEGO_DADOS.copy() # Para a aba "Por anúncio"
             else:
                 st.warning("Não há datas válidas disponíveis para filtrar.")
                 selected_dates = None
@@ -489,8 +490,6 @@ else:
             print()
     
     with tab4:
-        df_anuncios = DF_PTRAFEGO_DADOS.copy()
-
         # --- opção do usuário ---
         modo = st.radio(
             "Exibir leads desqualificados em:",
