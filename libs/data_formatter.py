@@ -56,3 +56,20 @@ def format_ptrafego_dados(df_ptrafego_dados):
             st.warning("Colunas duplicadas foram encontradas e excluídas.")
             df_ptrafego_dados = df_ptrafego_dados.loc[:, ~df_ptrafego_dados.columns.duplicated()]
     return df_ptrafego_dados
+
+def format_pesquisa_trafego_colunas_monetarias(df):
+    for col in ['CPL ATUAL', 'VALOR USADO']:
+        df[col] = (
+            df[col]
+            .astype(str)
+            .str.strip()
+            .str.replace("R$", "", regex=False)
+            .str.replace(" ", "", regex=False)
+            .str.replace(".", "", regex=False)     # remove separador de milhar
+            .str.replace(",", ".", regex=False)    # troca vírgula por ponto
+            .replace("-", 0.0)                   # troca "-" por 0
+            .astype(float)                         # converte para float
+        )
+    return df
+
+

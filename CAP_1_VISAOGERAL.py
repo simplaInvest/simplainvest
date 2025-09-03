@@ -79,17 +79,9 @@ with st.container(border=True):
     
     with col_cpl:
         if not DF_PESQUISA_TRAFEGO_PORCAMPANHA.empty:
-            DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"] = (
-                    DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"]
-                    .str.strip()          
-                    .str.replace("R$", "", regex=False)  
-                    .str.replace(" ", "", regex=False)
-                    .str.replace(".", "")
-                    .str.replace(",", ".")
-                ) 
-            total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].astype(str).astype(float).sum()
+            total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].sum()
             n_qualificados = len(DF_PTRAFEGO_DADOS[DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int) >= 80] == True)
-            n_total = DF_CENTRAL_CAPTURA.shape[0]
+            n_total = DF_PTRAFEGO_DADOS.shape[0]
             cpl_qualificados = total_gasto / n_qualificados
             st.subheader("CPL")
             st.metric(label = "Total", value = f'R$ {round(total_gasto/n_total, 2)}')

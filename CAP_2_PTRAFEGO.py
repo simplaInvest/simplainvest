@@ -11,8 +11,9 @@ import statistics as stats
 
 from libs.data_loader import (
     K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS,
-    K_PTRAFEGO_DADOS, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, get_df
-)
+    K_PTRAFEGO_DADOS, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, 
+    K_PESQUISA_TRAFEGO_PORANUNCIO, K_PESQUISA_TRAFEGO_PORCONJUNTO, get_df
+)       
 from libs.cap_traf_funcs import create_distribution_chart, calcular_proporcoes_e_plotar, create_heatmap
 from libs.safe_exec import executar_com_seguranca
 from libs.auth_funcs import require_authentication
@@ -47,6 +48,8 @@ with loading_container:
         DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
         DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
         DF_PESQUISA_TRAFEGO_PORCAMPANHA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORCAMPANHA)
+        DF_PESQUISA_TRAFEGO_PORANUNCIO = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORANUNCIO)
+        DF_PESQUISA_TRAFEGO_PORCONJUNTO = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORCONJUNTO)
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
@@ -260,7 +263,7 @@ else:
                             selected_dates[0], selected_dates[1]
                         )
                     ]
-                    df_anuncios = filtered_DF_PTRAFEGO_DADOS.copy() # Para a aba "Por anúncio"
+
             else:
                 st.warning("Não há datas válidas disponíveis para filtrar.")
                 selected_dates = None
@@ -334,14 +337,6 @@ else:
             )
         with metrics_cols[5]:
             if not DF_PESQUISA_TRAFEGO_PORCAMPANHA.empty:
-                DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"] = (
-                                DF_PESQUISA_TRAFEGO_PORCAMPANHA["VALOR USADO"]
-                                .str.strip()          
-                                .str.replace("R$", "", regex=False)  
-                                .str.replace(" ", "", regex=False)
-                                .str.replace(".", "")
-                                .str.replace(",", ".")
-                            )
                 total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].astype(str).astype(float).sum()
                 cpl_qualificados = total_gasto / n_qualificados
                 st.metric(
@@ -502,14 +497,19 @@ else:
         with cols_select[1]:
             pesquisa = st.text_input(label="Pesquise o UTM", icon='🔎')
 
-        df_anuncios = filtered_DF_PTRAFEGO_DADOS.copy()
+        df_dados_traf = filtered_DF_PTRAFEGO_DADOS.copy()
+        df_anuncios = DF_PESQUISA_TRAFEGO_PORANUNCIO.copy()
+        df_conjuntos = DF_PESQUISA_TRAFEGO_PORCONJUNTO.copy()
+        df_campanhas = DF_PESQUISA_TRAFEGO_PORCAMPANHA.copy()
+        
+        cpl_total = total_gasto / len(DF_PTRAFEGO_DADOS)
 
         # se vazio/None, pega todos
         if not pesquisa:
-            list_utms = list(df_anuncios[utm_selected].astype(str).unique())
+            list_utms = list(df_dados_traf[utm_selected].astype(str).unique())
         else:
             list_utms = list(
-                df_anuncios[df_anuncios[utm_selected].astype(str).str.contains(pesquisa, case=False, na=False)]
+                df_dados_traf[df_dados_traf[utm_selected].astype(str).str.contains(pesquisa, case=False, na=False)]
                 [utm_selected].astype(str).unique()
             )
 
@@ -528,7 +528,7 @@ else:
         pct_renda_patrim_lanc  = round((total_renda_patrim_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
 
         for element in list_utms:
-            df_loop = df_anuncios[df_anuncios[utm_selected].astype(str) == str(element)]
+            df_loop = df_dados_traf[df_dados_traf[utm_selected].astype(str) == str(element)]
             patrim_loop = patrimonio_acima_selecionado[patrimonio_acima_selecionado[utm_selected].astype(str) == str(element)]
             renda_loop = renda_acima_selecionado[renda_acima_selecionado[utm_selected].astype(str) == str(element)]
             renda_patrim_loop = renda_patrimonio_acima_selecionado[renda_patrimonio_acima_selecionado[utm_selected].astype(str) == str(element)]
@@ -597,7 +597,7 @@ else:
         for utm, met in dict_metricas_por_utm.items():
             with st.container(border=True):
                 st.subheader(str(utm))
-                cols_loop = st.columns(5)
+                cols_loop = st.columns(7)
 
                 # ------- TOTAL DE LEADS -------
                 with cols_loop[0]:
@@ -691,3 +691,44 @@ else:
                         delta_color="normal",
                         help=help_qual
                     )
+                
+                if utm_selected == 'UTM_TERM':
+                    with cols_loop[5]:
+                        # ------- CPL GERAL -------
+                        subset_anuncio = df_anuncios[df_anuncios['ANUNCIO'] == utm]
+                        cpl_anuncio = subset_anuncio['CPL ATUAL'].sum()
+                        n_total = DF_CENTRAL_CAPTURA.shape[0]
+                        delta_cpl_anuncio = cpl_anuncio - cpl_total
+                        if delta_cpl_anuncio < 0:
+                            help_qual = f"{abs(delta_cpl_anuncio):.1f} mais barato que a média"
+                        elif delta_cpl_anuncio > 0:
+                            help_qual = f"{abs(delta_cpl_anuncio):.1f} mais caro que a média"
+                        else:
+                            help_qual = "cpl na média"
+                        st.metric(
+                            label = 'CPL Total',
+                            value = f"{round(cpl_anuncio, 2)}",
+                            delta = f'{round(delta_cpl_anuncio, 2)}',
+                            delta_color="inverse",
+                            help=help_qual
+                        )
+                    
+                    with cols_loop[6]:
+                        # ------- CPL QUALIFICADOS -------
+                        valor_usado_anuncio = subset_anuncio['VALOR USADO'].sum()
+                        cpl_qualificados_anuncio = valor_usado_anuncio / met['n_leads_qualificados']
+                        # cpl_qualificados contém o valor do cpl total considerando apenas os leads qualificados
+                        delta_cpl_qualificados =cpl_qualificados_anuncio - cpl_qualificados 
+                        if delta_cpl_qualificados < 0:
+                            help_qual = f"{abs(delta_cpl_qualificados):.1f} mais barato que a média"
+                        elif delta_cpl_qualificados > 0:
+                            help_qual = f"{abs(delta_cpl_qualificados):.1f} mais caro que a média"
+                        else:
+                            help_qual = "cpl na média"
+                        st.metric(
+                            label = 'CPL Qualificados',
+                            value = f"{round(cpl_qualificados_anuncio, 2)}",
+                            delta = f'{round(delta_cpl_qualificados, 2)}',
+                            delta_color="inverse",
+                            help=help_qual
+                        )
