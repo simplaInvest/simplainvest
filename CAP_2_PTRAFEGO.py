@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import plotly.graph_objects as go
 import datetime
+import statistics as stats
 
 from libs.data_loader import (
     K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS,
@@ -490,96 +491,98 @@ else:
             print()
     
     with tab4:
-        # --- opção do usuário ---
-        modo = st.radio(
-            "Exibir leads desqualificados em:",
-            ["Números absolutos" , "Percentual (%)"],
-            horizontal=True
-        )
-
-        # --- Sanitizar LEADSCORE e criar coluna QUALIFICADO ---
-        df_anuncios["LEADSCORE_NUM"] = (
-            df_anuncios["LEADSCORE"]
-            .astype(str)
-            .str.replace("%", "", regex=False)
-            .str.replace(",", ".", regex=False)
-            .str.extract(r"(\d+\.?\d*)")[0]
-            .astype(float)
-        )
-        df_anuncios["QUALIFICADO"] = df_anuncios["LEADSCORE_NUM"] >= 80
-
-        # Garantir strings em UTMs e tratar vazios/NaN
-        for col in ["UTM_ADSET", "UTM_CAMPAIGN", "UTM_TERM"]:
-            if col in df_anuncios.columns:
-                df_anuncios[col] = df_anuncios[col].astype(str)
-                df_anuncios[col] = df_anuncios[col].replace(["nan", "None", ""], None)
-                df_anuncios[col] = df_anuncios[col].fillna("indefinido")
-
-        # --- Cálculo base (uma vez só) ---
-        def calc_stats(df, utm_col):
-            stats = (
-                df.groupby(utm_col, dropna=False)
-                .agg(total=("EMAIL", "count"),
-                    desqualificados=("QUALIFICADO", lambda x: (~x).sum()))
-                .reset_index()
+        #############################################################################################################
+        cols_select = st.columns([1,1])
+        with cols_select[0]:
+            utm_selected = st.radio(
+                label="Selecione o UTM que quer analisar:",
+                options=['UTM_TERM', 'UTM_CAMPAIGN', 'UTM_SOURCE', 'UTM_MEDIUM', 'UTM_ADSET'],
+                horizontal=True
             )
-            stats["perc_desqualificados"] = (stats["desqualificados"] / stats["total"]) * 100
-            return stats
+        with cols_select[1]:
+            pesquisa = st.text_input(label="Pesquise o UTM", icon='🔎')
 
-        stats_adset = calc_stats(df_anuncios, "UTM_ADSET")
-        stats_camp  = calc_stats(df_anuncios, "UTM_CAMPAIGN")
-        stats_term  = calc_stats(df_anuncios, "UTM_TERM")
+        df_anuncios = filtered_DF_PTRAFEGO_DADOS.copy()
 
-        # --- Função para pegar o Top 10 dependendo do modo selecionado ---
-        def get_top(stats_df, metric_col, top_n=10):
-            # nlargest garante Top 10 por métrica correta
-            top = stats_df.nlargest(top_n, metric_col).copy()
-            # ordenar para exibir em ordem decrescente no gráfico horizontal
-            top = top.sort_values(metric_col, ascending=True)
-            return top
-
-        # Escolher métrica e rótulos conforme o modo
-        if modo == "Percentual (%)":
-            x_col = "perc_desqualificados"
-            text_fmt = "%{text:.2f}%"
-            title_suf = " (%)"
+        # se vazio/None, pega todos
+        if not pesquisa:
+            list_utms = list(df_anuncios[utm_selected].astype(str).unique())
         else:
-            x_col = "desqualificados"
-            text_fmt = "%{text}"
-            title_suf = " (absoluto)"
-
-        top_adset = get_top(stats_adset, x_col, top_n=10)
-        top_camp  = get_top(stats_camp,  x_col, top_n=10)
-        top_term  = get_top(stats_term,  x_col, top_n=10)
-
-        # --- Gráfico ---
-        def make_chart(data, name):
-            # garante a ordem visual (maior no topo)
-            categorias = data[name].tolist()
-            fig = px.bar(
-                data,
-                x=x_col,
-                y=name,
-                orientation="h",
-                text=x_col,
-                title=f"Top 10 {name} com maiores leads desqualificados{title_suf}",
-                labels={x_col: "Desqualificados", name: name},
-                hover_data={
-                    "total": True,
-                    "desqualificados": True,
-                    "perc_desqualificados": ':.2f'
-                }
+            list_utms = list(
+                df_anuncios[df_anuncios[utm_selected].astype(str).str.contains(pesquisa, case=False, na=False)]
+                [utm_selected].astype(str).unique()
             )
-            fig.update_traces(texttemplate=text_fmt, textposition="outside", cliponaxis=False)
-            fig.update_layout(
-                yaxis=dict(categoryorder="array", categoryarray=categorias),
-                margin=dict(l=10, r=10, t=60, b=40)
+
+        dict_metricas_por_utm = {}
+
+        total_lancamento = filtered_DF_PTRAFEGO_DADOS.shape[0]
+
+        for element in list_utms:
+            df_loop = df_anuncios[df_anuncios[utm_selected].astype(str) == str(element)]
+
+            total_leads_utm = df_loop.shape[0]
+            total_leads_utm_percent = round(((total_leads_utm / total_lancamento) * 100), 2) if total_lancamento else 0.0
+
+            leadscore_series = pd.to_numeric(df_loop['LEADSCORE'], errors='coerce')
+            n_qual_loop = int((leadscore_series >= 80).sum())
+            n_qual_loop_pct = round(((n_qual_loop / total_leads_utm) * 100), 2) if total_leads_utm else 0.0
+
+            dict_metricas_por_utm[str(element)] = {
+                "total_leads": int(total_leads_utm),
+                "pct_total_leads_lancamento": total_leads_utm_percent,
+                "n_leads_qualificados": n_qual_loop,
+                "pct_leads_qualificados": n_qual_loop_pct,
+            }
+
+        # ordenar por qualificados (decrescente)
+        dict_metricas_por_utm = dict(
+            sorted(
+                dict_metricas_por_utm.items(),
+                key=lambda x: x[1]["n_leads_qualificados"],
+                reverse=True
             )
-            return fig
+        )
 
-        st.plotly_chart(make_chart(top_adset, "UTM_ADSET"), use_container_width=True)
-        st.plotly_chart(make_chart(top_camp,  "UTM_CAMPAIGN"), use_container_width=True)
-        st.plotly_chart(make_chart(top_term,  "UTM_TERM"), use_container_width=True)
+        # --- Baseline do lançamento ---
+        # Qualificados/desqualificados considerando TODO o lançamento
+        leadscore_all = pd.to_numeric(filtered_DF_PTRAFEGO_DADOS['LEADSCORE'], errors='coerce')
+        total_qual_lanc = int((leadscore_all >= 80).sum())
+        total_desqual_lanc = int((leadscore_all < 80).sum())
 
+        lanc_qual_rate_pct = round((total_qual_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
+        lanc_desqual_rate_pct = round((total_desqual_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
+        # (usaremos lanc_qual_rate_pct como referência para o delta de % qualificados)
+
+        # --- Deltas de contagem vs médias simples (opcional manter) ---
+        media_total_leads = stats.mean(v["total_leads"] for v in dict_metricas_por_utm.values()) if dict_metricas_por_utm else 0
+        media_n_qual = stats.mean(v["n_leads_qualificados"] for v in dict_metricas_por_utm.values()) if dict_metricas_por_utm else 0
         
-        
+
+        for utm, met in dict_metricas_por_utm.items():
+            with st.container(border=True):
+                st.subheader(str(utm))
+                cols_metricas_anun = st.columns(2)
+
+                pct_tot = met.get('pct_total_leads_lancamento', met.get('pct_total_leads_lançamento', 0))
+
+                # deltas de contagem (vs média dos anúncios)
+                delta_total_leads = met['total_leads'] - media_total_leads
+                delta_n_qual = met['n_leads_qualificados'] - media_n_qual
+
+                # delta da % qualificados (vs taxa do lançamento)
+                delta_pct_qual_vs_lanc = met['pct_leads_qualificados'] - lanc_qual_rate_pct
+
+                with cols_metricas_anun[0]:
+                    st.metric(
+                        label='TOTAL DE LEADS',
+                        value=f"{met['total_leads']} ({pct_tot}%)",
+                        delta=f"{delta_total_leads:+.0f} vs média de captação dos anúncios"
+                    )
+
+                with cols_metricas_anun[1]:
+                    st.metric(
+                        label='LEADS QUALIFICADOS (>=80)',
+                        value=f"{met['n_leads_qualificados']} ({met['pct_leads_qualificados']}%)",
+                        # delta em pontos percentuais vs lançamento (não média dos anúncios)
+                        delta=f"{delta_pct_qual_vs_lanc:+.1f} % vs média do lançamento"
+                    )

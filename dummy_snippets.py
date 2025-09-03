@@ -1,6 +1,6 @@
 import streamlit as st
 
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CENTRAL_LANCAMENTOS, clear_df, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, clear_df, get_df
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
@@ -55,3 +55,6 @@ if f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_GRUPOS_WPP}" in st.session_state:
 if f"{K_CENTRAL_LANCAMENTOS}" in st.session_state:
     with st.expander("CENTRAL_LANCAMENTOS"):
         st.dataframe(st.session_state[f"{K_CENTRAL_LANCAMENTOS}"])
+if f"{K_PESQUISA_TRAFEGO_PORCAMPANHA}" in st.session_state:
+    with st.expander("PESQUISA TRAF POR CAMPANHA"):
+        st.dataframe(st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PESQUISA_TRAFEGO_PORCAMPANHA}"])
