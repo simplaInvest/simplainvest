@@ -13,7 +13,7 @@ from libs.data_loader import (
         K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS,
         K_PTRAFEGO_DADOS, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, 
         K_PESQUISA_TRAFEGO_PORANUNCIO, K_PESQUISA_TRAFEGO_PORCONJUNTO, K_PESQUISA_TRAFEGO_CENTRAL, get_df)       
-from libs.cap_traf_funcs import create_distribution_chart, calcular_proporcoes_e_plotar, create_heatmap
+from libs.cap_traf_funcs import create_distribution_chart, create_heatmap
 from libs.safe_exec import executar_com_seguranca
 from libs.auth_funcs import require_authentication
 
