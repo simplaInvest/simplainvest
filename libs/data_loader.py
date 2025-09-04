@@ -19,6 +19,7 @@ K_CENTRAL_LANCAMENTOS = "K_CENTRAL_LANCAMENTOS"
 K_PESQUISA_TRAFEGO_PORCAMPANHA = "K_PESQUISA_TRAFEGO_PORCAMPANHA"
 K_PESQUISA_TRAFEGO_PORANUNCIO = "K_PESQUISA_TRAFEGO_PORANUNCIO"
 K_PESQUISA_TRAFEGO_PORCONJUNTO = "K_PESQUISA_TRAFEGO_PORCONJUNTO"
+K_PESQUISA_TRAFEGO_CENTRAL = "K_PESQUISA_TRAFEGO_CENTRAL"
 
 def setupSheets(produto, versao):
     lancamento = f"{produto}.{str(versao).zfill(2)}"
@@ -42,7 +43,8 @@ def setupSheets(produto, versao):
     ABA_CENTRAL_LANCAMENTOS = 'DATAS'
     ABA_PESQUISA_TRAFEGO_PORCAMPANHA = 'POR CAMPANHA'
     ABA_PESQUISA_TRAFEGO_PORANUNCIO = 'POR ANUNCIO'
-    ABA_PESQUISA_TRAFEGO_PORCONJUNTO= 'POR CONJUNTO'
+    ABA_PESQUISA_TRAFEGO_PORCONJUNTO = 'POR CONJUNTO'
+    ABA_PESQUISA_TRAFEGO_CENTRAL = "CENTRAL"
 
     # PLANILHAS
     SHEETS = {
@@ -109,6 +111,11 @@ def setupSheets(produto, versao):
         K_PESQUISA_TRAFEGO_PORCONJUNTO: { "id": "K_PESQUISA_TRAFEGO_PORCAMPANHA",
                                          "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
                                          "aba": ABA_PESQUISA_TRAFEGO_PORCONJUNTO,
+                                         "dataframe": None,
+                                         },
+        K_PESQUISA_TRAFEGO_CENTRAL: { "id": "K_PESQUISA_TRAFEGO_CENTRAL",
+                                         "sheet": SHEET_PESQUISA_TRAFEGO_ADS,
+                                         "aba": ABA_PESQUISA_TRAFEGO_CENTRAL,
                                          "dataframe": None,
                                          }
     }
@@ -234,6 +241,9 @@ class DataLoader:
                 return df_sheet
             case "K_PESQUISA_TRAFEGO_PORCONJUNTO":
                 df_sheet = format_pesquisa_trafego_colunas_monetarias(df_sheet)
+                return df_sheet
+            case "K_PESQUISA_TRAFEGO_CENTRAL":
+                df_sheet = df_sheet
                 return df_sheet
             case _:
                 raise ValueError(f"Planilha inválida: {K_PLANILHA}")

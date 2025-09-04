@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.express as px
-from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, get_df
+from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, K_PESQUISA_TRAFEGO_CENTRAL, get_df
 from libs.cap_visaogeral_funcs import plot_leads_per_day_altair, plot_group_members_per_day_altair, plot_utm_source_counts_altair, plot_utm_medium_pie_chart
 from libs.safe_exec import executar_com_seguranca
 from libs.auth_funcs import require_authentication
@@ -35,7 +35,7 @@ with loading_container:
             DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
             DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
             DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
-            DF_PESQUISA_TRAFEGO_PORCAMPANHA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORCAMPANHA)
+            DF_PESQUISA_TRAFEGO_CENTRAL = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_CENTRAL)
             status.update(label="Carregados com sucesso!", state="complete", expanded=False)
         except Exception as e:
             status.update(label="Erro ao carregar dados: " + str(e), state="error", expanded=False)
@@ -78,14 +78,15 @@ with st.container(border=True):
         st.metric(label="Conversão", value=f"{round(wpp_members.shape[0]/DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%", delta="")
     
     with col_cpl:
-        if not DF_PESQUISA_TRAFEGO_PORCAMPANHA.empty:
-            total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].sum()
+        if not DF_PESQUISA_TRAFEGO_CENTRAL.empty:
+            total_gasto = float(DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'][0].replace(",", "."))
             n_qualificados = len(DF_PTRAFEGO_DADOS[DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int) >= 80] == True)
             n_total = DF_PTRAFEGO_DADOS.shape[0]
+            cpl_total = total_gasto/n_total
             cpl_qualificados = total_gasto / n_qualificados
             st.subheader("CPL")
-            st.metric(label = "Total", value = f'R$ {round(total_gasto/n_total, 2)}')
-            st.metric(label = "Qualificados", value = f'R$ {round(total_gasto/n_qualificados, 2)}')
+            st.metric(label = "Total", value = f'R$ {round(cpl_total, 2)}')
+            st.metric(label = "Qualificados", value = f'R$ {round(cpl_qualificados, 2)}')
         else:
             print()
 

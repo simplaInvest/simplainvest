@@ -12,7 +12,7 @@ import statistics as stats
 from libs.data_loader import (
         K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS,
         K_PTRAFEGO_DADOS, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, 
-        K_PESQUISA_TRAFEGO_PORANUNCIO, K_PESQUISA_TRAFEGO_PORCONJUNTO, get_df)       
+        K_PESQUISA_TRAFEGO_PORANUNCIO, K_PESQUISA_TRAFEGO_PORCONJUNTO, K_PESQUISA_TRAFEGO_CENTRAL, get_df)       
 from libs.cap_traf_funcs import create_distribution_chart, calcular_proporcoes_e_plotar, create_heatmap
 from libs.safe_exec import executar_com_seguranca
 from libs.auth_funcs import require_authentication
@@ -49,6 +49,7 @@ with loading_container:
         DF_PESQUISA_TRAFEGO_PORCAMPANHA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORCAMPANHA)
         DF_PESQUISA_TRAFEGO_PORANUNCIO = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORANUNCIO)
         DF_PESQUISA_TRAFEGO_PORCONJUNTO = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_PORCONJUNTO)
+        DF_PESQUISA_TRAFEGO_CENTRAL = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_CENTRAL)
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
@@ -336,7 +337,7 @@ else:
             )
         with metrics_cols[5]:
             if not DF_PESQUISA_TRAFEGO_PORCAMPANHA.empty:
-                total_gasto = DF_PESQUISA_TRAFEGO_PORCAMPANHA['VALOR USADO'].astype(str).astype(float).sum()
+                total_gasto = float(DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'][0].replace(",", "."))
                 cpl_qualificados = total_gasto / n_qualificados
                 st.metric(
                     label = 'CPL QUALIFICADO:',
@@ -596,7 +597,7 @@ else:
         for utm, met in dict_metricas_por_utm.items():
             with st.container(border=True):
                 st.subheader(str(utm))
-                cols_loop = st.columns(7)
+                cols_loop = st.columns(4)
 
                 # ------- TOTAL DE LEADS -------
                 with cols_loop[0]:
@@ -673,8 +674,9 @@ else:
                         help=help_renda_patrim
                     )
 
+                cols_loop2 = st.columns(3)
                 # ------- QUALIFICADOS (>=80) -------
-                with cols_loop[4]:
+                with cols_loop2[0]:
                     delta_pct_qual_vs_lanc = met['pct_leads_qualificados'] - lanc_qual_rate_pct  # p.p. vs lançamento
                     if delta_pct_qual_vs_lanc > 0:
                         help_qual = f"{abs(delta_pct_qual_vs_lanc):.1f} p.p. acima da média do lançamento"
@@ -692,7 +694,7 @@ else:
                     )
                 
                 if utm_selected == 'UTM_TERM':
-                    with cols_loop[5]:
+                    with cols_loop2[1]:
                         # ------- CPL GERAL -------
                         subset_anuncio = df_anuncios[df_anuncios['ANUNCIO'] == utm]
                         cpl_anuncio = subset_anuncio['CPL ATUAL'].sum()
@@ -712,10 +714,10 @@ else:
                             help=help_qual
                         )
                     
-                    with cols_loop[6]:
+                    with cols_loop2[2]:
                         # ------- CPL QUALIFICADOS -------
                         valor_usado_anuncio = subset_anuncio['VALOR USADO'].sum()
-                        cpl_qualificados_anuncio = valor_usado_anuncio / met['n_leads_qualificados']
+                        cpl_qualificados_anuncio = (valor_usado_anuncio / met['n_leads_qualificados']) if met['n_leads_qualificados'] != 0 else 0
                         # cpl_qualificados contém o valor do cpl total considerando apenas os leads qualificados
                         delta_cpl_qualificados =cpl_qualificados_anuncio - cpl_qualificados 
                         if delta_cpl_qualificados < 0:
