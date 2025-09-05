@@ -487,13 +487,29 @@ else:
     
     with tab4:
         #############################################################################################################
+        df_dados_traf = filtered_DF_PTRAFEGO_DADOS.copy()
+        df_anuncios = DF_PESQUISA_TRAFEGO_PORANUNCIO.copy()
+        df_conjuntos = DF_PESQUISA_TRAFEGO_PORCONJUNTO.copy()
+        df_campanhas = DF_PESQUISA_TRAFEGO_PORCAMPANHA.copy()
+
         cols_select = st.columns([1,1,1])
+        usar_cpl = True
         with cols_select[0]:
             utm_selected = st.radio(
                 label="Selecione o UTM que quer analisar:",
-                options=['UTM_TERM', 'UTM_CAMPAIGN', 'UTM_SOURCE', 'UTM_MEDIUM', 'UTM_ADSET'],
+                options=['UTM_TERM', 'UTM_CAMPAIGN', 'UTM_ADSET'],
                 horizontal=True
             )
+            if utm_selected == 'UTM_TERM':
+                coluna_nome = 'ANUNCIO'
+                df_selected = df_anuncios.copy()
+            elif utm_selected == 'UTM_CAMPAIGN':
+                coluna_nome = 'CAMPANHA'
+                df_selected = df_campanhas.copy()
+                usar_cpl = False
+            elif utm_selected == 'UTM_ADSET':
+                coluna_nome = 'CONJUNTO: NOME'
+                df_selected = df_conjuntos.copy()
         with cols_select[1]:
             leadscore_selected = st.number_input(label= "Qualificação máxima",  min_value= 0.0, max_value= 100.0, value= 40.0, step= 10.0,
                                                  format="%0.1f", help= "Selecione a % máxima de leads qualificados")
@@ -502,11 +518,6 @@ else:
         with cols_select[2]:
             pesquisa = st.text_input(label="Pesquise o UTM", icon='🔎')
 
-        df_dados_traf = filtered_DF_PTRAFEGO_DADOS.copy()
-        df_anuncios = DF_PESQUISA_TRAFEGO_PORANUNCIO.copy()
-        df_conjuntos = DF_PESQUISA_TRAFEGO_PORCONJUNTO.copy()
-        df_campanhas = DF_PESQUISA_TRAFEGO_PORCAMPANHA.copy()
-        
         cpl_total = total_gasto / len(DF_PTRAFEGO_DADOS)
 
         # se vazio/None, pega todos
@@ -559,16 +570,16 @@ else:
             pct_renda_patrim_loop = round((n_renda_patrim_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
             delta_pp_renda_patrim = round(pct_renda_patrim_loop - pct_renda_patrim_lanc, 2)
 
-            if utm_selected == "UTM_TERM":
-                # -- CPL ----------------------------------------
-                subset_anuncio_loop = df_anuncios[df_anuncios['ANUNCIO'].astype(str) == str(element)]
+            # -- CPL ----------------------------------------
+            if usar_cpl:
+                subset_anuncio_loop = df_selected[df_selected[coluna_nome].astype(str) == str(element)]
                 cpl_loop = subset_anuncio_loop['CPL ATUAL'].sum()
                 valor_usado_anuncio = subset_anuncio_loop['VALOR USADO'].sum()
                 cpl_qual_loop = (valor_usado_anuncio / n_qual_loop) if n_qual_loop != 0 else 0
                 delta_cpl_total = round((cpl_loop - cpl_total), 2)
                 delta_cpl_qualificados = cpl_qual_loop - cpl_qualificados
             else:
-                subset_anuncio_loop = None
+                # quando UTM_CAMPAIGN, não usamos CPL para evitar o desencontro de nomes
                 cpl_loop = None
                 valor_usado_anuncio = None
                 cpl_qual_loop = None
@@ -622,7 +633,10 @@ else:
         media_n_qual = stats.mean(v["n_leads_qualificados"] for v in dict_metricas_por_utm.values()) if dict_metricas_por_utm else 0
         # ----------------- RENDER -----------------
         for utm, met in dict_metricas_por_utm.items():
-            if met["pct_leads_qualificados"] <= leadscore_selected and met["cpl_total"] >= cpl_selected or met["cpl_total"] == None:
+            cond_base = (met["pct_leads_qualificados"] <= leadscore_selected)
+            cond_cpl  = (usar_cpl and met["cpl_total"] is not None and met["cpl_total"] >= cpl_selected)
+            if (usar_cpl and cond_base and cond_cpl) or ((not usar_cpl) and cond_base):
+
                 with st.container(border=True):
                     st.subheader(str(utm))
                     cols_loop = st.columns(4)
@@ -721,40 +735,48 @@ else:
                             help=help_qual
                         )
                     
-                    if utm_selected == 'UTM_TERM':
+                    # Só renderiza CPL se usar_cpl=True
+                    if usar_cpl:
                         with cols_loop2[1]:
                             # ------- CPL GERAL -------
                             cpl_anuncio = met['cpl_total']
                             delta_cpl_anuncio = met['delta_cpl_total']
-                            if delta_cpl_anuncio < 0:
-                                help_qual = f"{abs(delta_cpl_anuncio):.1f} mais barato que a média"
-                            elif delta_cpl_anuncio > 0:
-                                help_qual = f"{abs(delta_cpl_anuncio):.1f} mais caro que a média"
+                            if delta_cpl_anuncio is not None:
+                                if delta_cpl_anuncio < 0:
+                                    help_qual = f"{abs(delta_cpl_anuncio):.1f} mais barato que a média"
+                                elif delta_cpl_anuncio > 0:
+                                    help_qual = f"{abs(delta_cpl_anuncio):.1f} mais caro que a média"
+                                else:
+                                    help_qual = "cpl na média"
                             else:
-                                help_qual = "cpl na média"
+                                help_qual = None
+
                             st.metric(
                                 label = 'CPL Total',
-                                value = f"{round(cpl_anuncio, 2)}",
-                                delta = f'{round(delta_cpl_anuncio, 2)}',
+                                value = f"{round(cpl_anuncio, 2)}" if cpl_anuncio is not None else "—",
+                                delta = f'{round(delta_cpl_anuncio, 2)}' if delta_cpl_anuncio is not None else None,
                                 delta_color="inverse",
                                 help=help_qual
                             )
-                        
+
                         with cols_loop2[2]:
                             # ------- CPL QUALIFICADOS -------
                             cpl_qualificados_anuncio = met['cpl_qualificados']
                             delta_cpl_qualificados = met['delta_cpl_qualificados']
-                            # cpl_qualificados contém o valor do cpl total considerando apenas os leads qualificados
-                            if delta_cpl_qualificados < 0:
-                                help_qual = f"{abs(delta_cpl_qualificados):.1f} mais barato que a média"
-                            elif delta_cpl_qualificados > 0:
-                                help_qual = f"{abs(delta_cpl_qualificados):.1f} mais caro que a média"
+                            if delta_cpl_qualificados is not None:
+                                if delta_cpl_qualificados < 0:
+                                    help_qual = f"{abs(delta_cpl_qualificados):.1f} mais barato que a média"
+                                elif delta_cpl_qualificados > 0:
+                                    help_qual = f"{abs(delta_cpl_qualificados):.1f} mais caro que a média"
+                                else:
+                                    help_qual = "cpl na média"
                             else:
-                                help_qual = "cpl na média"
+                                help_qual = None
+
                             st.metric(
                                 label = 'CPL Qualificados',
-                                value = f"{round(cpl_qualificados_anuncio, 2)}",
-                                delta = f'{round(delta_cpl_qualificados, 2)}',
+                                value = f"{round(cpl_qualificados_anuncio, 2)}" if cpl_qualificados_anuncio is not None else "—",
+                                delta = f'{round(delta_cpl_qualificados, 2)}' if delta_cpl_qualificados is not None else None,
                                 delta_color="inverse",
                                 help=help_qual
                             )
