@@ -495,11 +495,19 @@ else:
         cols_select = st.columns([1,1,1])
         usar_cpl = True
         with cols_select[0]:
+            etapa_selected = st.radio(
+                label = "Selecione a etapa que quer analisar",
+                options = ['Cap', 'PM', 'Ven'],
+                horizontal = True
+            )
             utm_selected = st.radio(
                 label="Selecione o UTM que quer analisar:",
                 options=['UTM_TERM', 'UTM_CAMPAIGN', 'UTM_ADSET'],
                 horizontal=True
             )
+            prefixo_etapa = 'PM ' if etapa_selected == 'PM' else '' 
+            utm_selected = prefixo_etapa + utm_selected
+
             if utm_selected == 'UTM_TERM':
                 coluna_nome = 'ANUNCIO'
                 df_selected = df_anuncios.copy()
@@ -513,106 +521,397 @@ else:
         with cols_select[1]:
             leadscore_selected = st.number_input(label= "Qualificação máxima",  min_value= 0.0, max_value= 100.0, value= 40.0, step= 10.0,
                                                  format="%0.1f", help= "Selecione a % máxima de leads qualificados")
-            cpl_selected = st.number_input(label= "CPL mínimo", min_value= 0.0, max_value= 100.0, value= 12.0, step= 1.0,
-                                                 format="%0.2f", help= "Selecione o cpl mínimo")
+            if etapa_selected == 'Cap':
+                cpl_selected = st.number_input(label= "CPL mínimo", min_value= 0.0, max_value= 100.0, value= 12.0, step= 1.0,
+                                                    format="%0.2f", help= "Selecione o cpl mínimo")
         with cols_select[2]:
             pesquisa = st.text_input(label="Pesquise o UTM", icon='🔎')
 
-        cpl_total = total_gasto / len(DF_PTRAFEGO_DADOS)
+        if etapa_selected == 'Cap':
 
-        # se vazio/None, pega todos
-        if not pesquisa:
-            list_utms = list(df_dados_traf[utm_selected].astype(str).unique())
-        else:
-            list_utms = list(
-                df_dados_traf[df_dados_traf[utm_selected].astype(str).str.contains(pesquisa, case=False, na=False)]
-                [utm_selected].astype(str).unique()
+            cpl_total = total_gasto / len(DF_PTRAFEGO_DADOS)
+
+            # se vazio/None, pega todos
+            if not pesquisa:
+                list_utms = list(df_dados_traf[utm_selected].astype(str).unique())
+            else:
+                list_utms = list(
+                    df_dados_traf[df_dados_traf[utm_selected].astype(str).str.contains(pesquisa, case=False, na=False)]
+                    [utm_selected].astype(str).unique()
+                )
+
+            dict_metricas_por_utm = {}
+
+            total_lancamento = filtered_DF_PTRAFEGO_DADOS.shape[0]
+
+            # --- Baselines do lançamento para os novos critérios ---
+            # Usamos a % global do lançamento como referência
+            total_patrim_lanc   = patrimonio_acima_selecionado.shape[0]
+            total_renda_lanc    = renda_acima_selecionado.shape[0]
+            total_renda_patrim_lanc = renda_patrimonio_acima_selecionado.shape[0]
+
+            pct_patrim_lanc        = round((total_patrim_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
+            pct_renda_lanc         = round((total_renda_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
+            pct_renda_patrim_lanc  = round((total_renda_patrim_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
+
+            for element in list_utms:
+                df_loop = df_dados_traf[df_dados_traf[utm_selected].astype(str) == str(element)]
+                patrim_loop = patrimonio_acima_selecionado[patrimonio_acima_selecionado[utm_selected].astype(str) == str(element)]
+                renda_loop = renda_acima_selecionado[renda_acima_selecionado[utm_selected].astype(str) == str(element)]
+                renda_patrim_loop = renda_patrimonio_acima_selecionado[renda_patrimonio_acima_selecionado[utm_selected].astype(str) == str(element)]
+
+                total_leads_utm = df_loop.shape[0]
+                total_leads_utm_percent = round(((total_leads_utm / total_lancamento) * 100), 2) if total_lancamento else 0.0
+
+                # --- qualificados (>=80) ---
+                leadscore_series = pd.to_numeric(df_loop['LEADSCORE'], errors='coerce')
+                n_qual_loop = int((leadscore_series >= 80).sum())
+                n_qual_loop_pct = round(((n_qual_loop / total_leads_utm) * 100), 2) if total_leads_utm else 0.0
+
+                # --- NOVAS MÉTRICAS: patrimônio / renda / ambos (absoluto, %, delta p.p. vs lançamento) ---
+                n_patrim_loop = patrim_loop.shape[0]
+                pct_patrim_loop = round((n_patrim_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
+                delta_pp_patrim = round(pct_patrim_loop - pct_patrim_lanc, 2)
+
+                n_renda_loop = renda_loop.shape[0]
+                pct_renda_loop = round((n_renda_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
+                delta_pp_renda = round(pct_renda_loop - pct_renda_lanc, 2)
+
+                n_renda_patrim_loop = renda_patrim_loop.shape[0]
+                pct_renda_patrim_loop = round((n_renda_patrim_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
+                delta_pp_renda_patrim = round(pct_renda_patrim_loop - pct_renda_patrim_lanc, 2)
+
+                # -- CPL ----------------------------------------
+                if usar_cpl:
+                    subset_anuncio_loop = df_selected[df_selected[coluna_nome].astype(str) == str(element)]
+                    cpl_loop = subset_anuncio_loop['CPL ATUAL'].sum()
+                    valor_usado_anuncio = subset_anuncio_loop['VALOR USADO'].sum()
+                    cpl_qual_loop = (valor_usado_anuncio / n_qual_loop) if n_qual_loop != 0 else 0
+                    delta_cpl_total = round((cpl_loop - cpl_total), 2)
+                    delta_cpl_qualificados = cpl_qual_loop - cpl_qualificados
+                else:
+                    # quando UTM_CAMPAIGN, não usamos CPL para evitar o desencontro de nomes
+                    cpl_loop = None
+                    valor_usado_anuncio = None
+                    cpl_qual_loop = None
+                    delta_cpl_total = None
+                    delta_cpl_qualificados = None
+
+                # dicionário consolidado
+                dict_metricas_por_utm[str(element)] = {
+                    "total_leads": int(total_leads_utm),
+                    "pct_total_leads_lancamento": total_leads_utm_percent,
+                    "n_leads_qualificados": n_qual_loop,
+                    "pct_leads_qualificados": n_qual_loop_pct,
+
+                    # novos campos
+                    "n_patrim": n_patrim_loop,
+                    "pct_patrim": pct_patrim_loop,
+                    "delta_pp_patrim_vs_lanc": delta_pp_patrim,
+
+                    "n_renda": n_renda_loop,
+                    "pct_renda": pct_renda_loop,
+                    "delta_pp_renda_vs_lanc": delta_pp_renda,
+
+                    "n_renda_patrim": n_renda_patrim_loop,
+                    "pct_renda_patrim": pct_renda_patrim_loop,
+                    "delta_pp_renda_patrim_vs_lanc": delta_pp_renda_patrim,
+
+                    "cpl_total": cpl_loop,
+                    "valor_usado": valor_usado_anuncio,
+                    "cpl_qualificados": cpl_qual_loop,
+                    "delta_cpl_total": delta_cpl_total,
+                    "delta_cpl_qualificados": delta_cpl_qualificados
+
+                }
+
+            # ordenar por qualificados (decrescente)
+            dict_metricas_por_utm = dict(
+                sorted(
+                    dict_metricas_por_utm.items(),
+                    key=lambda x: x[1]["n_leads_qualificados"],
+                    reverse=True
+                )
             )
 
-        dict_metricas_por_utm = {}
+            # --- Baselines de qualificados para delta (como antes) ---
+            leadscore_all = pd.to_numeric(filtered_DF_PTRAFEGO_DADOS['LEADSCORE'], errors='coerce')
+            total_qual_lanc = int((leadscore_all >= 80).sum())
+            lanc_qual_rate_pct = round((total_qual_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
 
-        total_lancamento = filtered_DF_PTRAFEGO_DADOS.shape[0]
+            # médias de volume para comparar "TOTAL DE LEADS" e "QUALIFICADOS" (opcional manter)
+            media_total_leads = stats.mean(v["total_leads"] for v in dict_metricas_por_utm.values()) if dict_metricas_por_utm else 0
+            media_n_qual = stats.mean(v["n_leads_qualificados"] for v in dict_metricas_por_utm.values()) if dict_metricas_por_utm else 0
+            # ----------------- RENDER -----------------
+            for utm, met in dict_metricas_por_utm.items():
+                cond_base = (met["pct_leads_qualificados"] <= leadscore_selected)
+                cond_cpl  = (usar_cpl and met["cpl_total"] is not None and met["cpl_total"] >= cpl_selected)
+                if (usar_cpl and cond_base and cond_cpl) or ((not usar_cpl) and cond_base):
 
-        # --- Baselines do lançamento para os novos critérios ---
-        # Usamos a % global do lançamento como referência
-        total_patrim_lanc   = patrimonio_acima_selecionado.shape[0]
-        total_renda_lanc    = renda_acima_selecionado.shape[0]
-        total_renda_patrim_lanc = renda_patrimonio_acima_selecionado.shape[0]
+                    with st.container(border=True):
+                        st.subheader(str(utm))
+                        cols_loop = st.columns(4)
 
-        pct_patrim_lanc        = round((total_patrim_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
-        pct_renda_lanc         = round((total_renda_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
-        pct_renda_patrim_lanc  = round((total_renda_patrim_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
+                        # ------- TOTAL DE LEADS -------
+                        with cols_loop[0]:
+                            pct_tot = met.get('pct_total_leads_lancamento', met.get('pct_total_leads_lançamento', 0))
+                            delta_total_leads = met['total_leads'] - media_total_leads  # número (positivo/negativo)
 
-        for element in list_utms:
-            df_loop = df_dados_traf[df_dados_traf[utm_selected].astype(str) == str(element)]
-            patrim_loop = patrimonio_acima_selecionado[patrimonio_acima_selecionado[utm_selected].astype(str) == str(element)]
-            renda_loop = renda_acima_selecionado[renda_acima_selecionado[utm_selected].astype(str) == str(element)]
-            renda_patrim_loop = renda_patrimonio_acima_selecionado[renda_patrimonio_acima_selecionado[utm_selected].astype(str) == str(element)]
+                            # texto explicativo no help (acima/abaixo)
+                            if delta_total_leads > 0:
+                                help_total = f"{abs(delta_total_leads):.0f} leads acima da média dos anúncios"
+                            elif delta_total_leads < 0:
+                                help_total = f"{abs(delta_total_leads):.0f} leads abaixo da média dos anúncios"
+                            else:
+                                help_total = "na média dos anúncios"
 
-            total_leads_utm = df_loop.shape[0]
-            total_leads_utm_percent = round(((total_leads_utm / total_lancamento) * 100), 2) if total_lancamento else 0.0
+                            st.metric(
+                                label='TOTAL DE LEADS',
+                                value=f"{met['total_leads']} ({pct_tot}%)",
+                                delta=round(delta_total_leads, 0),          # passa número para cor/seta corretas
+                                delta_color="normal",
+                                help=help_total
+                            )
 
-            # --- qualificados (>=80) ---
-            leadscore_series = pd.to_numeric(df_loop['LEADSCORE'], errors='coerce')
-            n_qual_loop = int((leadscore_series >= 80).sum())
-            n_qual_loop_pct = round(((n_qual_loop / total_leads_utm) * 100), 2) if total_leads_utm else 0.0
+                        # ------- PATRIMÔNIO ACIMA -------
+                        with cols_loop[1]:
+                            delta_pp_patrim = met['delta_pp_patrim_vs_lanc']  # p.p. vs lançamento (número)
+                            if delta_pp_patrim > 0:
+                                help_patrim = f"{abs(delta_pp_patrim):.1f} p.p. acima da média do lançamento"
+                            elif delta_pp_patrim < 0:
+                                help_patrim = f"{abs(delta_pp_patrim):.1f} p.p. abaixo da média do lançamento"
+                            else:
+                                help_patrim = "na média do lançamento"
 
-            # --- NOVAS MÉTRICAS: patrimônio / renda / ambos (absoluto, %, delta p.p. vs lançamento) ---
-            n_patrim_loop = patrim_loop.shape[0]
-            pct_patrim_loop = round((n_patrim_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
-            delta_pp_patrim = round(pct_patrim_loop - pct_patrim_lanc, 2)
+                            st.metric(
+                                label='PATRIMÔNIO ACIMA (abs / %)',
+                                value=f"{met['n_patrim']} ({met['pct_patrim']}%)",
+                                delta=f'{round(delta_pp_patrim, 2)}%',
+                                delta_color="normal",
+                                help=help_patrim
+                            )
 
-            n_renda_loop = renda_loop.shape[0]
-            pct_renda_loop = round((n_renda_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
-            delta_pp_renda = round(pct_renda_loop - pct_renda_lanc, 2)
+                        # ------- RENDA ACIMA -------
+                        with cols_loop[2]:
+                            delta_pp_renda = met['delta_pp_renda_vs_lanc']
+                            if delta_pp_renda > 0:
+                                help_renda = f"{abs(delta_pp_renda):.1f} p.p. acima da média do lançamento"
+                            elif delta_pp_renda < 0:
+                                help_renda = f"{abs(delta_pp_renda):.1f} p.p. abaixo da média do lançamento"
+                            else:
+                                help_renda = "na média do lançamento"
 
-            n_renda_patrim_loop = renda_patrim_loop.shape[0]
-            pct_renda_patrim_loop = round((n_renda_patrim_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
-            delta_pp_renda_patrim = round(pct_renda_patrim_loop - pct_renda_patrim_lanc, 2)
+                            st.metric(
+                                label='RENDA ACIMA (abs / %)',
+                                value=f"{met['n_renda']} ({met['pct_renda']}%)",
+                                delta=f'{round(delta_pp_renda, 2)}%',
+                                delta_color="normal",
+                                help=help_renda
+                            )
 
-            # -- CPL ----------------------------------------
-            if usar_cpl:
-                subset_anuncio_loop = df_selected[df_selected[coluna_nome].astype(str) == str(element)]
-                cpl_loop = subset_anuncio_loop['CPL ATUAL'].sum()
-                valor_usado_anuncio = subset_anuncio_loop['VALOR USADO'].sum()
-                cpl_qual_loop = (valor_usado_anuncio / n_qual_loop) if n_qual_loop != 0 else 0
-                delta_cpl_total = round((cpl_loop - cpl_total), 2)
-                delta_cpl_qualificados = cpl_qual_loop - cpl_qualificados
+                        # ------- RENDA & PATRIMÔNIO ACIMA -------
+                        with cols_loop[3]:
+                            delta_pp_renda_patrim = met['delta_pp_renda_patrim_vs_lanc']
+                            if delta_pp_renda_patrim > 0:
+                                help_renda_patrim = f"{abs(delta_pp_renda_patrim):.1f} p.p. acima da média do lançamento"
+                            elif delta_pp_renda_patrim < 0:
+                                help_renda_patrim = f"{abs(delta_pp_renda_patrim):.1f} p.p. abaixo da média do lançamento"
+                            else:
+                                help_renda_patrim = "na média do lançamento"
+
+                            st.metric(
+                                label='RENDA & PATRIM. ACIMA (abs / %)',
+                                value=f"{met['n_renda_patrim']} ({met['pct_renda_patrim']}%)",
+                                delta=f'{round(delta_pp_renda_patrim, 2)}%',
+                                delta_color="normal",
+                                help=help_renda_patrim
+                            )
+
+                        cols_loop2 = st.columns(3)
+                        # ------- QUALIFICADOS (>=80) -------
+                        with cols_loop2[0]:
+                            delta_pct_qual_vs_lanc = met['pct_leads_qualificados'] - lanc_qual_rate_pct  # p.p. vs lançamento
+                            if delta_pct_qual_vs_lanc > 0:
+                                help_qual = f"{abs(delta_pct_qual_vs_lanc):.1f} p.p. acima da média do lançamento"
+                            elif delta_pct_qual_vs_lanc < 0:
+                                help_qual = f"{abs(delta_pct_qual_vs_lanc):.1f} p.p. abaixo da média do lançamento"
+                            else:
+                                help_qual = "na média do lançamento"
+
+                            st.metric(
+                                label='LEADS QUALIFICADOS (>=80)',
+                                value=f"{met['n_leads_qualificados']} ({met['pct_leads_qualificados']}%)",
+                                delta=f'{round(delta_pct_qual_vs_lanc, 0)}%',
+                                delta_color="normal",
+                                help=help_qual
+                            )
+                        
+                        # Só renderiza CPL se usar_cpl=True
+                        if usar_cpl:
+                            with cols_loop2[1]:
+                                # ------- CPL GERAL -------
+                                cpl_anuncio = met['cpl_total']
+                                delta_cpl_anuncio = met['delta_cpl_total']
+                                if delta_cpl_anuncio is not None:
+                                    if delta_cpl_anuncio < 0:
+                                        help_qual = f"{abs(delta_cpl_anuncio):.1f} mais barato que a média"
+                                    elif delta_cpl_anuncio > 0:
+                                        help_qual = f"{abs(delta_cpl_anuncio):.1f} mais caro que a média"
+                                    else:
+                                        help_qual = "cpl na média"
+                                else:
+                                    help_qual = None
+
+                                st.metric(
+                                    label = 'CPL Total',
+                                    value = f"{round(cpl_anuncio, 2)}" if cpl_anuncio is not None else "—",
+                                    delta = f'{round(delta_cpl_anuncio, 2)}' if delta_cpl_anuncio is not None else None,
+                                    delta_color="inverse",
+                                    help=help_qual
+                                )
+
+                            with cols_loop2[2]:
+                                # ------- CPL QUALIFICADOS -------
+                                cpl_qualificados_anuncio = met['cpl_qualificados']
+                                delta_cpl_qualificados = met['delta_cpl_qualificados']
+                                if delta_cpl_qualificados is not None:
+                                    if delta_cpl_qualificados < 0:
+                                        help_qual = f"{abs(delta_cpl_qualificados):.1f} mais barato que a média"
+                                    elif delta_cpl_qualificados > 0:
+                                        help_qual = f"{abs(delta_cpl_qualificados):.1f} mais caro que a média"
+                                    else:
+                                        help_qual = "cpl na média"
+                                else:
+                                    help_qual = None
+
+                                st.metric(
+                                    label = 'CPL Qualificados',
+                                    value = f"{round(cpl_qualificados_anuncio, 2)}" if cpl_qualificados_anuncio is not None else "—",
+                                    delta = f'{round(delta_cpl_qualificados, 2)}' if delta_cpl_qualificados is not None else None,
+                                    delta_color="inverse",
+                                    help=help_qual
+                                )
+
+        elif etapa_selected == 'PM':
+            df_pm = DF_CENTRAL_PREMATRICULA.copy()
+            df_traf = DF_PTRAFEGO_DADOS.copy()
+
+            df_pm['EMAIL'] = df_pm['EMAIL'].str.strip().str.lower()
+            df_traf['EMAIL'] = df_traf['EMAIL'].str.strip().str.lower()
+
+            # 2) Garantir que existam as colunas a serem atualizadas/criadas
+            for col in ['PATRIMONIO', 'RENDA MENSAL', 'LEADSCORE']:
+                if col not in df_pm.columns:
+                    df_pm[col] = pd.NA
+
+            # 3) Deduplicar por EMAIL na base de origem (evita explosão de linhas em merges)
+            base_qual = (
+                df_traf
+                .sort_values('EMAIL')
+                .drop_duplicates('EMAIL', keep='last')  # escolha a regra que preferir
+                .set_index('EMAIL')[['PATRIMONIO', 'RENDA MENSAL', 'LEADSCORE']]
+            )
+
+            # 4) Atualizar por índice
+            df_pm = df_pm.set_index('EMAIL')
+            df_pm.update(base_qual)
+            df_pm = df_pm.reset_index()
+
+            df_pm['LEADSCORE'] = pd.to_numeric(df_pm['LEADSCORE'], errors='coerce').astype('Int64')
+
+            patrimonio_selected = df_pm[
+                    df_pm['PATRIMONIO'].isin(
+                        patrimonio_order[
+                            patrimonio_order.index(selected_patrimonio_start): patrimonio_order.index(selected_patrimonio_end) + 1
+                        ]
+                    )
+                ]
+
+            renda_selected = df_pm[
+                    df_pm[cols_finan_02].isin(
+                        col2_order[col2_order.index(selected_renda_start): col2_order.index(selected_renda_end) + 1]
+                    )
+                ]
+
+            renda_patrimonio_selected = df_pm[
+                    (df_pm['PATRIMONIO'].isin(
+                        patrimonio_order[patrimonio_order.index(selected_patrimonio_start): patrimonio_order.index(selected_patrimonio_end) + 1]
+                    )) &
+                    (df_pm[cols_finan_02].isin(
+                        col2_order[col2_order.index(selected_renda_start): col2_order.index(selected_renda_end) + 1]
+                    ))
+                ]
+            
+            total_lancamento = df_pm.shape[0]
+
+            # se vazio/None, pega todos
+            if not pesquisa:
+                list_utms = list(df_pm[utm_selected].astype(str).unique())
             else:
-                # quando UTM_CAMPAIGN, não usamos CPL para evitar o desencontro de nomes
-                cpl_loop = None
-                valor_usado_anuncio = None
-                cpl_qual_loop = None
-                delta_cpl_total = None
-                delta_cpl_qualificados = None
+                list_utms = list(
+                    df_pm[df_pm[utm_selected].astype(str).str.contains(pesquisa, case=False, na=False)]
+                    [utm_selected].astype(str).unique()
+                )
 
-            # dicionário consolidado
-            dict_metricas_por_utm[str(element)] = {
-                "total_leads": int(total_leads_utm),
-                "pct_total_leads_lancamento": total_leads_utm_percent,
-                "n_leads_qualificados": n_qual_loop,
-                "pct_leads_qualificados": n_qual_loop_pct,
+            # --- Baselines do lançamento para os novos critérios ---
+            # Usamos a % global do lançamento como referência
+            total_patrim_lanc   = patrimonio_selected.shape[0]
+            total_renda_lanc    = renda_selected.shape[0]
+            total_renda_patrim_lanc = renda_patrimonio_selected.shape[0]
 
-                # novos campos
-                "n_patrim": n_patrim_loop,
-                "pct_patrim": pct_patrim_loop,
-                "delta_pp_patrim_vs_lanc": delta_pp_patrim,
+            pct_patrim_lanc        = round((total_patrim_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
+            pct_renda_lanc         = round((total_renda_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
+            pct_renda_patrim_lanc  = round((total_renda_patrim_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
 
-                "n_renda": n_renda_loop,
-                "pct_renda": pct_renda_loop,
-                "delta_pp_renda_vs_lanc": delta_pp_renda,
+            dict_metricas_por_utm = {}
 
-                "n_renda_patrim": n_renda_patrim_loop,
-                "pct_renda_patrim": pct_renda_patrim_loop,
-                "delta_pp_renda_patrim_vs_lanc": delta_pp_renda_patrim,
+            for element in list_utms:
+                df_loop = df_pm[df_pm[utm_selected].astype(str) == str(element)]
+                patrim_loop = patrimonio_selected[patrimonio_selected[utm_selected].astype(str) == str(element)]
+                renda_loop = renda_selected[renda_selected[utm_selected].astype(str) == str(element)]
+                renda_patrim_loop = renda_patrimonio_selected[renda_patrimonio_selected[utm_selected].astype(str) == str(element)]
 
-                "cpl_total": cpl_loop,
-                "valor_usado": valor_usado_anuncio,
-                "cpl_qualificados": cpl_qual_loop,
-                "delta_cpl_total": delta_cpl_total,
-                "delta_cpl_qualificados": delta_cpl_qualificados
+                total_leads_utm = df_loop.shape[0]
+                total_leads_utm_percent = round(((total_leads_utm / total_lancamento) * 100), 2) if total_lancamento else 0.0
 
-            }
+                # --- qualificados (>=80) ---
+                leadscore_series = pd.to_numeric(df_loop['LEADSCORE'], errors='coerce')
+                n_qual_loop = int((leadscore_series >= 80).sum())
+                n_qual_loop_pct = round(((n_qual_loop / total_leads_utm) * 100), 2) if total_leads_utm else 0.0
+
+                # --- NOVAS MÉTRICAS: patrimônio / renda / ambos (absoluto, %, delta p.p. vs lançamento) ---
+                n_patrim_loop = patrim_loop.shape[0]
+                pct_patrim_loop = round((n_patrim_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
+                delta_pp_patrim = round(pct_patrim_loop - pct_patrim_lanc, 2)
+
+                n_renda_loop = renda_loop.shape[0]
+                pct_renda_loop = round((n_renda_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
+                delta_pp_renda = round(pct_renda_loop - pct_renda_lanc, 2)
+
+                n_renda_patrim_loop = renda_patrim_loop.shape[0]
+                pct_renda_patrim_loop = round((n_renda_patrim_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
+                delta_pp_renda_patrim = round(pct_renda_patrim_loop - pct_renda_patrim_lanc, 2)
+
+                # dicionário consolidado
+                dict_metricas_por_utm[str(element)] = {
+                    "total_leads": int(total_leads_utm),
+                    "pct_total_leads_lancamento": total_leads_utm_percent,
+                    "n_leads_qualificados": n_qual_loop,
+                    "pct_leads_qualificados": n_qual_loop_pct,
+
+                    # novos campos
+                    "n_patrim": n_patrim_loop,
+                    "pct_patrim": pct_patrim_loop,
+                    "delta_pp_patrim_vs_lanc": delta_pp_patrim,
+
+                    "n_renda": n_renda_loop,
+                    "pct_renda": pct_renda_loop,
+                    "delta_pp_renda_vs_lanc": delta_pp_renda,
+
+                    "n_renda_patrim": n_renda_patrim_loop,
+                    "pct_renda_patrim": pct_renda_patrim_loop,
+                    "delta_pp_renda_patrim_vs_lanc": delta_pp_renda_patrim,
+                }
 
         # ordenar por qualificados (decrescente)
         dict_metricas_por_utm = dict(
@@ -624,7 +923,7 @@ else:
         )
 
         # --- Baselines de qualificados para delta (como antes) ---
-        leadscore_all = pd.to_numeric(filtered_DF_PTRAFEGO_DADOS['LEADSCORE'], errors='coerce')
+        leadscore_all = df_pm['LEADSCORE']
         total_qual_lanc = int((leadscore_all >= 80).sum())
         lanc_qual_rate_pct = round((total_qual_lanc / total_lancamento) * 100, 2) if total_lancamento else 0.0
 
@@ -634,149 +933,103 @@ else:
         # ----------------- RENDER -----------------
         for utm, met in dict_metricas_por_utm.items():
             cond_base = (met["pct_leads_qualificados"] <= leadscore_selected)
-            cond_cpl  = (usar_cpl and met["cpl_total"] is not None and met["cpl_total"] >= cpl_selected)
-            if (usar_cpl and cond_base and cond_cpl) or ((not usar_cpl) and cond_base):
+            with st.container(border=True):
+                st.subheader(str(utm))
+                cols_loop = st.columns(5)
 
-                with st.container(border=True):
-                    st.subheader(str(utm))
-                    cols_loop = st.columns(4)
+                # ------- TOTAL DE LEADS -------
+                with cols_loop[0]:
+                    pct_tot = met.get('pct_total_leads_lancamento', met.get('pct_total_leads_lançamento', 0))
+                    delta_total_leads = met['total_leads'] - media_total_leads  # número (positivo/negativo)
 
-                    # ------- TOTAL DE LEADS -------
-                    with cols_loop[0]:
-                        pct_tot = met.get('pct_total_leads_lancamento', met.get('pct_total_leads_lançamento', 0))
-                        delta_total_leads = met['total_leads'] - media_total_leads  # número (positivo/negativo)
+                    # texto explicativo no help (acima/abaixo)
+                    if delta_total_leads > 0:
+                        help_total = f"{abs(delta_total_leads):.0f} leads acima da média dos anúncios"
+                    elif delta_total_leads < 0:
+                        help_total = f"{abs(delta_total_leads):.0f} leads abaixo da média dos anúncios"
+                    else:
+                        help_total = "na média dos anúncios"
 
-                        # texto explicativo no help (acima/abaixo)
-                        if delta_total_leads > 0:
-                            help_total = f"{abs(delta_total_leads):.0f} leads acima da média dos anúncios"
-                        elif delta_total_leads < 0:
-                            help_total = f"{abs(delta_total_leads):.0f} leads abaixo da média dos anúncios"
-                        else:
-                            help_total = "na média dos anúncios"
+                    st.metric(
+                        label='TOTAL DE LEADS',
+                        value=f"{met['total_leads']} ({pct_tot}%)",
+                        delta=round(delta_total_leads, 0),          # passa número para cor/seta corretas
+                        delta_color="normal",
+                        help=help_total
+                    )
 
-                        st.metric(
-                            label='TOTAL DE LEADS',
-                            value=f"{met['total_leads']} ({pct_tot}%)",
-                            delta=round(delta_total_leads, 0),          # passa número para cor/seta corretas
-                            delta_color="normal",
-                            help=help_total
-                        )
+                # ------- PATRIMÔNIO ACIMA -------
+                with cols_loop[1]:
+                    delta_pp_patrim = met['delta_pp_patrim_vs_lanc']  # p.p. vs lançamento (número)
+                    if delta_pp_patrim > 0:
+                        help_patrim = f"{abs(delta_pp_patrim):.1f} p.p. acima da média do lançamento"
+                    elif delta_pp_patrim < 0:
+                        help_patrim = f"{abs(delta_pp_patrim):.1f} p.p. abaixo da média do lançamento"
+                    else:
+                        help_patrim = "na média do lançamento"
 
-                    # ------- PATRIMÔNIO ACIMA -------
-                    with cols_loop[1]:
-                        delta_pp_patrim = met['delta_pp_patrim_vs_lanc']  # p.p. vs lançamento (número)
-                        if delta_pp_patrim > 0:
-                            help_patrim = f"{abs(delta_pp_patrim):.1f} p.p. acima da média do lançamento"
-                        elif delta_pp_patrim < 0:
-                            help_patrim = f"{abs(delta_pp_patrim):.1f} p.p. abaixo da média do lançamento"
-                        else:
-                            help_patrim = "na média do lançamento"
+                    st.metric(
+                        label='PATRIMÔNIO ACIMA (abs / %)',
+                        value=f"{met['n_patrim']} ({met['pct_patrim']}%)",
+                        delta=f'{round(delta_pp_patrim, 2)}%',
+                        delta_color="normal",
+                        help=help_patrim
+                    )
 
-                        st.metric(
-                            label='PATRIMÔNIO ACIMA (abs / %)',
-                            value=f"{met['n_patrim']} ({met['pct_patrim']}%)",
-                            delta=f'{round(delta_pp_patrim, 2)}%',
-                            delta_color="normal",
-                            help=help_patrim
-                        )
+                # ------- RENDA ACIMA -------
+                with cols_loop[2]:
+                    delta_pp_renda = met['delta_pp_renda_vs_lanc']
+                    if delta_pp_renda > 0:
+                        help_renda = f"{abs(delta_pp_renda):.1f} p.p. acima da média do lançamento"
+                    elif delta_pp_renda < 0:
+                        help_renda = f"{abs(delta_pp_renda):.1f} p.p. abaixo da média do lançamento"
+                    else:
+                        help_renda = "na média do lançamento"
 
-                    # ------- RENDA ACIMA -------
-                    with cols_loop[2]:
-                        delta_pp_renda = met['delta_pp_renda_vs_lanc']
-                        if delta_pp_renda > 0:
-                            help_renda = f"{abs(delta_pp_renda):.1f} p.p. acima da média do lançamento"
-                        elif delta_pp_renda < 0:
-                            help_renda = f"{abs(delta_pp_renda):.1f} p.p. abaixo da média do lançamento"
-                        else:
-                            help_renda = "na média do lançamento"
+                    st.metric(
+                        label='RENDA ACIMA (abs / %)',
+                        value=f"{met['n_renda']} ({met['pct_renda']}%)",
+                        delta=f'{round(delta_pp_renda, 2)}%',
+                        delta_color="normal",
+                        help=help_renda
+                    )
 
-                        st.metric(
-                            label='RENDA ACIMA (abs / %)',
-                            value=f"{met['n_renda']} ({met['pct_renda']}%)",
-                            delta=f'{round(delta_pp_renda, 2)}%',
-                            delta_color="normal",
-                            help=help_renda
-                        )
+                # ------- RENDA & PATRIMÔNIO ACIMA -------
+                with cols_loop[3]:
+                    delta_pp_renda_patrim = met['delta_pp_renda_patrim_vs_lanc']
+                    if delta_pp_renda_patrim > 0:
+                        help_renda_patrim = f"{abs(delta_pp_renda_patrim):.1f} p.p. acima da média do lançamento"
+                    elif delta_pp_renda_patrim < 0:
+                        help_renda_patrim = f"{abs(delta_pp_renda_patrim):.1f} p.p. abaixo da média do lançamento"
+                    else:
+                        help_renda_patrim = "na média do lançamento"
 
-                    # ------- RENDA & PATRIMÔNIO ACIMA -------
-                    with cols_loop[3]:
-                        delta_pp_renda_patrim = met['delta_pp_renda_patrim_vs_lanc']
-                        if delta_pp_renda_patrim > 0:
-                            help_renda_patrim = f"{abs(delta_pp_renda_patrim):.1f} p.p. acima da média do lançamento"
-                        elif delta_pp_renda_patrim < 0:
-                            help_renda_patrim = f"{abs(delta_pp_renda_patrim):.1f} p.p. abaixo da média do lançamento"
-                        else:
-                            help_renda_patrim = "na média do lançamento"
+                    st.metric(
+                        label='RENDA & PATRIM. ACIMA (abs / %)',
+                        value=f"{met['n_renda_patrim']} ({met['pct_renda_patrim']}%)",
+                        delta=f'{round(delta_pp_renda_patrim, 2)}%',
+                        delta_color="normal",
+                        help=help_renda_patrim
+                    )
 
-                        st.metric(
-                            label='RENDA & PATRIM. ACIMA (abs / %)',
-                            value=f"{met['n_renda_patrim']} ({met['pct_renda_patrim']}%)",
-                            delta=f'{round(delta_pp_renda_patrim, 2)}%',
-                            delta_color="normal",
-                            help=help_renda_patrim
-                        )
+                # ------- QUALIFICADOS (>=80) -------
+                with cols_loop[4]:
+                    delta_pct_qual_vs_lanc = met['pct_leads_qualificados'] - lanc_qual_rate_pct  # p.p. vs lançamento
+                    if delta_pct_qual_vs_lanc > 0:
+                        help_qual = f"{abs(delta_pct_qual_vs_lanc):.1f} p.p. acima da média do lançamento"
+                    elif delta_pct_qual_vs_lanc < 0:
+                        help_qual = f"{abs(delta_pct_qual_vs_lanc):.1f} p.p. abaixo da média do lançamento"
+                    else:
+                        help_qual = "na média do lançamento"
 
-                    cols_loop2 = st.columns(3)
-                    # ------- QUALIFICADOS (>=80) -------
-                    with cols_loop2[0]:
-                        delta_pct_qual_vs_lanc = met['pct_leads_qualificados'] - lanc_qual_rate_pct  # p.p. vs lançamento
-                        if delta_pct_qual_vs_lanc > 0:
-                            help_qual = f"{abs(delta_pct_qual_vs_lanc):.1f} p.p. acima da média do lançamento"
-                        elif delta_pct_qual_vs_lanc < 0:
-                            help_qual = f"{abs(delta_pct_qual_vs_lanc):.1f} p.p. abaixo da média do lançamento"
-                        else:
-                            help_qual = "na média do lançamento"
+                    st.metric(
+                        label='LEADS QUALIFICADOS (>=80)',
+                        value=f"{met['n_leads_qualificados']} ({met['pct_leads_qualificados']}%)",
+                        delta=f'{round(delta_pct_qual_vs_lanc, 0)}%',
+                        delta_color="normal",
+                        help=help_qual
+                    )
+                
 
-                        st.metric(
-                            label='LEADS QUALIFICADOS (>=80)',
-                            value=f"{met['n_leads_qualificados']} ({met['pct_leads_qualificados']}%)",
-                            delta=f'{round(delta_pct_qual_vs_lanc, 0)}%',
-                            delta_color="normal",
-                            help=help_qual
-                        )
-                    
-                    # Só renderiza CPL se usar_cpl=True
-                    if usar_cpl:
-                        with cols_loop2[1]:
-                            # ------- CPL GERAL -------
-                            cpl_anuncio = met['cpl_total']
-                            delta_cpl_anuncio = met['delta_cpl_total']
-                            if delta_cpl_anuncio is not None:
-                                if delta_cpl_anuncio < 0:
-                                    help_qual = f"{abs(delta_cpl_anuncio):.1f} mais barato que a média"
-                                elif delta_cpl_anuncio > 0:
-                                    help_qual = f"{abs(delta_cpl_anuncio):.1f} mais caro que a média"
-                                else:
-                                    help_qual = "cpl na média"
-                            else:
-                                help_qual = None
 
-                            st.metric(
-                                label = 'CPL Total',
-                                value = f"{round(cpl_anuncio, 2)}" if cpl_anuncio is not None else "—",
-                                delta = f'{round(delta_cpl_anuncio, 2)}' if delta_cpl_anuncio is not None else None,
-                                delta_color="inverse",
-                                help=help_qual
-                            )
-
-                        with cols_loop2[2]:
-                            # ------- CPL QUALIFICADOS -------
-                            cpl_qualificados_anuncio = met['cpl_qualificados']
-                            delta_cpl_qualificados = met['delta_cpl_qualificados']
-                            if delta_cpl_qualificados is not None:
-                                if delta_cpl_qualificados < 0:
-                                    help_qual = f"{abs(delta_cpl_qualificados):.1f} mais barato que a média"
-                                elif delta_cpl_qualificados > 0:
-                                    help_qual = f"{abs(delta_cpl_qualificados):.1f} mais caro que a média"
-                                else:
-                                    help_qual = "cpl na média"
-                            else:
-                                help_qual = None
-
-                            st.metric(
-                                label = 'CPL Qualificados',
-                                value = f"{round(cpl_qualificados_anuncio, 2)}" if cpl_qualificados_anuncio is not None else "—",
-                                delta = f'{round(delta_cpl_qualificados, 2)}' if delta_cpl_qualificados is not None else None,
-                                delta_color="inverse",
-                                help=help_qual
-                            )
+        st.dataframe(df_pm)
