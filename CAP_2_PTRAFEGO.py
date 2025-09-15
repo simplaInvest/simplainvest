@@ -505,9 +505,13 @@ else:
                 options=['UTM_TERM', 'UTM_CAMPAIGN', 'UTM_ADSET'],
                 horizontal=True
             )
-            prefixo_etapa = 'PM ' if etapa_selected == 'PM' else '' 
-            utm_selected = prefixo_etapa + utm_selected
-
+            if etapa_selected == 'PM':
+                prefixo_etapa = 'PM '
+                utm_selected = prefixo_etapa + utm_selected
+            elif etapa_selected == 'Ven':
+                prefixo_etapa = 'VENDAS '
+                utm_selected = prefixo_etapa + utm_selected
+                
             if utm_selected == 'UTM_TERM':
                 coluna_nome = 'ANUNCIO'
                 df_selected = df_anuncios.copy()
@@ -792,8 +796,9 @@ else:
                                     help=help_qual
                                 )
 
-        elif etapa_selected == 'PM':
-            df_pm = DF_CENTRAL_PREMATRICULA.copy()
+        elif etapa_selected == 'PM' or etapa_selected == 'Ven':
+
+            df_pm = DF_CENTRAL_PREMATRICULA.copy() if etapa_selected == 'PM' else DF_CENTRAL_VENDAS.copy()
             df_traf = DF_PTRAFEGO_DADOS.copy()
 
             df_pm['EMAIL'] = df_pm['EMAIL'].str.strip().str.lower()
