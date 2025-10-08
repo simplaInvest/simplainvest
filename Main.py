@@ -162,7 +162,7 @@ else:
                 opcoes,
                 index=default_opcao
             )
-            options = list(reversed(range(1, 26)))
+            options = list(reversed(range(1, 27)))
             index = options.index(st.session_state["VERSAO_PRINCIPAL"])
             VERSAO_PRINCIPAL = st.selectbox('Versão', options, index=index)
             if st.button('Alterar', use_container_width=True):
