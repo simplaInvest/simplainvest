@@ -56,7 +56,7 @@ with st.container(border=True):
     with cols[1]:
         VERSAO_PRINCIPAL = st.selectbox(
             'Versão',
-            list(reversed(range(1, 26))),
+            list(reversed(range(1, 27))),
             help="Selecione a versão principal do lançamento (1 a 25)."
         )
 
