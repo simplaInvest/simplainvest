@@ -59,7 +59,9 @@ def format_ptrafego_dados(df_ptrafego_dados):
 
 def format_pesquisa_trafego_colunas_monetarias(df):
     for col in ['CPL ATUAL', 'VALOR USADO']:
-        df[col] = (
+        if col not in df.columns:
+            continue
+        cleaned = (
             df[col]
             .astype(str)
             .str.strip()
@@ -67,9 +69,13 @@ def format_pesquisa_trafego_colunas_monetarias(df):
             .str.replace(" ", "", regex=False)
             .str.replace(".", "", regex=False)     # remove separador de milhar
             .str.replace(",", ".", regex=False)    # troca vírgula por ponto
-            .replace("-", 0.0)                   # troca "-" por 0
-            .astype(float)                         # converte para float
+            .replace({"-": "0", "#ERROR!": None, "#N/A": None, "": None, "nan": None, "NaN": None})
         )
+        df[col] = pd.to_numeric(cleaned, errors='coerce')  # converte, inválidos viram NaN
+    # Remove linhas com NaN nas colunas monetárias
+    monetarias = [c for c in ['CPL ATUAL', 'VALOR USADO'] if c in df.columns]
+    if monetarias:
+        df = df.dropna(subset=monetarias)
     return df
 
 

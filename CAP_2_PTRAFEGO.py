@@ -329,10 +329,18 @@ else:
                       f"({round((renda_patrimonio_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
             )
         with metrics_cols[4]:
-            n_qualificados = len(filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int) >= 80] == True)
+            # Limpa e converte a coluna para numérico
+            leadscore_num = pd.to_numeric(
+                filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).str.strip(),
+                errors='coerce'  # valores inválidos -> NaN
+            )
+
+            # Conta quantos são >= 80
+            n_qualificados = (leadscore_num >= 80).sum()
+
             st.metric(
                 label = 'Nº de leads qualificados\n(LEADSCORE)',
-                value = f'{len(filtered_DF_PTRAFEGO_DADOS[filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int) >= 80] == True)} '
+                value = f'{n_qualificados} '
                         f'({round((n_qualificados / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)'
             )
         with metrics_cols[5]:
@@ -531,9 +539,64 @@ else:
         with cols_select[2]:
             pesquisa = st.text_input(label="Pesquise o UTM", icon='🔎')
 
+        # Baselines financeiros: definir total_gasto, cpl_total e cpl_qualificados de forma robusta
+        def _parse_total_gasto_from_central():
+            try:
+                if (
+                    'TOTAL GASTO' in DF_PESQUISA_TRAFEGO_CENTRAL.columns
+                    and not DF_PESQUISA_TRAFEGO_CENTRAL.empty
+                    and pd.notnull(DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'].iloc[0])
+                ):
+                    val = str(DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'].iloc[0]).strip()
+                    # normaliza separadores
+                    val = val.replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.')
+                    return float(val)
+            except Exception:
+                pass
+            return None
+
+        def _sum_valor_usado(df):
+            try:
+                if df is not None and not df.empty and 'VALOR USADO' in df.columns:
+                    # usa conversão numérica segura
+                    vals = pd.to_numeric(
+                        df['VALOR USADO'].astype(str)
+                        .str.strip()
+                        .str.replace('R$', '', regex=False)
+                        .str.replace(' ', '', regex=False)
+                        .str.replace('.', '', regex=False)
+                        .str.replace(',', '.', regex=False),
+                        errors='coerce'
+                    )
+                    return float(vals.sum(skipna=True))
+            except Exception:
+                pass
+            return 0.0
+
+        total_gasto_central = _parse_total_gasto_from_central()
+        if total_gasto_central is not None:
+            total_gasto = total_gasto_central
+        else:
+            # fallback: soma dos relatórios por anúncio/campanha/conjunto
+            total_gasto = 0.0
+            try:
+                total_gasto += _sum_valor_usado(DF_PESQUISA_TRAFEGO_PORANUNCIO)
+                total_gasto += _sum_valor_usado(DF_PESQUISA_TRAFEGO_PORCAMPANHA)
+                total_gasto += _sum_valor_usado(DF_PESQUISA_TRAFEGO_PORCONJUNTO)
+            except Exception:
+                pass
+
+        # Tamanhos e qualificados
+        n_total_leads = int(DF_PTRAFEGO_DADOS.shape[0]) if DF_PTRAFEGO_DADOS is not None else 0
+        leadscore_all = pd.to_numeric(DF_PTRAFEGO_DADOS['LEADSCORE'], errors='coerce') if 'LEADSCORE' in DF_PTRAFEGO_DADOS.columns else pd.Series(dtype=float)
+        n_qualificados_baseline = int((leadscore_all >= 80).sum()) if n_total_leads else 0
+
+        cpl_total = (total_gasto / n_total_leads) if n_total_leads else 0.0
+        cpl_qualificados = (total_gasto / n_qualificados_baseline) if n_qualificados_baseline else 0.0
+
         if etapa_selected == 'Cap':
 
-            cpl_total = total_gasto / len(DF_PTRAFEGO_DADOS)
+            # cpl_total já calculado acima com fallback
 
             # se vazio/None, pega todos
             if not pesquisa:
