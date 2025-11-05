@@ -447,7 +447,7 @@ else:
                         "Quanto Poupa",
                         lambda: create_distribution_chart(
                             filtered_poupa, 'Quanto Poupa', quanto_poupa_order,
-                            CHART_CONFIG['quanto poupa']['color'], CHART_CONFIG['quanto poupa']['title']
+                            CHART_CONFIG['renda']['color'], CHART_CONFIG['renda']['title']
                         )
                     )
                     st.altair_chart(quanto_poupa_chart, use_container_width=True)
