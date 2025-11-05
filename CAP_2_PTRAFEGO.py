@@ -306,6 +306,21 @@ else:
                 )
             ]
 
+            # 02.D Quanto Poupa (se disponível)
+            selected_quanto_poupa_start, selected_quanto_poupa_end = None, None
+            if 'Quanto Poupa' in filtered_DF_PTRAFEGO_DADOS.columns:
+                selected_quanto_poupa_start, selected_quanto_poupa_end = criar_slider(quanto_poupa_order, 'Quanto Poupa')
+                quanto_poupa_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+                    filtered_DF_PTRAFEGO_DADOS['Quanto Poupa'].isin(
+                        quanto_poupa_order[
+                            quanto_poupa_order.index(selected_quanto_poupa_start): quanto_poupa_order.index(selected_quanto_poupa_end) + 1
+                        ]
+                    )
+                ]
+            else:
+                # Mantém variável definida para evitar NameError em cenários sem a coluna
+                quanto_poupa_acima_selecionado = filtered_DF_PTRAFEGO_DADOS.iloc[0:0]
+
     renda_patrimonio_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
         (filtered_DF_PTRAFEGO_DADOS['PATRIMONIO'].isin(
             patrimonio_order[patrimonio_order.index(selected_patrimonio_start): patrimonio_order.index(selected_patrimonio_end) + 1]
@@ -314,6 +329,20 @@ else:
             col2_order[col2_order.index(selected_renda_start): col2_order.index(selected_renda_end) + 1]
         ))
     ]
+
+    # 02.E Interação: Renda & Quanto Poupa acima (se ambas colunas existirem)
+    renda_quanto_poupa_acima_selecionado = filtered_DF_PTRAFEGO_DADOS.iloc[0:0]
+    if ('RENDA MENSAL' in filtered_DF_PTRAFEGO_DADOS.columns) and ('Quanto Poupa' in filtered_DF_PTRAFEGO_DADOS.columns):
+        renda_quanto_poupa_acima_selecionado = filtered_DF_PTRAFEGO_DADOS[
+            (filtered_DF_PTRAFEGO_DADOS['RENDA MENSAL'].isin(
+                col2_order[col2_order.index(selected_renda_start): col2_order.index(selected_renda_end) + 1]
+            )) &
+            (filtered_DF_PTRAFEGO_DADOS['Quanto Poupa'].isin(
+                quanto_poupa_order[
+                    quanto_poupa_order.index(selected_quanto_poupa_start): quanto_poupa_order.index(selected_quanto_poupa_end) + 1
+                ]
+            ))
+        ]
 
     # Métricas-resumo em cards
     with st.container(border=True):
@@ -369,6 +398,24 @@ else:
                 )
             else:
                 print()
+
+    # Métricas adicionais: Quanto Poupa e Interação Renda & Quanto Poupa
+    if 'Quanto Poupa' in filtered_DF_PTRAFEGO_DADOS.columns:
+        with st.container(border=True):
+            extra_cols = st.columns(2)
+            with extra_cols[0]:
+                st.metric(
+                    label='Quanto Poupa',
+                    value=f"{quanto_poupa_acima_selecionado.shape[0]}  "
+                          f"({round((quanto_poupa_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+                )
+            with extra_cols[1]:
+                if not renda_quanto_poupa_acima_selecionado.empty:
+                    st.metric(
+                        label='RENDA & QUANTO POUPA ACIMA (abs / %)',
+                        value=f"{renda_quanto_poupa_acima_selecionado.shape[0]}  "
+                              f"({round((renda_quanto_poupa_acima_selecionado.shape[0] / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)"
+                    )
 
     st.divider()
 
