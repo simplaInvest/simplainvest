@@ -182,6 +182,7 @@ else:
     # Ordens/Sliders
     cols_finan_01 = 'PATRIMONIO'
     cols_finan_02 = 'QUANTO_POUPA' if PRODUTO == "SW" else 'RENDA MENSAL'
+    cols_finan_03 = 'Quanto Poupa'
 
     patrimonio_order = [
         'Menos de R$5 mil',
@@ -202,6 +203,16 @@ else:
         'Ensino superior completo',
         'Mestrado',
         'Doutorado'
+    ]
+
+    quanto_poupa_order = [
+        'Até R$250',
+        'Entre R$250 e R$500',
+        'Entre R$500 e R$1.000',
+        'Entre R$1.000 e R$2.500',
+        'Entre R$2.500 e R$5.000',
+        'Entre R$5.000 e R$15.000',
+        'Acima de R$15.000'
     ]
 
     if PRODUTO != 'SW':
@@ -387,6 +398,10 @@ else:
             filtered_escolaridade = filtered_DF_PTRAFEGO_DADOS[
                 filtered_DF_PTRAFEGO_DADOS['ESCOLARIDADE'].isin(escolaridade_order)
             ]
+        elif 'Quanto Poupa' in filtered_DF_PTRAFEGO_DADOS.columns:
+            filtered_poupa = filtered_DF_PTRAFEGO_DADOS[
+                filtered_DF_PTRAFEGO_DADOS['Quanto Poupa'].isin(quanto_poupa_order)
+            ]
 
         col1, col2 = st.columns(2)
 
@@ -422,6 +437,22 @@ else:
                     st.altair_chart(escolaridade_chart, use_container_width=True)
                     st.dataframe(
                         escolaridade_df[['ESCOLARIDADE', 'count']].rename(columns={'ESCOLARIDADE': 'Escolaridade', 'count': 'Quantidade'}),
+                        use_container_width=True, hide_index=True
+                    )
+            elif 'Quanto Poupa' in filtered_DF_PTRAFEGO_DADOS.columns:
+                with st.container(border=True):
+                    st.subheader("Quanto Poupa")
+                    st.caption("Distribuição por faixa")
+                    quanto_poupa_chart, quanto_poupa_df = executar_com_seguranca(
+                        "Quanto Poupa",
+                        lambda: create_distribution_chart(
+                            filtered_poupa, 'Quanto Poupa', quanto_poupa_order,
+                            CHART_CONFIG['quanto poupa']['color'], CHART_CONFIG['quanto poupa']['title']
+                        )
+                    )
+                    st.altair_chart(quanto_poupa_chart, use_container_width=True)
+                    st.dataframe(
+                        quanto_poupa_df[['Quanto Poupa', 'count']].rename(columns={'Quanto Poupa': 'Quanto Poupa', 'count': 'Quantidade'}),
                         use_container_width=True, hide_index=True
                     )
 

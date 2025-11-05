@@ -95,16 +95,33 @@ with st.container(border=True):
     
     with col_cpl:
         if not DF_PESQUISA_TRAFEGO_CENTRAL.empty:
-            total_gasto = float(DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'][0].replace(",", "."))
-            n_qualificados = len(DF_PTRAFEGO_DADOS[DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int) >= 80] == True)
-            n_total = DF_PTRAFEGO_DADOS.shape[0]
-            cpl_total = total_gasto/n_total
-            cpl_qualificados = total_gasto / n_qualificados
+            # Parse robusto para valores monetários (formato brasileiro: 1.234,56)
+            raw_total = DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'].iloc[0]
+            try:
+                total_str = str(raw_total).strip()
+                if total_str == "":
+                    total_gasto = 0.0
+                else:
+                    total_gasto = float(total_str.replace('.', '').replace(',', '.'))
+            except Exception:
+                total_gasto = 0.0
+
+            # Cálculo robusto de qualificados: trata strings vazias/invalidas com to_numeric(coerce)
+            if 'LEADSCORE' in DF_PTRAFEGO_DADOS.columns:
+                leadscore_num = pd.to_numeric(DF_PTRAFEGO_DADOS['LEADSCORE'], errors='coerce')
+                n_qualificados = int((leadscore_num >= 80).sum())
+            else:
+                n_qualificados = 0
+
+            n_total = int(DF_PTRAFEGO_DADOS.shape[0])
+            cpl_total = (total_gasto / n_total) if n_total > 0 else None
+            cpl_qualificados = (total_gasto / n_qualificados) if n_qualificados > 0 else None
+
             st.subheader("CPL")
-            st.metric(label = "Total", value = f'R$ {round(cpl_total, 2)}')
-            st.metric(label = "Qualificados", value = f'R$ {round(cpl_qualificados, 2)}')
+            st.metric(label = "Total", value = (f'R$ {round(cpl_total, 2)}' if cpl_total is not None else '—'))
+            st.metric(label = "Qualificados", value = (f'R$ {round(cpl_qualificados, 2)}' if cpl_qualificados is not None else '—'))
         else:
-            print()
+            st.caption("Sem dados de gasto total para calcular CPL.")
 
 
 #------------------------------------------------------------

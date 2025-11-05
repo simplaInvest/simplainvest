@@ -57,17 +57,15 @@ def create_line_chart(df, variable, conv=None, title='', variable_legend=None, c
 
     # Add the conversion variable line if provided
     if conv:
-        # Calculate min and max values for y2 axis
-        min_val = df[conv].min()
-        max_val = df[conv].max()
-        y2_min = min_val * 0.95  # 90% of minimum value
-        y2_max = max_val * 1.05  # 110% of maximum value
+        # Ensure numeric conversion and handle NaNs/infs robustly
+        conv_series = pd.to_numeric(df[conv], errors='coerce')
+        has_valid = conv_series.dropna().size > 0
 
         fig.add_trace(go.Scatter(
             x=df['EI'],
-            y=df[conv],
+            y=conv_series,
             mode='lines+markers+text',
-            text=df[conv].round(2).astype(str) + '%',
+            text=conv_series.round(2).astype(str).fillna('') + '%',
             textposition='top center',
             line=dict(width=2, color='green', dash='dot'),
             marker=dict(size=8),
@@ -75,33 +73,52 @@ def create_line_chart(df, variable, conv=None, title='', variable_legend=None, c
             yaxis='y2'  # Specify secondary y-axis
         ))
 
-        # Add horizontal line for the mean of `conv`
-        mean_conv = df[conv].mean()
-        fig.add_hline(
-            y=mean_conv,
-            line=dict(color='yellow', dash='dot'),
-            annotation_text=f'Média: {mean_conv:.2f}%',
-            annotation_position='top right',
-            yref='y2'
-        )
+        # Add horizontal line for the mean of `conv` only if valid
+        if has_valid:
+            mean_conv = conv_series.mean()
+            try:
+                fig.add_hline(
+                    y=float(mean_conv),
+                    line=dict(color='yellow', dash='dot'),
+                    annotation_text=f'Média: {mean_conv:.2f}%',
+                    annotation_position='top right',
+                    yref='y2'
+                )
+            except Exception:
+                # In older Plotly versions add_hline may not exist; fallback using shape
+                fig.add_shape(
+                    type='line', xref='paper', yref='y2', x0=0, x1=1, y0=float(mean_conv), y1=float(mean_conv),
+                    line=dict(color='yellow', dash='dot')
+                )
 
-        # Update layout for dual-axis with new range and hidden ticks
-        # Plotly 5+ expects axis title configured via title.text / title.font
+        # Compute range only when min/max are finite
+        yaxis2_kwargs = dict(
+            title=dict(text='Taxa (%)', font=dict(color='green')),
+            tickfont=dict(color='green'),
+            overlaying='y',
+            side='right',
+            showticklabels=True,
+            showgrid=False,
+            zeroline=False
+        )
+        if has_valid:
+            min_val = float(conv_series.min())
+            max_val = float(conv_series.max())
+            if pd.notnull(min_val) and pd.notnull(max_val):
+                y2_min = min_val * 0.95
+                y2_max = max_val * 1.05
+                # Ensure y2_min <= y2_max
+                if y2_min > y2_max:
+                    y2_min, y2_max = y2_max, y2_min
+                yaxis2_kwargs['range'] = [y2_min, y2_max]
+
+        # Update layout for dual-axis
         fig.update_layout(
             yaxis=dict(
                 title=dict(text=variable, font=dict(color='blue')),
                 tickfont=dict(color='blue')
             ),
-            yaxis2=dict(
-                title=dict(text='Taxa (%)', font=dict(color='green')),
-                tickfont=dict(color='green'),
-                overlaying='y',
-                side='right',
-                range=[y2_min, y2_max],
-                showticklabels=True,  # Show tick labels
-                showgrid=False,        # Hide grid lines
-                zeroline=False         # Hide zero line
-            )
+            yaxis2=yaxis2_kwargs
         )
 
     # General layout updates
