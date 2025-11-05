@@ -17,22 +17,53 @@ st.logo(image = logo)
 DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
 def convert_dates_to_iso(df, date_columns):
     """
-    Converte as datas das colunas especificadas no DataFrame do formato DD/MM/YYYY para YYYY-MM-DD.
-    
-    Parâmetros:
-        df (pd.DataFrame): DataFrame com datas no formato DD/MM/YYYY.
-        date_columns (list): Lista dos nomes das colunas que devem ser convertidas.
-        
-    Retorna:
-        pd.DataFrame: Cópia do DataFrame com as datas convertidas para o formato ISO.
+    Converte as datas das colunas especificadas para YYYY-MM-DD.
+    Aceita entradas em 'DD/MM/YYYY', 'YYYY-MM-DD' e também 'MM/DD/YYYY'.
     """
     df = df.copy()
-    for col in date_columns:
+
+    def _to_iso(val):
+        import pandas as pd
+        from datetime import datetime
+        if pd.isna(val):
+            return val
+        s = str(val).strip()
+        if not s:
+            return s
+        # Já ISO?
         try:
-            # Converter a coluna utilizando o formato conhecido e formatar como string com YYYY-MM-DD
-            df[col] = pd.to_datetime(df[col], format='%d/%m/%Y').dt.strftime('%Y-%m-%d')
-        except Exception as e:
-            print(f"Erro ao converter a coluna {col}: {e}")
+            dt = datetime.strptime(s, '%Y-%m-%d')
+            return dt.strftime('%Y-%m-%d')
+        except Exception:
+            pass
+        # DD/MM/YYYY
+        try:
+            dt = datetime.strptime(s, '%d/%m/%Y')
+            return dt.strftime('%Y-%m-%d')
+        except Exception:
+            pass
+        # MM/DD/YYYY
+        try:
+            dt = datetime.strptime(s, '%m/%d/%Y')
+            return dt.strftime('%Y-%m-%d')
+        except Exception:
+            pass
+        # Fallback: tentativa com pandas (dayfirst True, depois False)
+        try:
+            dt = pd.to_datetime(s, dayfirst=True, errors='coerce')
+            if pd.notnull(dt):
+                return pd.to_datetime(dt).strftime('%Y-%m-%d')
+            dt2 = pd.to_datetime(s, dayfirst=False, errors='coerce')
+            if pd.notnull(dt2):
+                return pd.to_datetime(dt2).strftime('%Y-%m-%d')
+        except Exception:
+            pass
+        # Sem conversão: retorna original
+        return s
+
+    for col in date_columns:
+        if col in df.columns:
+            df[col] = df[col].apply(_to_iso)
     return df.copy()
 DF_CENTRAL_LANCAMENTOS = convert_dates_to_iso(DF_CENTRAL_LANCAMENTOS, ['CAPTACAO_INICIO', 'CAPTACAO_FIM', 'PM_INICIO', 'PM_FIM', 'VENDAS_INICIO', 'VENDAS_FIM'])
 

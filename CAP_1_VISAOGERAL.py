@@ -36,6 +36,22 @@ with loading_container:
             DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
             DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
             DF_PESQUISA_TRAFEGO_CENTRAL = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PESQUISA_TRAFEGO_CENTRAL)
+            # Sanitização: remover colunas duplicadas e manter apenas 'TOTAL GASTO'
+            try:
+                # Normaliza nomes das colunas (remove espaços, garante string)
+                DF_PESQUISA_TRAFEGO_CENTRAL.columns = DF_PESQUISA_TRAFEGO_CENTRAL.columns.astype(str).str.strip()
+                # Remove colunas duplicadas mantendo a primeira ocorrência
+                DF_PESQUISA_TRAFEGO_CENTRAL = DF_PESQUISA_TRAFEGO_CENTRAL.loc[:, ~DF_PESQUISA_TRAFEGO_CENTRAL.columns.duplicated()]
+                # Mantém apenas a coluna 'TOTAL GASTO' (case-insensitive)
+                matches = [c for c in DF_PESQUISA_TRAFEGO_CENTRAL.columns if c.strip().upper() == 'TOTAL GASTO']
+                if matches:
+                    col = matches[0]
+                    DF_PESQUISA_TRAFEGO_CENTRAL = DF_PESQUISA_TRAFEGO_CENTRAL[[col]].rename(columns={col: 'TOTAL GASTO'})
+                else:
+                    st.warning("Coluna 'TOTAL GASTO' não encontrada em DF_PESQUISA_TRAFEGO_CENTRAL. Exibindo DF vazio.")
+                    DF_PESQUISA_TRAFEGO_CENTRAL = pd.DataFrame({'TOTAL GASTO': []})
+            except Exception as _e:
+                st.warning(f"Falha ao sanitizar DF_PESQUISA_TRAFEGO_CENTRAL: {_e}")
             status.update(label="Carregados com sucesso!", state="complete", expanded=False)
         except Exception as e:
             status.update(label="Erro ao carregar dados: " + str(e), state="error", expanded=False)

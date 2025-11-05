@@ -358,21 +358,27 @@ def plot_conversao_por_dia(
     print(max_date)
 
 def utm_source_medium_vendas(DF_CENTRAL_VENDAS):
-    if ['UTM_SOURCE', 'UTM_MEDIUM'] in DF_CENTRAL_VENDAS:
-        utm_df = DF_CENTRAL_VENDAS[['UTM_SOURCE', 'UTM_MEDIUM']]
-        utm_df['source/medium'] = utm_df['UTM_SOURCE'].fillna('indefinido') + ' / ' + utm_df['UTM_MEDIUM'].fillna('indefinido')
-
-        # Contar as ocorrências de cada combinação
-        combination_counts = utm_df['source/medium'].value_counts().reset_index()
-        combination_counts.columns = ['source/medium', 'Resultados']
-
-        # Calcular a porcentagem de cada combinação
-        total = combination_counts['Resultados'].sum()
-        combination_counts['%'] = (combination_counts['Resultados'] / total * 100).round(2)
-
-        return combination_counts
-    else:
+    # Acessa as colunas necessárias de forma robusta sem usar "in" com listas
+    required_cols = ['UTM_SOURCE', 'UTM_MEDIUM']
+    try:
+        utm_df = DF_CENTRAL_VENDAS[required_cols].copy()
+    except KeyError:
         return None
+
+    utm_df['source/medium'] = (
+        utm_df['UTM_SOURCE'].fillna('indefinido').astype(str) + ' / ' +
+        utm_df['UTM_MEDIUM'].fillna('indefinido').astype(str)
+    )
+
+    # Contar as ocorrências de cada combinação
+    combination_counts = utm_df['source/medium'].value_counts().reset_index()
+    combination_counts.columns = ['source/medium', 'Resultados']
+
+    # Calcular a porcentagem de cada combinação
+    total = combination_counts['Resultados'].sum()
+    combination_counts['%'] = (combination_counts['Resultados'] / total * 100).round(2)
+
+    return combination_counts
 
 def plot_utm_pie_chart(combination_counts):
     if combination_counts is None or combination_counts.empty:

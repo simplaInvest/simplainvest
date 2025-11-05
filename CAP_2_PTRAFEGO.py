@@ -53,6 +53,11 @@ with loading_container:
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
+# Se não houver dados de tráfego, interrompe a página com aviso amigável (ambiente online)
+if DF_PTRAFEGO_DADOS.empty:
+    st.warning("Os dados de tráfego (PTRAFEGO_DADOS) não estão disponíveis nesta instância. Verifique credenciais e a aba da planilha.")
+    st.stop()
+
 # ===========================
 # Layout
 # ===========================

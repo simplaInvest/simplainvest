@@ -46,11 +46,15 @@ def format_ptrafego_clicks(df_ptrafego_clicks):
     return df_ptrafego_clicks
 
 def format_ptrafego_dados(df_ptrafego_dados):
+    # Tolerante a vazio: retorna sem erro para ambientes online sem dados
     if df_ptrafego_dados.empty:
-        raise ValueError(f"O Dataframe '{df_ptrafego_dados}' está vazio")
+        return df_ptrafego_dados
     else:
-        # converter a coluna 'DATA DE CAPTURA' para datetime no formato correto
-        df_ptrafego_dados["DATA DE CAPTURA"] = pd.to_datetime(df_ptrafego_dados["DATA DE CAPTURA"], format="%d/%m/%Y %H:%M", errors="coerce")
+        # converter a coluna 'DATA DE CAPTURA' para datetime no formato correto, se existir
+        if 'DATA DE CAPTURA' in df_ptrafego_dados.columns:
+            df_ptrafego_dados["DATA DE CAPTURA"] = pd.to_datetime(
+                df_ptrafego_dados["DATA DE CAPTURA"], format="%d/%m/%Y %H:%M", errors="coerce"
+            )
         # Verifica colunas duplicadas
         if df_ptrafego_dados.columns.duplicated().any():
             st.warning("Colunas duplicadas foram encontradas e excluídas.")

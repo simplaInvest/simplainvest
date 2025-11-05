@@ -103,12 +103,12 @@ if not DF_CENTRAL_VENDAS.empty:
 
         with col1:
             combination_counts = executar_com_seguranca("GRÁFICO DE PIZZA UTM SOURCE", lambda:utm_source_medium_vendas(DF_CENTRAL_VENDAS))
-            if combination_counts:
+            if combination_counts is not None and not combination_counts.empty:
                 st.table(combination_counts)
 
         with col2:
             pie_chart = executar_com_seguranca("GRÁFICO DE PIZZA UTM MEDIUM", lambda:plot_utm_pie_chart(combination_counts))
-            if pie_chart:
+            if pie_chart is not None:
                 st.plotly_chart(pie_chart)
             else:
                 st.warning("❌ Gráfico de Pizza vazio")

@@ -17,6 +17,59 @@ PRODUTO = st.session_state["PRODUTO"]
 VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
 LANÇAMENTO = st.session_state["LANÇAMENTO"]
 
+# Utilitário: normaliza datas para o formato aceito pelo GA (YYYY-MM-DD, today, yesterday, NdaysAgo)
+def _normalize_ga_date(date_value):
+    """Return a GA-compatible date string.
+    Accepts datetime/date/strings in 'DD/MM/YYYY' or 'YYYY-MM-DD', or special values.
+    """
+    from datetime import datetime, date
+
+    # Handle date/datetime
+    if isinstance(date_value, (datetime, date)):
+        return datetime.strftime(date_value if isinstance(date_value, datetime) else datetime.combine(date_value, datetime.min.time()), "%Y-%m-%d")
+
+    s = str(date_value).strip()
+    if not s:
+        return s
+
+    # Allow GA special keywords
+    lower = s.lower()
+    if lower in ("today", "yesterday"):
+        return lower
+    # Pattern NdaysAgo (GA expects case-sensitive 'NdaysAgo')
+    import re
+    if re.fullmatch(r"\d+daysAgo", s):
+        return s
+
+    # Try ISO first
+    try:
+        dt = datetime.strptime(s, "%Y-%m-%d")
+        return dt.strftime("%Y-%m-%d")
+    except Exception:
+        pass
+
+    # Try Brazilian format DD/MM/YYYY
+    try:
+        dt = datetime.strptime(s, "%d/%m/%Y")
+        return dt.strftime("%Y-%m-%d")
+    except Exception:
+        pass
+
+    # Fallback: best-effort parse (try both dayfirst variants)
+    try:
+        import pandas as pd
+        dt = pd.to_datetime(s, dayfirst=True, errors="coerce")
+        if pd.notnull(dt):
+            return pd.to_datetime(dt).strftime("%Y-%m-%d")
+        dt2 = pd.to_datetime(s, dayfirst=False, errors="coerce")
+        if pd.notnull(dt2):
+            return pd.to_datetime(dt2).strftime("%Y-%m-%d")
+    except Exception:
+        pass
+
+    # As a last resort, return original; GA may error if invalid
+    return s
+
 def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
     # Carregar informações sobre lançamento selecionado
     from libs.data_loader import (
@@ -728,7 +781,7 @@ def get_page_metrics(slug, start_date, end_date):
         metrics=[
             Metric(name="totalUsers")
         ],
-        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+        date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
         dimension_filter=FilterExpression(
             filter=Filter(
                 field_name="pagePath",
@@ -781,7 +834,7 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
             Dimension(name="pagePath")
         ],
         metrics=[Metric(name="totalUsers")],
-        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+        date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
         dimension_filter=FilterExpression(
             filter=Filter(
                 field_name="pagePath",
@@ -801,7 +854,7 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
         dimensions=[Dimension(name="sessionCampaignName"),
                     Dimension(name="pagePath")],
         metrics=[Metric(name="totalUsers")],
-        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+        date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
         dimension_filter=FilterExpression(
             filter=Filter(
                 field_name="pagePath",

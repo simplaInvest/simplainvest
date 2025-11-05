@@ -86,15 +86,14 @@ def create_line_chart(df, variable, conv=None, title='', variable_legend=None, c
         )
 
         # Update layout for dual-axis with new range and hidden ticks
+        # Plotly 5+ expects axis title configured via title.text / title.font
         fig.update_layout(
             yaxis=dict(
-                title=variable,
-                titlefont=dict(color='blue'),
+                title=dict(text=variable, font=dict(color='blue')),
                 tickfont=dict(color='blue')
             ),
             yaxis2=dict(
-                title='Taxa (%)',
-                titlefont=dict(color='green'),
+                title=dict(text='Taxa (%)', font=dict(color='green')),
                 tickfont=dict(color='green'),
                 overlaying='y',
                 side='right',
@@ -158,14 +157,25 @@ def gerar_barras_empilhadas(dataframe, colunas_renda, title):
     Retorno:
         fig: Objeto Figure do Plotly com o gráfico.
     """
-    # Garantir que as colunas estão na ordem correta
-    dataframe = dataframe[colunas_renda].copy()
+    # Normalizar nomes: remover espaços extras dos nomes de colunas e da lista informada
+    dataframe = dataframe.copy()
+    dataframe.columns = dataframe.columns.str.strip()
+    colunas_renda = [c.strip() for c in colunas_renda]
+
+    # Validar colunas existentes e avisar se houver faltantes
+    colunas_existentes = [c for c in colunas_renda if c in dataframe.columns]
+    colunas_faltantes = [c for c in colunas_renda if c not in dataframe.columns]
+    if colunas_faltantes:
+        st.warning(f"Colunas ausentes no dataset: {colunas_faltantes}")
+
+    # Garantir que as colunas estão na ordem correta, usando apenas as disponíveis
+    dataframe = dataframe[colunas_existentes].copy()
     
     # Calcular o total de cada linha (lançamento)
     dataframe['total'] = dataframe.sum(axis=1)
     
     # Calcular as porcentagens para cada coluna
-    for col in colunas_renda:
+    for col in colunas_existentes:
         dataframe[f'{col}_pct'] = (dataframe[col] / dataframe['total'] * 100).round(1)
     
     # Criar o gráfico de barras empilhadas
@@ -176,7 +186,7 @@ def gerar_barras_empilhadas(dataframe, colunas_renda, title):
     data_pct = []
 
     # Preparar os dados para valores absolutos
-    for col in colunas_renda:
+    for col in colunas_existentes:
         data_abs.append(go.Bar(
             name=col,
             x=[f'EI.{i+15}' for i in range(len(dataframe))],
@@ -188,7 +198,7 @@ def gerar_barras_empilhadas(dataframe, colunas_renda, title):
         ))
 
     # Preparar os dados para porcentagens
-    for col in colunas_renda:
+    for col in colunas_existentes:
         data_pct.append(go.Bar(
             name=col,
             x=[f'EI.{i+15}' for i in range(len(dataframe))],
@@ -218,13 +228,13 @@ def gerar_barras_empilhadas(dataframe, colunas_renda, title):
                 dict(
                     label="Valores Absolutos",
                     method="update",
-                    args=[{"visible": [True]*len(colunas_renda) + [False]*len(colunas_renda)},
+                    args=[{"visible": [True]*len(colunas_existentes) + [False]*len(colunas_existentes)},
                           {"yaxis": {"title": "Quantidade"}}]
                 ),
                 dict(
                     label="Porcentagem",
                     method="update",
-                    args=[{"visible": [False]*len(colunas_renda) + [True]*len(colunas_renda)},
+                    args=[{"visible": [False]*len(colunas_existentes) + [True]*len(colunas_existentes)},
                           {"yaxis": {"title": "Proporção (%)", "range": [0, 100]}}]
                 )
             ]
@@ -321,13 +331,13 @@ with tab2:
         with st.container(border = True):
             alunos_patrim = ['Alunos: Menos de R$5 mil',
                             'Alunos: Entre R$5 mil e R$20 mil',
-                            'Alunos: Entre R$20 mil e R$100 mil ',
+                            'Alunos: Entre R$20 mil e R$100 mil',
                             'Alunos: Entre R$100 mil e R$250 mil',
                             'Alunos: Entre R$250 mil e R$500 mil',
                             'Alunos: Entre R$500 mil e R$1 milhão',
                             'Alunos: Acima de R$1 milhão',
-                            'Entre R$1 milhão e R$5 milhões',
-                            'Acima de R$5 milhões']
+                            'Alunos: Entre R$1 milhão e R$5 milhões',
+                            'Alunos: Acima de R$5 milhões']
             # Gráfico de Patrimônio dos Alunos
             chart = gerar_barras_empilhadas(dados, alunos_patrim, 'Alunos: Patrimônio')
             chart

@@ -46,9 +46,9 @@ if f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PTRAFEGO_DADOS}" in st.session_state:
 if f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PTRAFEGO_META_ADS}" in st.session_state:
     with st.expander("PTRAFEGO_META_ADS"):
         st.dataframe(st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PTRAFEGO_META_ADS}"])
-#if f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PCOPY_DADOS}" in st.session_state:
-#    with st.expander("PCOPY_DADOS"):
-#        st.dataframe(st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PCOPY_DADOS}"])
+if f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PCOPY_DADOS}" in st.session_state:
+    with st.expander("PCOPY_DADOS"):
+        st.dataframe(st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PCOPY_DADOS}"])
 if f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_GRUPOS_WPP}" in st.session_state:
     with st.expander("GRUPOS_WPP"):
         st.dataframe(st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_GRUPOS_WPP}"])
