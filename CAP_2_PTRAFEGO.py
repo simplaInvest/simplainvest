@@ -389,15 +389,62 @@ else:
                         f'({round((n_qualificados / filtered_DF_PTRAFEGO_DADOS.shape[0]) * 100, 2) if filtered_DF_PTRAFEGO_DADOS.shape[0] != 0 else 0}%)'
             )
         with metrics_cols[5]:
-            if not DF_PESQUISA_TRAFEGO_PORCAMPANHA.empty:
-                total_gasto = float(DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'][0].replace(",", "."))
+            # Card robusto: calcula CPL QUALIFICADO usando Central ou fallback
+            def _parse_total_gasto_from_central():
+                try:
+                    if (
+                        'TOTAL GASTO' in DF_PESQUISA_TRAFEGO_CENTRAL.columns
+                        and not DF_PESQUISA_TRAFEGO_CENTRAL.empty
+                        and pd.notnull(DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'].iloc[0])
+                    ):
+                        val = str(DF_PESQUISA_TRAFEGO_CENTRAL['TOTAL GASTO'].iloc[0]).strip()
+                        val = val.replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.')
+                        return float(val)
+                except Exception:
+                    pass
+                return None
+
+            def _sum_valor_usado(df):
+                try:
+                    if df is not None and not df.empty and 'VALOR USADO' in df.columns:
+                        vals = pd.to_numeric(
+                            df['VALOR USADO'].astype(str)
+                            .str.strip()
+                            .str.replace('R$', '', regex=False)
+                            .str.replace(' ', '', regex=False)
+                            .str.replace('.', '', regex=False)
+                            .str.replace(',', '.', regex=False),
+                            errors='coerce'
+                        )
+                        return float(vals.sum(skipna=True))
+                except Exception:
+                    pass
+                return 0.0
+
+            total_gasto_central = _parse_total_gasto_from_central()
+            if total_gasto_central is not None:
+                total_gasto = total_gasto_central
+            else:
+                total_gasto = 0.0
+                try:
+                    total_gasto += _sum_valor_usado(DF_PESQUISA_TRAFEGO_PORANUNCIO)
+                    total_gasto += _sum_valor_usado(DF_PESQUISA_TRAFEGO_PORCAMPANHA)
+                    total_gasto += _sum_valor_usado(DF_PESQUISA_TRAFEGO_PORCONJUNTO)
+                except Exception:
+                    pass
+
+            if n_qualificados:
                 cpl_qualificados = total_gasto / n_qualificados
                 st.metric(
-                    label = 'CPL QUALIFICADO:',
-                    value = f'R$ {round(cpl_qualificados, 2)}'
+                    label='CPL QUALIFICADO:',
+                    value=f'R$ {round(cpl_qualificados, 2)}'
                 )
             else:
-                print()
+                st.metric(
+                    label='CPL QUALIFICADO:',
+                    value='Indisponível',
+                    help='Sem leads qualificados (>=80) para cálculo'
+                )
 
     # Métricas adicionais: Quanto Poupa e Interação Renda & Quanto Poupa
     if 'Quanto Poupa' in filtered_DF_PTRAFEGO_DADOS.columns:
@@ -569,19 +616,37 @@ else:
             st.dataframe(proxy_pct.T, use_container_width=True)
 
     with tab3:
-        if 'LEADSCORE' in DF_PTRAFEGO_DADOS.columns:
-            df_leadscore = filtered_DF_PTRAFEGO_DADOS['LEADSCORE'].astype(str).astype(int)
-            fig = px.histogram(df_leadscore, x = 'LEADSCORE', nbins = 15, text_auto=True, title= 'Distribuição dos leadscores (qualidade geral da captação)')
-            st.plotly_chart(fig)
+        # Conversão robusta de LEADSCORE para numérico, evitando falhas com strings/NaN
+        if 'LEADSCORE' in filtered_DF_PTRAFEGO_DADOS.columns:
+            leadscore_series = pd.to_numeric(
+                filtered_DF_PTRAFEGO_DADOS['LEADSCORE'], errors='coerce'
+            ).dropna()
+
+            if not leadscore_series.empty:
+                df_plot = pd.DataFrame({'LEADSCORE': leadscore_series.astype(int)})
+                fig = px.histogram(
+                    df_plot,
+                    x='LEADSCORE',
+                    nbins=15,
+                    text_auto=True,
+                    title='Distribuição dos leadscores (qualidade geral da captação)'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info('Sem dados numéricos de LEADSCORE para plotar.')
         else:
-            print()
+            st.info("A coluna 'LEADSCORE' não está disponível nesta instância.")
     
     with tab4:
         #############################################################################################################
         df_dados_traf = filtered_DF_PTRAFEGO_DADOS.copy()
         df_anuncios = DF_PESQUISA_TRAFEGO_PORANUNCIO.copy()
         df_conjuntos = DF_PESQUISA_TRAFEGO_PORCONJUNTO.copy()
-        df_campanhas = DF_PESQUISA_TRAFEGO_PORCAMPANHA.copy()
+        # Protege contra None/ausência: usa DataFrame vazio com colunas esperadas
+        try:
+            df_campanhas = DF_PESQUISA_TRAFEGO_PORCAMPANHA.copy()
+        except Exception:
+            df_campanhas = pd.DataFrame(columns=['CAMPANHA', 'VALOR USADO', 'CPL ATUAL'])
 
         cols_select = st.columns([1,1,1])
         usar_cpl = True
@@ -731,14 +796,41 @@ else:
                 pct_renda_patrim_loop = round((n_renda_patrim_loop / total_leads_utm) * 100, 2) if total_leads_utm else 0.0
                 delta_pp_renda_patrim = round(pct_renda_patrim_loop - pct_renda_patrim_lanc, 2)
 
-                # -- CPL ----------------------------------------
-                if usar_cpl:
-                    subset_anuncio_loop = df_selected[df_selected[coluna_nome].astype(str) == str(element)]
-                    cpl_loop = subset_anuncio_loop['CPL ATUAL'].sum()
-                    valor_usado_anuncio = subset_anuncio_loop['VALOR USADO'].sum()
-                    cpl_qual_loop = (valor_usado_anuncio / n_qual_loop) if n_qual_loop != 0 else 0
-                    delta_cpl_total = round((cpl_loop - cpl_total), 2)
-                    delta_cpl_qualificados = cpl_qual_loop - cpl_qualificados
+                # -- CPL (robusto: só calcula se colunas existem) -----------------
+                if usar_cpl and df_selected is not None and (coluna_nome in df_selected.columns):
+                    try:
+                        col_series = df_selected.get(coluna_nome)
+                        if col_series is None:
+                            subset_anuncio_loop = df_selected.iloc[0:0]
+                        else:
+                            subset_anuncio_loop = df_selected[col_series.astype(str) == str(element)]
+
+                        # somas seguras
+                        cpl_loop = (
+                            pd.to_numeric(subset_anuncio_loop.get('CPL ATUAL', pd.Series(dtype=float)), errors='coerce')
+                            .sum(skipna=True)
+                        )
+                        valor_usado_anuncio = (
+                            pd.to_numeric(
+                                subset_anuncio_loop.get('VALOR USADO', pd.Series(dtype=float)).astype(str)
+                                .str.strip()
+                                .str.replace('R$', '', regex=False)
+                                .str.replace(' ', '', regex=False)
+                                .str.replace('.', '', regex=False)
+                                .str.replace(',', '.', regex=False),
+                                errors='coerce'
+                            ).sum(skipna=True)
+                        )
+
+                        cpl_qual_loop = (valor_usado_anuncio / n_qual_loop) if n_qual_loop != 0 else 0
+                        delta_cpl_total = round((cpl_loop - cpl_total), 2) if cpl_loop is not None else None
+                        delta_cpl_qualificados = (cpl_qual_loop - cpl_qualificados) if cpl_qualificados is not None else None
+                    except Exception:
+                        cpl_loop = None
+                        valor_usado_anuncio = None
+                        cpl_qual_loop = None
+                        delta_cpl_total = None
+                        delta_cpl_qualificados = None
                 else:
                     # quando UTM_CAMPAIGN, não usamos CPL para evitar o desencontro de nomes
                     cpl_loop = None
