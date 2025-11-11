@@ -36,21 +36,44 @@ with loading_container:
 loading_container.empty()
 
 if PRODUTO == "EI":
-    # Carregar DataFrames para lançamento selecionado
-    DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'] = DF_PCOPY_DADOS['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'].replace({
+    # Padronização da coluna de experiência com investimentos (com proteção)
+    _xp_col = 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'
+    if isinstance(DF_PCOPY_DADOS, pd.DataFrame) and _xp_col in DF_PCOPY_DADOS.columns:
+        DF_PCOPY_DADOS[_xp_col] = DF_PCOPY_DADOS[_xp_col].replace({
             'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante',
             'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
             'Intermediário. Já invisto, até fiz outros cursos de investimentos, mas sinto que falta alguma coisa.' : 'Intermediário',
             'Profissional. Já invisto e tenho ótimos resultados! Conhecimento nunca é demais!' : ' Profissional'
-    })
+        })
+    else:
+        st.warning("Coluna de experiência com investimentos ausente no Copy; padronização ignorada.")
 
 
 DF_CENTRAL_CAPTURA['Vendas'] = DF_CENTRAL_CAPTURA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
 DF_PTRAFEGO_DADOS['Vendas'] = DF_PTRAFEGO_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
 if PRODUTO == "EI":
-    DF_PCOPY_DADOS['Vendas'] = DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+    # Cruzamento seguro de Copy com Vendas
+    if (
+        isinstance(DF_PCOPY_DADOS, pd.DataFrame) and 'EMAIL' in DF_PCOPY_DADOS.columns and
+        isinstance(DF_CENTRAL_VENDAS, pd.DataFrame) and 'EMAIL' in DF_CENTRAL_VENDAS.columns
+    ):
+        DF_PCOPY_DADOS['Vendas'] = DF_PCOPY_DADOS['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+    else:
+        if isinstance(DF_PCOPY_DADOS, pd.DataFrame) and 'Vendas' not in DF_PCOPY_DADOS.columns:
+            DF_PCOPY_DADOS['Vendas'] = 0
+        st.warning("Não foi possível cruzar Copy com Vendas (coluna 'EMAIL' ausente); métricas de conversão de Copy serão 0.")
+
 if PRODUTO == "EI":
-    DF_CENTRAL_PREMATRICULA['Vendas'] = DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+    # Cruzamento seguro de Pré-Matrícula com Vendas
+    if (
+        isinstance(DF_CENTRAL_PREMATRICULA, pd.DataFrame) and 'EMAIL' in DF_CENTRAL_PREMATRICULA.columns and
+        isinstance(DF_CENTRAL_VENDAS, pd.DataFrame) and 'EMAIL' in DF_CENTRAL_VENDAS.columns
+    ):
+        DF_CENTRAL_PREMATRICULA['Vendas'] = DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL'].str.lower()).astype(int)
+    else:
+        if isinstance(DF_CENTRAL_PREMATRICULA, pd.DataFrame) and 'Vendas' not in DF_CENTRAL_PREMATRICULA.columns:
+            DF_CENTRAL_PREMATRICULA['Vendas'] = 0
+        st.warning("Não foi possível cruzar Pré-Matrícula com Vendas (coluna 'EMAIL' ausente); métricas de conversão de Pré-Matrícula serão 0.")
 
 #------------------------------------------------------------
 #      INÍCIO DO LAYOUT
@@ -80,9 +103,11 @@ if not DF_CENTRAL_VENDAS.empty:
         st.metric(label = '', value = DF_CENTRAL_VENDAS.shape[0])
         st.metric(label = '', value = DF_PTRAFEGO_DADOS['Vendas'].sum())
         if PRODUTO == "EI":
-            st.metric(label = '', value = DF_PCOPY_DADOS['Vendas'].sum())
+            _copy_vendas = int(DF_PCOPY_DADOS['Vendas'].sum()) if ('Vendas' in DF_PCOPY_DADOS.columns) else 0
+            st.metric(label = '', value = _copy_vendas)
         if PRODUTO == "EI":
-            st.metric(label = '', value = DF_CENTRAL_PREMATRICULA['Vendas'].sum())
+            _pm_vendas = int(DF_CENTRAL_PREMATRICULA['Vendas'].sum()) if ('Vendas' in DF_CENTRAL_PREMATRICULA.columns) else 0
+            st.metric(label = '', value = _pm_vendas)
 
 
     with col3:
@@ -90,9 +115,13 @@ if not DF_CENTRAL_VENDAS.empty:
         st.metric(label = '', value = f"{round((DF_CENTRAL_VENDAS.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100,2)}%")
         st.metric(label = '', value = f"{round((DF_PTRAFEGO_DADOS['Vendas'].sum()/DF_PTRAFEGO_DADOS.shape[0])*100,2)}%")
         if PRODUTO == "EI":
-            st.metric(label = '', value = f"{round((DF_PCOPY_DADOS['Vendas'].sum()/DF_PCOPY_DADOS.shape[0])*100,2)}%")
+            _copy_total = DF_PCOPY_DADOS.shape[0]
+            _copy_conv = round(((DF_PCOPY_DADOS['Vendas'].sum() / _copy_total) * 100), 2) if ('Vendas' in DF_PCOPY_DADOS.columns and _copy_total > 0) else 0
+            st.metric(label = '', value = f"{_copy_conv}%")
         if PRODUTO == "EI":
-            st.metric(label = '', value = f"{round((DF_CENTRAL_PREMATRICULA['Vendas'].sum()/DF_CENTRAL_PREMATRICULA.shape[0])*100,2)}%")
+            _pm_total = DF_CENTRAL_PREMATRICULA.shape[0]
+            _pm_conv = round(((DF_CENTRAL_PREMATRICULA['Vendas'].sum() / _pm_total) * 100), 2) if ('Vendas' in DF_CENTRAL_PREMATRICULA.columns and _pm_total > 0) else 0
+            st.metric(label = '', value = f"{_pm_conv}%")
 
     st.divider()
 
@@ -280,11 +309,23 @@ if not DF_CENTRAL_VENDAS.empty:
             col1, col2 = st.columns(2)
 
             with col1:
-                executar_com_seguranca("GRÁFICO DE PIZZA SEXO", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Qual seu sexo?'))
-                
-                executar_com_seguranca("GRÁFICO DE PIZZA FILHOS", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Você tem filhos?'))
+                if isinstance(DF_PCOPY_DADOS, pd.DataFrame) and not DF_PCOPY_DADOS.empty and 'Qual seu sexo?' in DF_PCOPY_DADOS.columns:
+                    executar_com_seguranca("GRÁFICO DE PIZZA SEXO", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Qual seu sexo?'))
+                else:
+                    st.warning("Dados de Copy sem coluna 'Qual seu sexo?' ou DF vazio; gráfico não exibido.")
 
-                executar_com_seguranca("CONVERSÃO INVESTIMENTOS", lambda:plot_taxa_conversao_investimentos(DF_PCOPY_DADOS, DF_CENTRAL_VENDAS))
+                if isinstance(DF_PCOPY_DADOS, pd.DataFrame) and not DF_PCOPY_DADOS.empty and 'Você tem filhos?' in DF_PCOPY_DADOS.columns:
+                    executar_com_seguranca("GRÁFICO DE PIZZA FILHOS", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Você tem filhos?'))
+                else:
+                    st.warning("Dados de Copy sem coluna 'Você tem filhos?' ou DF vazio; gráfico não exibido.")
+
+                if (
+                    isinstance(DF_PCOPY_DADOS, pd.DataFrame) and not DF_PCOPY_DADOS.empty and 'EMAIL' in DF_PCOPY_DADOS.columns and
+                    isinstance(DF_CENTRAL_VENDAS, pd.DataFrame) and 'EMAIL' in DF_CENTRAL_VENDAS.columns
+                ):
+                    executar_com_seguranca("CONVERSÃO INVESTIMENTOS", lambda:plot_taxa_conversao_investimentos(DF_PCOPY_DADOS, DF_CENTRAL_VENDAS))
+                else:
+                    st.warning("Copy ou Vendas sem coluna 'EMAIL' ou DF vazio; conversão por investimentos não exibida.")
 
             with col2:
                 xp_order = ['Totalmente Iniciante',
@@ -293,9 +334,15 @@ if not DF_CENTRAL_VENDAS.empty:
                                 'Profissional',
                                 'Não Informado'
                                 ]
-                executar_com_seguranca("CONVERSÃO POR XP", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'))
+                if isinstance(DF_PCOPY_DADOS, pd.DataFrame) and not DF_PCOPY_DADOS.empty and _xp_col in DF_PCOPY_DADOS.columns:
+                    executar_com_seguranca("CONVERSÃO POR XP", lambda:plot_taxa_conversao(DF_PCOPY_DADOS, _xp_col))
+                else:
+                    st.warning("Dados de Copy sem coluna de experiência com investimentos ou DF vazio; conversão por XP não exibida.")
                 if int(VERSAO_PRINCIPAL) >= 20:
-                    executar_com_seguranca("CONVERSÃO POR FAIXA ETÁRIA", lambda:plot_taxa_conversao_por_faixa_etaria(DF_PCOPY_DADOS))
+                    if isinstance(DF_PCOPY_DADOS, pd.DataFrame) and not DF_PCOPY_DADOS.empty and 'Qual sua idade?' in DF_PCOPY_DADOS.columns:
+                        executar_com_seguranca("CONVERSÃO POR FAIXA ETÁRIA", lambda:plot_taxa_conversao_por_faixa_etaria(DF_PCOPY_DADOS))
+                    else:
+                        st.warning("Dados de Copy sem coluna 'Qual sua idade?' ou DF vazio; conversão por faixa etária não exibida.")
 
         executar_com_seguranca("MAPA DE CONVERSÃO", lambda:create_conversion_heatmap(DF_PTRAFEGO_DADOS))
 

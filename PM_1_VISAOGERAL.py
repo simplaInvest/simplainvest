@@ -47,7 +47,7 @@ st.title('Pré-Matrícula')
 #      01. FILTROS
 #------------------------------------------------------------
 
-if not DF_CENTRAL_PREMATRICULA.empty:
+if isinstance(DF_CENTRAL_PREMATRICULA, pd.DataFrame) and not DF_CENTRAL_PREMATRICULA.empty:
 
     # Configurar os filtros com multiselect
     columns_to_filter = ['PM UTM_TERM', 'PM UTM_CAMPAIGN', 'PM UTM_SOURCE', 'PM UTM_MEDIUM', 'PM UTM_ADSET']
@@ -57,28 +57,43 @@ if not DF_CENTRAL_PREMATRICULA.empty:
     col1, col2, col3, col4, col5, col6 = st.columns(len(columns_to_filter)+1)
 
     with col1:
-        unique_terms = list(DF_CENTRAL_PREMATRICULA['PM UTM_TERM'].unique())
-        unique_terms.insert(0, 'TODOS')
+        if 'PM UTM_TERM' in DF_CENTRAL_PREMATRICULA.columns:
+            unique_terms = list(DF_CENTRAL_PREMATRICULA['PM UTM_TERM'].dropna().unique())
+        else:
+            unique_terms = []
+        unique_terms = ['TODOS'] + sorted(unique_terms)
         filters['PM UTM_TERM'] = st.multiselect("PM UTM_TERM", unique_terms, default="TODOS")
 
     with col2:
-        unique_campaigns = list(DF_CENTRAL_PREMATRICULA['PM UTM_CAMPAIGN'].unique())
-        unique_campaigns.insert(0, 'TODOS')
+        if 'PM UTM_CAMPAIGN' in DF_CENTRAL_PREMATRICULA.columns:
+            unique_campaigns = list(DF_CENTRAL_PREMATRICULA['PM UTM_CAMPAIGN'].dropna().unique())
+        else:
+            unique_campaigns = []
+        unique_campaigns = ['TODOS'] + sorted(unique_campaigns)
         filters['PM UTM_CAMPAIGN'] = st.multiselect("PM UTM_CAMPAIGN", unique_campaigns, default="TODOS")
 
     with col3:
-        unique_sources = list(DF_CENTRAL_PREMATRICULA['PM UTM_SOURCE'].unique())
-        unique_sources.insert(0, 'TODOS')
+        if 'PM UTM_SOURCE' in DF_CENTRAL_PREMATRICULA.columns:
+            unique_sources = list(DF_CENTRAL_PREMATRICULA['PM UTM_SOURCE'].dropna().unique())
+        else:
+            unique_sources = []
+        unique_sources = ['TODOS'] + sorted(unique_sources)
         filters['PM UTM_SOURCE'] = st.multiselect("PM UTM_SOURCE", unique_sources, default="TODOS")
 
     with col4:
-        unique_mediums = list(DF_CENTRAL_PREMATRICULA['PM UTM_MEDIUM'].unique())
-        unique_mediums.insert(0, 'TODOS')
+        if 'PM UTM_MEDIUM' in DF_CENTRAL_PREMATRICULA.columns:
+            unique_mediums = list(DF_CENTRAL_PREMATRICULA['PM UTM_MEDIUM'].dropna().unique())
+        else:
+            unique_mediums = []
+        unique_mediums = ['TODOS'] + sorted(unique_mediums)
         filters['PM UTM_MEDIUM'] = st.multiselect("PM UTM_MEDIUM", unique_mediums, default="TODOS")
 
     with col5:
-        unique_adsets = list(DF_CENTRAL_PREMATRICULA['PM UTM_ADSET'].unique())
-        unique_adsets.insert(0, 'TODOS')
+        if 'PM UTM_ADSET' in DF_CENTRAL_PREMATRICULA.columns:
+            unique_adsets = list(DF_CENTRAL_PREMATRICULA['PM UTM_ADSET'].dropna().unique())
+        else:
+            unique_adsets = []
+        unique_adsets = ['TODOS'] + sorted(unique_adsets)
         filters['PM UTM_ADSET'] = st.multiselect("PM UTM_ADSET", unique_adsets, default="TODOS")
 
     # Verificar se os filtros estão vazios
@@ -103,21 +118,32 @@ if not DF_CENTRAL_PREMATRICULA.empty:
         st.divider()
 
     # Convertendo colunas de data para datetime, se necessário
-    filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'] = pd.to_datetime(
-        filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'], 
-        format='%d/%m/%Y %H:%M', 
-        errors='coerce'
-    )
+    if 'PM DATA_CAPTURA' in filtered_DF_CENTRAL_PREMATRICULA.columns:
+        filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'] = pd.to_datetime(
+            filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'], 
+            format='%d/%m/%Y %H:%M', 
+            errors='coerce'
+        )
 
-    filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'] = pd.to_datetime(
-        filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'], 
-        format='%d/%m/%Y %H:%M', 
-        errors='coerce'
-    )
+    if 'CAP DATA_CAPTURA' in filtered_DF_CENTRAL_PREMATRICULA.columns:
+        filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'] = pd.to_datetime(
+            filtered_DF_CENTRAL_PREMATRICULA['CAP DATA_CAPTURA'], 
+            format='%d/%m/%Y %H:%M', 
+            errors='coerce'
+        )
 
     # dataframes com os que responderam às pesquisa de trafego e copy
-    pm_traf = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PTRAFEGO_DADOS['EMAIL'])]
-    pm_copy = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PCOPY_DADOS['EMAIL'])]
+    if 'EMAIL' in filtered_DF_CENTRAL_PREMATRICULA.columns and isinstance(DF_PTRAFEGO_DADOS, pd.DataFrame) and 'EMAIL' in DF_PTRAFEGO_DADOS.columns:
+        pm_traf = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PTRAFEGO_DADOS['EMAIL'])]
+    else:
+        pm_traf = filtered_DF_CENTRAL_PREMATRICULA.iloc[0:0]
+        st.warning("Coluna 'EMAIL' ausente em PM ou Tráfego; métrica 'Com pesquisa' será 0.")
+
+    if 'EMAIL' in filtered_DF_CENTRAL_PREMATRICULA.columns and isinstance(DF_PCOPY_DADOS, pd.DataFrame) and 'EMAIL' in DF_PCOPY_DADOS.columns:
+        pm_copy = filtered_DF_CENTRAL_PREMATRICULA[filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].isin(DF_PCOPY_DADOS['EMAIL'])]
+    else:
+        pm_copy = filtered_DF_CENTRAL_PREMATRICULA.iloc[0:0]
+        st.warning("Coluna 'EMAIL' ausente em PM ou Copy; métrica 'Com copy' será 0.")
 
 
     col1, col2, col3, col4 = st.columns(4)
@@ -127,13 +153,18 @@ if not DF_CENTRAL_PREMATRICULA.empty:
         st.metric(label="Total", value=filtered_DF_CENTRAL_PREMATRICULA.shape[0])
 
     with col2:
-        st.metric(label='Conversão', value = f'{round((filtered_DF_CENTRAL_PREMATRICULA.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%')
+        cap_total = DF_CENTRAL_CAPTURA.shape[0] if isinstance(DF_CENTRAL_CAPTURA, pd.DataFrame) else 0
+        conv = round((filtered_DF_CENTRAL_PREMATRICULA.shape[0]/cap_total)*100, 2) if cap_total > 0 else 0
+        st.metric(label='Conversão', value = f'{conv}%')
 
     with col3:
-        st.metric(label = "Com pesquisa", value = f'{pm_traf.shape[0]} ({round((pm_traf.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2)}%)')
+        pm_total = filtered_DF_CENTRAL_PREMATRICULA.shape[0]
+        pm_traf_pct = round((pm_traf.shape[0]/pm_total)*100, 2) if pm_total > 0 else 0
+        st.metric(label = "Com pesquisa", value = f'{pm_traf.shape[0]} ({pm_traf_pct}%)')
 
     with col4:
-        st.metric(label= 'Com copy', value = f'{pm_copy.shape[0]} ({round((pm_copy.shape[0]/DF_CENTRAL_PREMATRICULA.shape[0])*100, 2)}%)')
+        pm_copy_pct = round((pm_copy.shape[0]/pm_total)*100, 2) if pm_total > 0 else 0
+        st.metric(label= 'Com copy', value = f'{pm_copy.shape[0]} ({pm_copy_pct}%)')
 
     st.divider()
 
@@ -143,8 +174,19 @@ if not DF_CENTRAL_PREMATRICULA.empty:
         st.subheader('Captação')
         if int(VERSAO_PRINCIPAL) >= 20:
             # Preparar os dados para o slider
-            min_date = pd.to_datetime(DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO, 'PM_INICIO'].values[0], dayfirst=True).date()
-            max_date = pd.to_datetime(DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO, 'PM_FIM'].values[0], dayfirst=True).date()
+            lanc_rows = DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO]
+            if not lanc_rows.empty and 'PM_INICIO' in DF_CENTRAL_LANCAMENTOS.columns and 'PM_FIM' in DF_CENTRAL_LANCAMENTOS.columns:
+                min_date = pd.to_datetime(lanc_rows['PM_INICIO'].values[0], dayfirst=True).date()
+                max_date = pd.to_datetime(lanc_rows['PM_FIM'].values[0], dayfirst=True).date()
+            else:
+                # Fallback para datas do próprio dataframe
+                if 'PM DATA_CAPTURA' in filtered_DF_CENTRAL_PREMATRICULA.columns:
+                    min_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'].min(), errors='coerce').date()
+                    max_date = pd.to_datetime(filtered_DF_CENTRAL_PREMATRICULA['PM DATA_CAPTURA'].max(), errors='coerce').date()
+                else:
+                    st.info("Datas de lançamento ausentes; slider desabilitado.")
+                    min_date = pd.to_datetime('today').date()
+                    max_date = min_date
 
             # Criar o slider para selecionar o intervalo de tempo
             start_date, end_date = st.slider(
@@ -183,16 +225,24 @@ if not DF_CENTRAL_PREMATRICULA.empty:
 
 
     with tab2:
-        filtered_DF_CENTRAL_PREMATRICULA['EMAIL'] = filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower()
-        DF_PTRAFEGO_DADOS['EMAIL'] = DF_PTRAFEGO_DADOS['EMAIL'].str.lower()
+        if 'EMAIL' in filtered_DF_CENTRAL_PREMATRICULA.columns:
+            filtered_DF_CENTRAL_PREMATRICULA['EMAIL'] = filtered_DF_CENTRAL_PREMATRICULA['EMAIL'].str.lower()
+        if isinstance(DF_PTRAFEGO_DADOS, pd.DataFrame) and 'EMAIL' in DF_PTRAFEGO_DADOS.columns:
+            DF_PTRAFEGO_DADOS['EMAIL'] = DF_PTRAFEGO_DADOS['EMAIL'].str.lower()
 
         # Realizar o merge com base na coluna de EMAIL
-        filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA.merge(
-            DF_PTRAFEGO_DADOS[['EMAIL', 'RENDA MENSAL', 'PATRIMONIO']],  # Colunas para juntar
-            left_on='EMAIL',  # Coluna no dataframe base
-            right_on='EMAIL',  # Coluna no dataframe de origem
-            how='left'  # Merge à esquerda para manter todas as linhas do dataframe base
-        )
+        if (
+            'EMAIL' in filtered_DF_CENTRAL_PREMATRICULA.columns and
+            isinstance(DF_PTRAFEGO_DADOS, pd.DataFrame) and
+            all(col in DF_PTRAFEGO_DADOS.columns for col in ['EMAIL', 'RENDA MENSAL', 'PATRIMONIO'])
+        ):
+            filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA.merge(
+                DF_PTRAFEGO_DADOS[['EMAIL', 'RENDA MENSAL', 'PATRIMONIO']],
+                on='EMAIL',
+                how='left'
+            )
+        else:
+            st.warning("Não foi possível mesclar dados de renda/patrimônio por ausência de colunas; gráficos serão zerados.")
 
         patrimonio_order = [
             'Menos de R$5 mil',
@@ -215,13 +265,15 @@ if not DF_CENTRAL_PREMATRICULA.empty:
                 'Acima de R$20.000'
             ]
 
-        if 'PATRIMONIO_y' or 'RENDA MENSAL_y' in filtered_DF_CENTRAL_PREMATRICULA.columns:
-            filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA.rename(columns={"PATRIMONIO_y": "PATRIMONIO"})
-            filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA.rename(columns={"RENDA MENSAL_y": "RENDA MENSAL"})
+        if ('PATRIMONIO_y' in filtered_DF_CENTRAL_PREMATRICULA.columns) or ('RENDA MENSAL_y' in filtered_DF_CENTRAL_PREMATRICULA.columns):
+            filtered_DF_CENTRAL_PREMATRICULA = filtered_DF_CENTRAL_PREMATRICULA.rename(columns={"PATRIMONIO_y": "PATRIMONIO", "RENDA MENSAL_y": "RENDA MENSAL"})
         
         # Contagem de valores por patrimônio
-        patrimonio_counts = filtered_DF_CENTRAL_PREMATRICULA['PATRIMONIO'].value_counts().reindex(patrimonio_order, fill_value=0).reset_index()
-        patrimonio_counts.columns = ['PATRIMONIO', 'count']
+        if 'PATRIMONIO' in filtered_DF_CENTRAL_PREMATRICULA.columns:
+            patrimonio_counts = filtered_DF_CENTRAL_PREMATRICULA['PATRIMONIO'].value_counts().reindex(patrimonio_order, fill_value=0).reset_index()
+            patrimonio_counts.columns = ['PATRIMONIO', 'count']
+        else:
+            patrimonio_counts = pd.DataFrame({'PATRIMONIO': patrimonio_order, 'count': [0]*len(patrimonio_order)})
 
         # Criar gráfico de barras horizontais para patrimônio
         patrimonio_chart = alt.Chart(patrimonio_counts).mark_bar().encode(
@@ -250,8 +302,11 @@ if not DF_CENTRAL_PREMATRICULA.empty:
         final_patrimonio_chart = patrimonio_chart + patrimonio_text
 
         # Contagem de valores por renda mensal
-        renda_counts = filtered_DF_CENTRAL_PREMATRICULA['RENDA MENSAL'].value_counts().reindex(renda_order, fill_value=0).reset_index()
-        renda_counts.columns = ['RENDA MENSAL', 'count']
+        if 'RENDA MENSAL' in filtered_DF_CENTRAL_PREMATRICULA.columns:
+            renda_counts = filtered_DF_CENTRAL_PREMATRICULA['RENDA MENSAL'].value_counts().reindex(renda_order, fill_value=0).reset_index()
+            renda_counts.columns = ['RENDA MENSAL', 'count']
+        else:
+            renda_counts = pd.DataFrame({'RENDA MENSAL': renda_order, 'count': [0]*len(renda_order)})
 
         # Criar gráfico de barras horizontais para renda
         renda_chart = alt.Chart(renda_counts).mark_bar(color='lightgreen').encode(

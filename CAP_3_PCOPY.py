@@ -34,6 +34,13 @@ with loading_container:
         status.update(label="Carregados com sucesso!", state="complete", expanded=False)
 loading_container.empty()
 
+# Se o DF_PCOPY_DADOS estiver vazio ou indisponível, mostra uma mensagem amigável e interrompe a renderização da página
+if not isinstance(DF_PCOPY_DADOS, pd.DataFrame) or DF_PCOPY_DADOS.empty:
+    st.caption("CAPTAÇÃO > PESQUISA DE COPY")
+    st.title('Pesquisa de Copy')
+    st.info("💡 Nenhum dado disponível na pesquisa de copy para o lançamento atual. Assim que houver respostas, os gráficos e métricas aparecerão aqui.")
+    st.stop()
+
 #------------------------------------------------------------
 #      INÍCIO DO LAYOUT
 #------------------------------------------------------------
