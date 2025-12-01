@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from libs.debriefing_generator import generate_debriefing2, get_conversion_data, get_conversions_by_campaign, process_campaign_data
-from libs.data_loader import K_CENTRAL_LANCAMENTOS, get_df
+from libs.data_loader import K_CENTRAL_LANCAMENTOS, K_PCOPY_DADOS, get_df
 from libs.auth_funcs import require_authentication
 
 # Verificação obrigatória no início
@@ -15,6 +15,9 @@ logo = "Logo-EUINVESTIDOR-Light.png" if PRODUTO == "EI" else "Logo-SIMPLA-Light.
 st.logo(image = logo)
 
 DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
+
+# Nota: a página agora carrega normalmente mesmo se Copy estiver vazio;
+# mensagens são exibidas apenas nas seções que dependem de DF_PCOPY_DADOS.
 def convert_dates_to_iso(df, date_columns):
     """
     Converte as datas das colunas especificadas para YYYY-MM-DD.
@@ -85,7 +88,12 @@ with col1:
 
 with col2:
     if PRODUTO == 'EI':
-        st.metric(label="Conversão da pesquisa de copy", value= conv_copy)
+        # Mostrar metric somente se houver dados de Copy;
+        # caso contrário, exibir aviso pontual.
+        if bar_sexo is not None or (disc_grafs and len(disc_grafs) > 0) or graf_inv is not None:
+            st.metric(label="Conversão da pesquisa de copy", value= conv_copy)
+        else:
+            st.info("💡 A pesquisa de copy está vazia neste lançamento.")
     elif PRODUTO == 'SC':
         st.metric(label="Conversão dos grupos de whatsapp", value= conv_wpp)
 
@@ -127,37 +135,47 @@ if PRODUTO == 'EI':
     tab_1, tab_2, tab_3 = st.tabs(["Fechadas", "Abertas", "Financeiro"])
 
     with tab_1:
+        # Seções dependentes de Copy: exibir aviso quando Copy estiver vazio
+        if bar_sexo is None and bar_filhos is None and bar_civil is None and bar_exp is None:
+            st.info("💡 Sem dados da pesquisa de copy para perfis fechadas.")
+        else:
+            col_1, col_2 = st.columns(2)
 
-        col_1, col_2 = st.columns(2)
-
-        with col_1:
-            bar_sexo
-            bar_filhos
-            bar_civil
-        
-        with col_2:
-            bar_exp
-            if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21:
-                graf_age
+            with col_1:
+                if bar_sexo is not None:
+                    st.pyplot(bar_sexo)
+                if bar_filhos is not None:
+                    st.pyplot(bar_filhos)
+                if bar_civil is not None:
+                    st.pyplot(bar_civil)
+            
+            with col_2:
+                if bar_exp is not None:
+                    st.pyplot(bar_exp)
+                if PRODUTO == 'EI' and int(VERSAO_PRINCIPAL) >= 21 and graf_age is not None:
+                    st.pyplot(graf_age)
 
     with tab_2:
-        # Dividir a lista disc_grafs em duas metades
-        metade = len(disc_grafs) // 2
-        primeira_metade = disc_grafs[:metade]
-        segunda_metade = disc_grafs[metade:]
+        if not disc_grafs:
+            st.info("💡 Sem dados da pesquisa de copy para perfis abertas.")
+        else:
+            # Dividir a lista disc_grafs em duas metades
+            metade = len(disc_grafs) // 2
+            primeira_metade = disc_grafs[:metade]
+            segunda_metade = disc_grafs[metade:]
 
-        # Criar duas colunas no Streamlit
-        col1, col2 = st.columns(2)
+            # Criar duas colunas no Streamlit
+            col1, col2 = st.columns(2)
 
-        # Exibir a primeira metade na primeira coluna
-        with col1:
-            for grafico in primeira_metade:
-                st.pyplot(grafico)
+            # Exibir a primeira metade na primeira coluna
+            with col1:
+                for grafico in primeira_metade:
+                    st.pyplot(grafico)
 
-        # Exibir a segunda metade na segunda coluna
-        with col2:
-            for grafico in segunda_metade:
-                st.pyplot(grafico)
+            # Exibir a segunda metade na segunda coluna
+            with col2:
+                for grafico in segunda_metade:
+                    st.pyplot(grafico)
 
     with tab_3:
         col1, col2 = st.columns(2)

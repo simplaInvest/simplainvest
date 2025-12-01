@@ -86,16 +86,20 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
     DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
     if PRODUTO == 'EI':
         DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
+        copy_available = isinstance(DF_PCOPY_DADOS, pd.DataFrame) and not DF_PCOPY_DADOS.empty
     DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
 
-    if PRODUTO == 'EI':
+    if PRODUTO == 'EI' and copy_available:
         DF_PCOPY_DADOS = DF_PCOPY_DADOS.merge(DF_PTRAFEGO_DADOS[['EMAIL', 'RENDA MENSAL']], on='EMAIL', how='left')
         DF_PCOPY_DADOS = DF_PCOPY_DADOS.merge(DF_PTRAFEGO_DADOS[['EMAIL', 'PATRIMONIO']], on='EMAIL', how='left')
 
     # ✅ Mantendo as suas métricas
-    conv_traf = f"{round(DF_PTRAFEGO_DADOS.shape[0] / DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%"
+    conv_traf = f"{round(DF_PTRAFEGO_DADOS.shape[0] / max(DF_CENTRAL_CAPTURA.shape[0], 1) * 100, 2)}%"
     if PRODUTO == 'EI':
-        conv_copy = f"{round(DF_PCOPY_DADOS.shape[0] / DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%"
+        if copy_available:
+            conv_copy = f"{round(DF_PCOPY_DADOS.shape[0] / max(DF_CENTRAL_CAPTURA.shape[0], 1) * 100, 2)}%"
+        else:
+            conv_copy = f"{round(0 / max(DF_CENTRAL_CAPTURA.shape[0], 1) * 100, 2)}%"
     conv_wpp = f"{round(DF_GRUPOS_WPP[DF_GRUPOS_WPP['Evento'] == 'Entrou no grupo'].shape[0] / DF_CENTRAL_CAPTURA.shape[0] * 100, 2)}%"
 
     if PRODUTO == 'EI':
@@ -125,42 +129,46 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
     # 3. Perfis
     if PRODUTO == 'EI':
-        total_responses = DF_PCOPY_DADOS.shape[0]
+        # Inicializa variáveis para evitar UnboundLocalError quando Copy estiver vazio
+        data = None
+        missing_data_summary = None
+        if copy_available:
+            total_responses = DF_PCOPY_DADOS.shape[0]
 
-        DF_PCOPY_DADOS_cleaned = DF_PCOPY_DADOS.fillna('Não Informado')
-        DF_PCOPY_DADOS_cleaned = DF_PCOPY_DADOS_cleaned.replace('', 'Não Informado')
+            DF_PCOPY_DADOS_cleaned = DF_PCOPY_DADOS.fillna('Não Informado')
+            DF_PCOPY_DADOS_cleaned = DF_PCOPY_DADOS_cleaned.replace('', 'Não Informado')
 
-        # Prepare the columns for the new dataframe
-        variable_names = DF_PCOPY_DADOS_cleaned.columns
-        num_na_values = (DF_PCOPY_DADOS_cleaned == 'Não Informado').sum().reset_index()
-        proportion_na_values = (num_na_values[0] / total_responses * 100).round(2)
-        data = DF_PCOPY_DADOS_cleaned
+            # Prepare the columns for the new dataframe
+            variable_names = DF_PCOPY_DADOS_cleaned.columns
+            num_na_values = (DF_PCOPY_DADOS_cleaned == 'Não Informado').sum().reset_index()
+            proportion_na_values = (num_na_values[0] / max(total_responses, 1) * 100).round(2)
+            data = DF_PCOPY_DADOS_cleaned
 
-        # Create the new dataframe with the required columns
-        missing_data_summary = pd.DataFrame({
-            'Variável': variable_names,
-            'Número de informações deixadas em branco': num_na_values[0],
-            'Proporção em relação ao total de respostas da pesquisa': proportion_na_values
-        })
+            # Create the new dataframe with the required columns
+            missing_data_summary = pd.DataFrame({
+                'Variável': variable_names,
+                'Número de informações deixadas em branco': num_na_values[0],
+                'Proporção em relação ao total de respostas da pesquisa': proportion_na_values
+            })
 
-        DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].str.lower()
-        DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].replace({
-            'união estável': 'união estável',
-            'união estavel': 'união estável',
-            'casada somente no religioso': 'casado(a)',
-            'ajuntando': 'morando juntos',
-            'amaseado': 'morando juntos',
-            'amasiado': 'morando juntos',
-            'só junto': 'morando juntos',
-            'moro junto': 'morando juntos',
-            'união estavel': 'união estável',
-            'viúva': 'viúvo(a)',
-            'viuva': 'viúvo(a)',
-            'viúvo': 'viúvo(a)'
-        })
+            DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].str.lower()
+            DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].replace({
+                'união estável': 'união estável',
+                'união estavel': 'união estável',
+                'casada somente no religioso': 'casado(a)',
+                'ajuntando': 'morando juntos',
+                'amaseado': 'morando juntos',
+                'amasiado': 'morando juntos',
+                'só junto': 'morando juntos',
+                'moro junto': 'morando juntos',
+                'união estavel': 'união estável',
+                'viúva': 'viúvo(a)',
+                'viuva': 'viúvo(a)',
+                'viúvo': 'viúvo(a)'
+            })
 
-
-        if 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?' in data.columns:
+        # Normalização opcional da coluna de experiência — só quando houver Copy
+        if copy_available and data is not None and 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?' in data.columns:
             data['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'] = data['Se você pudesse classificar seu nível de experiência com investimentos, qual seria?'].replace({
                 'Totalmente iniciante. Não sei nem por onde começar.' : 'Totalmente Iniciante',
                 'Iniciante. Não entendo muito bem, mas invisto do meu jeito.' : 'Iniciante',
@@ -468,15 +476,22 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
             return fig
 
 
-        bar_sexo = graf_barras('Qual seu sexo?')
-        bar_filhos = graf_barras('Você tem filhos?')
-        bar_civil = graf_barras('Qual sua situação amorosa hoje?')
-        bar_exp = graf_barras('Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
-        if PRODUTO == 'EI' and VERSAO_PRINCIPAL >= 21:
-            graf_age = graf_idade()
+        if copy_available:
+            bar_sexo = graf_barras('Qual seu sexo?')
+            bar_filhos = graf_barras('Você tem filhos?')
+            bar_civil = graf_barras('Qual sua situação amorosa hoje?')
+            bar_exp = graf_barras('Se você pudesse classificar seu nível de experiência com investimentos, qual seria?')
+            if PRODUTO == 'EI' and VERSAO_PRINCIPAL >= 21:
+                graf_age = graf_idade()
+        else:
+            bar_sexo = None
+            bar_filhos = None
+            bar_civil = None
+            bar_exp = None
+            graf_age = None
         graf_ren = graf_renda()
         graf_pat = graf_patrim()
-        graf_inv = graf_invest()
+        graf_inv = graf_invest() if copy_available else None
 
         ################################
         #          Discursivas         #
@@ -634,7 +649,7 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
 
         # Criando uma lista para armazenar os gráficos
-        disc_grafs = [plot_top_bigrams_by_column(data, column) for column in open_ended_columns]
+        disc_grafs = [plot_top_bigrams_by_column(data, column) for column in open_ended_columns] if copy_available else []
 
     if PRODUTO == 'SC':
         def graf_renda():
