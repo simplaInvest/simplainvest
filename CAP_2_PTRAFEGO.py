@@ -469,7 +469,7 @@ else:
     # ------------------------------------------------------------
     # 03. GRÁFICOS DE BARRAS & DATAFRAME
     # ------------------------------------------------------------
-    tab1, tab2, tab3, tab4 = st.tabs(['Perfil', 'Heatmap & Proxy', 'LEADSCORE', 'Por Anúncio'])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(['Perfil', 'Heatmap & Proxy', 'LEADSCORE', 'Por Anúncio', 'Orgânico'])
 
     with tab1:
         secondary_order = col2_order
@@ -1276,3 +1276,36 @@ else:
 
 
             st.dataframe(df_pm)
+
+    with tab5:
+        df_filtered = DF_CENTRAL_CAPTURA[
+            (DF_CENTRAL_CAPTURA['CAP UTM_MEDIUM'] == 'organico') & 
+            (~DF_CENTRAL_CAPTURA['CAP UTM_CONTENT'].str.contains('api', na=False))
+        ].copy()
+
+        if not df_filtered.empty:
+            # Converter para data (garantindo formato)
+            df_filtered['CAP DATA_CAPTURA'] = pd.to_datetime(df_filtered['CAP DATA_CAPTURA'], dayfirst=True, errors='coerce').dt.date
+
+            # Agrupar
+            df_grouped = df_filtered.groupby(['CAP DATA_CAPTURA', 'CAP UTM_CONTENT']).size().reset_index(name='Quantidade')
+
+            # Gráfico
+            fig = px.bar(
+                df_grouped,
+                x='CAP DATA_CAPTURA',
+                y='Quantidade',
+                color='CAP UTM_CONTENT',
+                barmode='group',
+                text='Quantidade',
+                title='Distribuição por UTM Content (Orgânico - sem API)',
+                labels={'CAP DATA_CAPTURA': 'Data', 'CAP UTM_CONTENT': 'Canal'}
+            )
+            
+            # Ajustes visuais
+            fig.update_traces(textposition='outside')
+            fig.update_layout(xaxis_title="Dias", yaxis_title="Quantidade")
+            
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Sem dados para exibir com o filtro atual.")
