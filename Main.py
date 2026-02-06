@@ -2,6 +2,13 @@ import streamlit as st, pathlib
 from datetime import datetime
 import hashlib
 
+# Configuração inicial da página (DEVE ser a primeira chamada Streamlit)
+st.set_page_config(
+    layout="wide",
+    page_title="Central de Ferramentas Simpla Invest 💎",
+    page_icon="💎"
+)
+
 # Carrega CSS
 css = pathlib.Path("styles.css").read_text(encoding="utf-8")
 st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
@@ -118,11 +125,6 @@ def show_logout_button():
 
 # VERIFICAÇÃO DE AUTENTICAÇÃO
 if not check_authentication():
-    st.set_page_config(
-        layout="centered",
-        page_title="Login - Central de Ferramentas Simpla Invest 💎",
-        page_icon="💎"
-    )
     show_login_form()
     st.stop()
 
@@ -130,11 +132,7 @@ if not check_authentication():
 
 ## PÁGINA DE SETUP
 if not "PRODUTO" in st.session_state and not "VERSAO_PRINCIPAL" in st.session_state:
-    st.set_page_config(
-        layout="centered",
-        page_title="Central de Ferramentas Simpla Invest 💎",
-        page_icon="💎"
-    )
+    # Removemos a chamada duplicada de st.set_page_config aqui
     pages = {
         'CONFIGURAÇÕES': [
             st.Page("0_Inicio.py", title="🏠 Início"),
@@ -142,11 +140,14 @@ if not "PRODUTO" in st.session_state and not "VERSAO_PRINCIPAL" in st.session_st
     }
 ## PÁGINAS DE ANÁLISES
 else:
-    st.set_page_config(
-        layout="wide",
-        page_title="Central de Ferramentas Simpla Invest 💎",
-        page_icon="💎"
-    )
+    # Apenas reconfigura o layout para wide se necessário, mas st.set_page_config só pode ser chamado uma vez.
+    # Como já foi chamado no início como "centered", não podemos mudar para "wide" dinamicamente no mesmo script sem rerun.
+    # O Streamlit não permite chamar set_page_config duas vezes.
+    # Solução: Definir layout="wide" no início como padrão, ou aceitar que a troca exige recarregamento.
+    # Neste caso, vamos manter a configuração inicial única e adaptar o CSS se preciso, ou aceitar que será wide para tudo.
+    
+    # Para corrigir o erro imediato, removemos a segunda chamada:
+    pass 
     
     # Adiciona botão de logout
     show_logout_button()
