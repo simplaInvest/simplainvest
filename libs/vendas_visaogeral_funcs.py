@@ -281,14 +281,18 @@ def plot_conversao_por_dia(
     VERSAO_PRINCIPAL
     ):
 
+    # Copiar os dataframes para evitar modificação do original (Copy-on-Write)
+    df_captura = DF_CENTRAL_CAPTURA.copy()
+    df_vendas = DF_CENTRAL_VENDAS.copy()
+
     # Criar a coluna AVENDA (1 se o e-mail está em DF_CENTRAL_VENDAS, 0 caso contrário)
-    DF_CENTRAL_CAPTURA['AVENDA'] = DF_CENTRAL_CAPTURA['EMAIL'].isin(DF_CENTRAL_VENDAS['EMAIL']).astype(int)
+    df_captura['AVENDA'] = df_captura['EMAIL'].isin(df_vendas['EMAIL']).astype(int)
 
     # Converter CAP DATA_CAPTURA para datetime e extrair apenas a data
-    DF_CENTRAL_CAPTURA['DATA'] = pd.to_datetime(DF_CENTRAL_CAPTURA['CAP DATA_CAPTURA'], format='%d/%m/%Y %H:%M').dt.date
+    df_captura['DATA'] = pd.to_datetime(df_captura['CAP DATA_CAPTURA'], format='%d/%m/%Y %H:%M', errors='coerce').dt.date
 
     # Calcular a taxa de conversão por dia
-    df_conversao = DF_CENTRAL_CAPTURA.groupby('DATA').agg(
+    df_conversao = df_captura.groupby('DATA').agg(
         total_entradas=('AVENDA', 'count'),
         total_convertidos=('AVENDA', 'sum')
     ).reset_index()
@@ -296,13 +300,18 @@ def plot_conversao_por_dia(
     df_conversao['taxa_conversao'] = (df_conversao['total_convertidos'] / df_conversao['total_entradas']) * 100
 
     # Obter intervalo de datas do lançamento
-    min_date = pd.to_datetime(
-        DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO, 'CAPTACAO_INICIO'].values[0], dayfirst=True
-    ).date()
+    try:
+        min_date = pd.to_datetime(
+            DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO, 'CAPTACAO_INICIO'].values[0], dayfirst=True
+        ).date()
 
-    max_date = pd.to_datetime(
-        DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO, 'CAPTACAO_FIM'].values[0], dayfirst=True
-    ).date()
+        max_date = pd.to_datetime(
+            DF_CENTRAL_LANCAMENTOS.loc[DF_CENTRAL_LANCAMENTOS['LANÇAMENTO'] == LANCAMENTO, 'CAPTACAO_FIM'].values[0], dayfirst=True
+        ).date()
+    except IndexError:
+        # Fallback se não encontrar o lançamento
+        min_date = df_conversao['DATA'].min()
+        max_date = df_conversao['DATA'].max()
 
     # Criar a figura base
     fig = go.Figure()
@@ -354,8 +363,9 @@ def plot_conversao_por_dia(
     )
 
     st.plotly_chart(fig, use_container_width=True)
-    print(min_date)
-    print(max_date)
+    # Removidos prints que podem causar erro em ambiente headless
+    # print(min_date)
+    # print(max_date)
 
 def utm_source_medium_vendas(DF_CENTRAL_VENDAS):
     # Acessa as colunas necessárias de forma robusta sem usar "in" com listas
