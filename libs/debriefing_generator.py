@@ -827,30 +827,35 @@ def get_page_metrics(slug, start_date, end_date):
     elif PRODUTO == 'SC':
         PROPERTY_ID = "273168895"
     
-    client = BetaAnalyticsDataClient(credentials=credentials)
-    #st.write(slug, start_date, end_date, PROPERTY_ID)
+    try:
+        client = BetaAnalyticsDataClient(credentials=credentials)
+        #st.write(slug, start_date, end_date, PROPERTY_ID)
 
-    request = RunReportRequest(
-        property=f"properties/{PROPERTY_ID}",
-        dimensions=[Dimension(name="pagePath")],
-        metrics=[
-            Metric(name="totalUsers")
-        ],
-        date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
-        dimension_filter=FilterExpression(
-            filter=Filter(
-                field_name="pagePath",
-                string_filter=Filter.StringFilter(
-                    match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
-                    value=slug,
+        request = RunReportRequest(
+            property=f"properties/{PROPERTY_ID}",
+            dimensions=[Dimension(name="pagePath")],
+            metrics=[
+                Metric(name="totalUsers")
+            ],
+            date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
+            dimension_filter=FilterExpression(
+                filter=Filter(
+                    field_name="pagePath",
+                    string_filter=Filter.StringFilter(
+                        match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
+                        value=slug,
+                    )
                 )
             )
         )
-    )
 
-    response = client.run_report(request)
+        response = client.run_report(request)
+        return response
+    except Exception as e:
+        print(f"Erro ao buscar métricas do GA4 para {slug}: {e}")
+        # Retorna um objeto vazio ou mockado para não quebrar a aplicação
+        return type('obj', (object,), {'rows': []})
 
-    return response
 
 def get_conversion_data(slug, start_date="2024-01-01", end_date="2024-12-31"):
     response = get_page_metrics(slug, start_date, end_date)
@@ -881,107 +886,116 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
     elif PRODUTO == 'SC':
         PROPERTY_ID = "273168895"
 
-    client = BetaAnalyticsDataClient(credentials=credentials)
+    try:
+        client = BetaAnalyticsDataClient(credentials=credentials)
 
-    # ===== Parte 1: Conversões (/cg/inscricao-pendente) =====
-    conversion_request = RunReportRequest(
-        property=f"properties/{PROPERTY_ID}",
-        dimensions=[
-            Dimension(name="sessionCampaignName"),
-            Dimension(name="pagePath")
-        ],
-        metrics=[Metric(name="totalUsers")],
-        date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
-        dimension_filter=FilterExpression(
-            and_group=FilterExpressionList(
-                expressions=[
-                    FilterExpression(
-                        filter=Filter(
-                            field_name="pagePath",
-                            string_filter=Filter.StringFilter(
-                                match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
-                                value=conversion_slug
+        # ===== Parte 1: Conversões (/cg/inscricao-pendente) =====
+        conversion_request = RunReportRequest(
+            property=f"properties/{PROPERTY_ID}",
+            dimensions=[
+                Dimension(name="sessionCampaignName"),
+                Dimension(name="pagePath")
+            ],
+            metrics=[Metric(name="totalUsers")],
+            date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
+            dimension_filter=FilterExpression(
+                and_group=FilterExpressionList(
+                    expressions=[
+                        FilterExpression(
+                            filter=Filter(
+                                field_name="pagePath",
+                                string_filter=Filter.StringFilter(
+                                    match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
+                                    value=conversion_slug
+                                )
+                            )
+                        ),
+                        FilterExpression(
+                            filter=Filter(
+                                field_name="country",
+                                string_filter=Filter.StringFilter(
+                                    match_type=Filter.StringFilter.MatchType.EXACT,
+                                    value="Brazil",
+                                )
                             )
                         )
-                    ),
-                    FilterExpression(
-                        filter=Filter(
-                            field_name="country",
-                            string_filter=Filter.StringFilter(
-                                match_type=Filter.StringFilter.MatchType.EXACT,
-                                value="Brazil",
-                            )
-                        )
-                    )
-                ]
+                    ]
+                )
             )
         )
-    )
 
-    conversion_response = client.run_report(conversion_request)
+        conversion_response = client.run_report(conversion_request)
 
-    # ===== Parte 2: Visitas (/cursogratuito) =====
-    visitas_request = RunReportRequest(
-        property=f"properties/{PROPERTY_ID}",
-        dimensions=[Dimension(name="sessionCampaignName"),
-                    Dimension(name="pagePath")],
-        metrics=[Metric(name="totalUsers")],
-        date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
-        dimension_filter=FilterExpression(
-            and_group=FilterExpressionList(
-                expressions=[
-                    FilterExpression(
-                        filter=Filter(
-                            field_name="pagePath",
-                            string_filter=Filter.StringFilter(
-                                match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
-                                value='/cursogratuito'
+        # ===== Parte 2: Visitas (/cursogratuito) =====
+        visitas_request = RunReportRequest(
+            property=f"properties/{PROPERTY_ID}",
+            dimensions=[Dimension(name="sessionCampaignName"),
+                        Dimension(name="pagePath")],
+            metrics=[Metric(name="totalUsers")],
+            date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
+            dimension_filter=FilterExpression(
+                and_group=FilterExpressionList(
+                    expressions=[
+                        FilterExpression(
+                            filter=Filter(
+                                field_name="pagePath",
+                                string_filter=Filter.StringFilter(
+                                    match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
+                                    value='/cursogratuito'
+                                )
+                            )
+                        ),
+                        FilterExpression(
+                            filter=Filter(
+                                field_name="country",
+                                string_filter=Filter.StringFilter(
+                                    match_type=Filter.StringFilter.MatchType.EXACT,
+                                    value="Brazil",
+                                )
                             )
                         )
-                    ),
-                    FilterExpression(
-                        filter=Filter(
-                            field_name="country",
-                            string_filter=Filter.StringFilter(
-                                match_type=Filter.StringFilter.MatchType.EXACT,
-                                value="Brazil",
-                            )
-                        )
-                    )
-                ]
+                    ]
+                )
             )
         )
-    )
 
-    visitas_response = client.run_report(visitas_request)
-
-
-
-    visitas_response = client.run_report(visitas_request)
+        visitas_response = client.run_report(visitas_request)
+    except Exception as e:
+        print(f"Erro ao buscar campanhas do GA4: {e}")
+        # Retorna dataframes vazios para não quebrar a lógica subsequente
+        empty_df = pd.DataFrame(columns=["campaign", "visitas", "conversions"])
+        return empty_df, pd.DataFrame(), pd.DataFrame()
 
     # Processar as conversões
     conversao_data = []
-    for row in conversion_response.rows:
-        conversao_data.append({
-            "campaign": row.dimension_values[0].value or "(not set)",
-            "conversions": int(row.metric_values[0].value)
-        })
+    if hasattr(conversion_response, 'rows'):
+        for row in conversion_response.rows:
+            conversao_data.append({
+                "campaign": row.dimension_values[0].value or "(not set)",
+                "conversions": int(row.metric_values[0].value)
+            })
 
     df_conversoes = pd.DataFrame(conversao_data)
-
-    df_conversoes = df_conversoes.groupby("campaign", as_index=False)["conversions"].sum()
+    if not df_conversoes.empty:
+        df_conversoes = df_conversoes.groupby("campaign", as_index=False)["conversions"].sum()
+    else:
+        df_conversoes = pd.DataFrame(columns=["campaign", "conversions"])
 
     # Processar as visitas
     visitas_data = []
-    for row in visitas_response.rows:
-        visitas_data.append({
-            "campaign": row.dimension_values[0].value or "(not set)",
-            "visitas": int(row.metric_values[0].value)
-        })
+    if hasattr(visitas_response, 'rows'):
+        for row in visitas_response.rows:
+            visitas_data.append({
+                "campaign": row.dimension_values[0].value or "(not set)",
+                "visitas": int(row.metric_values[0].value)
+            })
 
     df_visitas = pd.DataFrame(visitas_data)
+    if not df_visitas.empty:
+        df_visitas = df_visitas.groupby("campaign", as_index=False)["visitas"].sum()
+    else:
+        df_visitas = pd.DataFrame(columns=["campaign", "visitas"])
 
-    df_visitas = df_visitas.groupby("campaign", as_index=False)["visitas"].sum()
 
     # Combinar os dois DataFrames por "campaign"
     df_merged = pd.merge(df_conversoes, df_visitas, on="campaign", how="left")
