@@ -232,7 +232,7 @@ if not DF_CENTRAL_VENDAS.empty:
                 
             
         with col2:
-            def calcular_e_plotar_taxa_conversao(dataframe, coluna_categoria, coluna_vendas, ordem_categoria):
+            def calcular_e_plotar_taxa_conversao_cat(dataframe, coluna_categoria, coluna_vendas, ordem_categoria):
                 """
                 Calcula a taxa de conversão por categoria (ex.: PATRIMÔNIO ou RENDA) e produz um gráfico de barras horizontais.
 
@@ -298,7 +298,7 @@ if not DF_CENTRAL_VENDAS.empty:
                 'Acima de R$5 milhões'
             ]
 
-            fig = calcular_e_plotar_taxa_conversao(DF_PTRAFEGO_DADOS, "PATRIMONIO", "Vendas", patrimonio_order)
+            fig = calcular_e_plotar_taxa_conversao_cat(DF_PTRAFEGO_DADOS, "PATRIMONIO", "Vendas", patrimonio_order)
 
             # Mostrar o gráfico no Streamlit
             st.plotly_chart(fig)

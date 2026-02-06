@@ -977,7 +977,7 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
 
     df_conversoes = pd.DataFrame(conversao_data)
     if not df_conversoes.empty:
-        df_conversoes = df_conversoes.groupby("campaign", as_index=False)["conversions"].sum()
+        df_conversoes = df_conversoes.groupby("campaign", as_index=False, observed=False)["conversions"].sum()
     else:
         df_conversoes = pd.DataFrame(columns=["campaign", "conversions"])
 
@@ -992,7 +992,7 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
 
     df_visitas = pd.DataFrame(visitas_data)
     if not df_visitas.empty:
-        df_visitas = df_visitas.groupby("campaign", as_index=False)["visitas"].sum()
+        df_visitas = df_visitas.groupby("campaign", as_index=False, observed=False)["visitas"].sum()
     else:
         df_visitas = pd.DataFrame(columns=["campaign", "visitas"])
 
@@ -1024,7 +1024,7 @@ def process_campaign_data(df, versao_principal):
     df_filtrado["Nome da Campanha"] = df_filtrado["campaign"].apply(normalize_campaign)
 
     # Etapa 3: agrupar e somar conversões e vistas das campanhas filtradas
-    df_grouped = df_filtrado.groupby("Nome da Campanha", as_index=False).agg({
+    df_grouped = df_filtrado.groupby("Nome da Campanha", as_index=False, observed=False).agg({
     "visitas": "sum",
     "conversions": "sum"
     })

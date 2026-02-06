@@ -685,7 +685,7 @@ else:
                 cpl_selected = st.number_input(label= "CPL mínimo", min_value= 0.0, max_value= 100.0, value= 12.0, step= 1.0,
                                                     format="%0.2f", help= "Selecione o cpl mínimo")
         with cols_select[2]:
-            pesquisa = st.text_input(label="Pesquise o UTM", icon='🔎')
+            pesquisa = st.text_input(label="Pesquise o UTM") # removido icon='🔎' para compatibilidade
 
         # Baselines financeiros: definir total_gasto, cpl_total e cpl_qualificados de forma robusta
         def _parse_total_gasto_from_central():
