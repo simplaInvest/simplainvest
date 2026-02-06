@@ -15,7 +15,7 @@ google-auth==2.29.0
 google-auth-oauthlib==1.2.0
 
 # PROB DEPENDENCIES
-altair==5.3.0
+altair==4.2.2
 numpy==1.26.4
 seaborn==0.13.2
 pydantic==2.7.1
