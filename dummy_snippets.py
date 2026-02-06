@@ -1,6 +1,10 @@
 import streamlit as st
 
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CENTRAL_LANCAMENTOS, K_PESQUISA_TRAFEGO_PORCAMPANHA, clear_df, get_df
+from libs.auth_funcs import require_authentication
+
+# Verificação obrigatória no início
+require_authentication()
 
 # Carregar informações sobre lançamento selecionado
 PRODUTO = st.session_state["PRODUTO"]
