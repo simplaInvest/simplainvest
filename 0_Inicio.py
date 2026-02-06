@@ -1,5 +1,4 @@
 import streamlit as st
-st.set_page_config(page_title="Inteligência de Dados", page_icon="📊")
 
 import pandas as pd
 import numpy as np
