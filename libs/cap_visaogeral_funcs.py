@@ -9,31 +9,8 @@ import plotly.express as px
 from libs.data_loader import K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, K_PTRAFEGO_DADOS, K_PTRAFEGO_META_ADS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, K_CENTRAL_LANCAMENTOS, get_df
 
 # Carregar informações sobre lançamento selecionado
-PRODUTO = st.session_state["PRODUTO"]
-VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
-
-# Carregar DataFrames para lançamento selecionado
-loading_container = st.empty()
-with loading_container:
-    status = st.status("Carregando dados...", expanded=True)
-    with status:
-        try:
-            DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
-            DF_CENTRAL_PREMATRICULA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_PRE_MATRICULA)
-            DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
-            DF_PTRAFEGO_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_DADOS)
-            DF_PTRAFEGO_META_ADS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PTRAFEGO_META_ADS)
-            DF_PCOPY_DADOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_PCOPY_DADOS)
-            DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
-            DF_CLICKS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CLICKS_WPP)
-            DF_CENTRAL_LANCAMENTOS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_LANCAMENTOS)
-            status.update(label="Carregados com sucesso!", state="complete", expanded=False)
-        except Exception as e:
-            status.update(label="Erro ao carregar dados: " + str(e), state="error", expanded=False)
-loading_container.empty()
-
-if 'LANÇAMENTO' in st.session_state:
-        lancamento = st.session_state['LANÇAMENTO']
+# Removido código global que quebrava a importação.
+# As variáveis PRODUTO e VERSAO_PRINCIPAL devem ser passadas como argumento ou acessadas dentro das funções.
 
 # ====== Paleta alinhada ao seu tema dark (sem CSS extra) ======
 PRIMARY = "#60A5FA"   # azul principal
