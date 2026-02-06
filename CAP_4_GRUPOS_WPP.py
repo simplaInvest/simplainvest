@@ -64,21 +64,21 @@ with st.container(border = True):
 
     with col1:
         st.subheader("Leads")
-        st.metric(label = '', value=f"{DF_CENTRAL_CAPTURA.shape[0]}")
+        st.metric(label = 'Leads Capturados', value=f"{DF_CENTRAL_CAPTURA.shape[0]}", label_visibility="collapsed")
 
     with col2:
         st.subheader("Entradas")
-        st.metric(label = '', value=f"{whatsapp_entradas.shape[0]} ({round((whatsapp_entradas.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)")
+        st.metric(label = 'Entradas nos Grupos', value=f"{whatsapp_entradas.shape[0]} ({round((whatsapp_entradas.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)", label_visibility="collapsed")
 
     with col3:
         st.subheader("Saidas")
-        st.metric(label = '', value=f"{whatsapp_saidas.shape[0]} ({round((whatsapp_saidas.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)")
+        st.metric(label = 'Saídas dos Grupos', value=f"{whatsapp_saidas.shape[0]} ({round((whatsapp_saidas.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)", label_visibility="collapsed")
         
 
     with col4:
         st.subheader("Nos grupos")
         nos_grupos = whatsapp_entradas.shape[0] - whatsapp_saidas.shape[0]
-        st.metric(label = '', value=f"{nos_grupos} ({round((nos_grupos/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)")
+        st.metric(label = 'Saldo nos Grupos', value=f"{nos_grupos} ({round((nos_grupos/DF_CENTRAL_CAPTURA.shape[0])*100, 2)}%)", label_visibility="collapsed")
         
 
 st.subheader('Número de pessoas no grupo')

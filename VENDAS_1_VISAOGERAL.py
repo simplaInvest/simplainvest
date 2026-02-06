@@ -100,28 +100,28 @@ if not DF_CENTRAL_VENDAS.empty:
 
     with col2:
         st.subheader('Vendas')
-        st.metric(label = '', value = DF_CENTRAL_VENDAS.shape[0])
-        st.metric(label = '', value = DF_PTRAFEGO_DADOS['Vendas'].sum())
+        st.metric(label = 'Total de Vendas', value = DF_CENTRAL_VENDAS.shape[0], label_visibility="collapsed")
+        st.metric(label = 'Vendas Trafego', value = DF_PTRAFEGO_DADOS['Vendas'].sum(), label_visibility="collapsed")
         if PRODUTO == "EI":
             _copy_vendas = int(DF_PCOPY_DADOS['Vendas'].sum()) if ('Vendas' in DF_PCOPY_DADOS.columns) else 0
-            st.metric(label = '', value = _copy_vendas)
+            st.metric(label = 'Vendas Copy', value = _copy_vendas, label_visibility="collapsed")
         if PRODUTO == "EI":
             _pm_vendas = int(DF_CENTRAL_PREMATRICULA['Vendas'].sum()) if ('Vendas' in DF_CENTRAL_PREMATRICULA.columns) else 0
-            st.metric(label = '', value = _pm_vendas)
+            st.metric(label = 'Vendas PM', value = _pm_vendas, label_visibility="collapsed")
 
 
     with col3:
         st.subheader('Conversão')
-        st.metric(label = '', value = f"{round((DF_CENTRAL_VENDAS.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100,2)}%")
-        st.metric(label = '', value = f"{round((DF_PTRAFEGO_DADOS['Vendas'].sum()/DF_PTRAFEGO_DADOS.shape[0])*100,2)}%")
+        st.metric(label = 'Conv. Geral', value = f"{round((DF_CENTRAL_VENDAS.shape[0]/DF_CENTRAL_CAPTURA.shape[0])*100,2)}%", label_visibility="collapsed")
+        st.metric(label = 'Conv. Trafego', value = f"{round((DF_PTRAFEGO_DADOS['Vendas'].sum()/DF_PTRAFEGO_DADOS.shape[0])*100,2)}%", label_visibility="collapsed")
         if PRODUTO == "EI":
             _copy_total = DF_PCOPY_DADOS.shape[0]
             _copy_conv = round(((DF_PCOPY_DADOS['Vendas'].sum() / _copy_total) * 100), 2) if ('Vendas' in DF_PCOPY_DADOS.columns and _copy_total > 0) else 0
-            st.metric(label = '', value = f"{_copy_conv}%")
+            st.metric(label = 'Conv. Copy', value = f"{_copy_conv}%", label_visibility="collapsed")
         if PRODUTO == "EI":
             _pm_total = DF_CENTRAL_PREMATRICULA.shape[0]
             _pm_conv = round(((DF_CENTRAL_PREMATRICULA['Vendas'].sum() / _pm_total) * 100), 2) if ('Vendas' in DF_CENTRAL_PREMATRICULA.columns and _pm_total > 0) else 0
-            st.metric(label = '', value = f"{_pm_conv}%")
+            st.metric(label = 'Conv. PM', value = f"{_pm_conv}%", label_visibility="collapsed")
 
     st.divider()
 
