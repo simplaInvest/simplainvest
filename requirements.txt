@@ -1,22 +1,22 @@
 # CORE
-streamlit
-streamlit-aggrid
-streamlit-calendar
-pandas
-gspread
-google-analytics-data
-scikit-learn
-reportlab
-matplotlib
-oauth2client
+streamlit==1.38.0
+streamlit-aggrid==1.0.5
+streamlit-calendar==0.4.0
+pandas==2.2.2
+gspread==6.1.2
+google-analytics-data==0.18.5
+scikit-learn==1.4.2
+reportlab==4.2.0
+matplotlib==3.8.4
+oauth2client==4.1.3
 
 # PROB CORE
-google-auth
-google-auth-oauthlib
+google-auth==2.29.0
+google-auth-oauthlib==1.2.0
 
 # PROB DEPENDENCIES
-altair
-numpy
-seaborn
-pydantic
-plotly
+altair==5.3.0
+numpy==1.26.4
+seaborn==0.13.2
+pydantic==2.7.1
+plotly==5.22.0
