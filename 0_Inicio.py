@@ -18,7 +18,7 @@ require_authentication()
 with st.container():
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.image("Logo-SIMPLAINVEST-Light.png", use_container_width=True)
+        st.image("Logo-SIMPLAINVEST-Light.png", use_column_width=True)
 
 st.divider()
 

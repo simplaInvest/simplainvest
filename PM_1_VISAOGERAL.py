@@ -337,10 +337,10 @@ if isinstance(DF_CENTRAL_PREMATRICULA, pd.DataFrame) and not DF_CENTRAL_PREMATRI
         col1, col2 = st.columns(2)
         with col1:
             final_patrimonio_chart
-            st.dataframe(filtered_DF_CENTRAL_PREMATRICULA['PATRIMONIO'].value_counts().reindex(patrimonio_order), use_container_width = True)
+            st.dataframe(filtered_DF_CENTRAL_PREMATRICULA['PATRIMONIO'].value_counts().reindex(patrimonio_order), use_container_width=True, hide_index=True)
         with col2:
             final_renda_chart 
-            st.dataframe(filtered_DF_CENTRAL_PREMATRICULA['RENDA MENSAL'].value_counts().reindex(renda_order), use_container_width = True)
+            st.dataframe(filtered_DF_CENTRAL_PREMATRICULA['RENDA MENSAL'].value_counts().reindex(renda_order), use_container_width=True, hide_index=True)
 else:
     st.info("""
     💡 Dados de pré-matrícula indisponíveis por enquanto.
