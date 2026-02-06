@@ -128,17 +128,13 @@ def get_df(PRODUTO, VERSAO_PRINCIPAL, K_PLANILHA):
     with ui_status:
         st.write(f"Carregando {K_PLANILHA.replace('K_', '').replace('_', ' ').title()}...")
 
-    if K_PLANILHA in st.session_state and K_PLANILHA == K_CENTRAL_LANCAMENTOS:
-        df = st.session_state[K_CENTRAL_LANCAMENTOS]
-    elif K_PLANILHA in st.session_state:
-        df = st.session_state[f"{PRODUTO}-{VERSAO_PRINCIPAL}-{K_PLANILHA}"]
-    else:
-        dataLoader = DataLoader(PRODUTO, VERSAO_PRINCIPAL)
-        df = dataLoader.load_df(K_PLANILHA)
+    # Instancia o DataLoader e carrega o DataFrame (cache gerenciado pelo Streamlit)
+    dataLoader = DataLoader(PRODUTO, VERSAO_PRINCIPAL)
+    df = dataLoader.load_df(K_PLANILHA)
 
     with ui_status:
         st.write(f"✅ {K_PLANILHA.replace('K_', '').replace('_', ' ').title()}.")
-    return df.copy()
+    return df
 
 def clear_df():
     get_df.clear()
@@ -248,8 +244,8 @@ class DataLoader:
             case _:
                 raise ValueError(f"Planilha inválida: {K_PLANILHA}")
 
-        # Store in instance and session state
+        # Store in instance (optional) but NOT in session state to avoid memory duplication
         self.sheets[K_PLANILHA]["dataframe"] = df_sheet
-        st.session_state[f"{self.produto}-{self.versao}-{K_PLANILHA}"] = df_sheet
+        # st.session_state[f"{self.produto}-{self.versao}-{K_PLANILHA}"] = df_sheet  <-- REMOVIDO PARA ECONOMIZAR MEMÓRIA
         
         return df_sheet
