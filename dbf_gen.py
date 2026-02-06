@@ -245,6 +245,17 @@ if PRODUTO == 'EI':
         if not visitas_cap == 0:
             tx_cap = f'{round((conv_cap/visitas_cap)*100, 2)}%'
             st.metric('Taxa de conversão', tx_cap)
+        
+        with st.expander("🔍 Detalhes (Diagnóstico)"):
+            st.markdown(f"**Intervalo de Datas:** {start_date_captura} até {end_date_captura}")
+            st.markdown("**Visitas (Páginas Detectadas):**")
+            # Recarrega dados de visitas para exibir (já que df foi sobrescrito)
+            df_visitas_debug = get_conversion_data(slug = '/cursogratuito', start_date = start_date_captura, end_date = end_date_captura)
+            st.dataframe(df_visitas_debug, use_container_width=True, hide_index=True)
+            
+            st.markdown("**Conversões (Páginas Detectadas):**")
+            # O df atual já é o de conversões
+            st.dataframe(df, use_container_width=True, hide_index=True)
 
         df, df_conversoes, df_visitas = get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_date = start_date_captura, end_date = end_date_captura)
         
@@ -282,6 +293,15 @@ if PRODUTO == 'EI':
             tx_pm = f'{round((conv_pm/visitas_pm)*100, 2)}%'
             st.metric('Taxa de conversão', tx_pm)
 
+        with st.expander("🔍 Detalhes (Diagnóstico)"):
+            st.markdown(f"**Intervalo de Datas:** {start_date_pm} até {end_date_pm}")
+            st.markdown("**Visitas (Páginas Detectadas):**")
+            df_visitas_pm_debug = get_conversion_data(slug = '/ei/prematricula', start_date = start_date_pm, end_date = end_date_pm)
+            st.dataframe(df_visitas_pm_debug, use_container_width=True, hide_index=True)
+            
+            st.markdown("**Conversões (Páginas Detectadas):**")
+            st.dataframe(df, use_container_width=True, hide_index=True)
+
     with pag_cols[2]:
         st.subheader('Página de Vendas')
 
@@ -313,6 +333,15 @@ if PRODUTO == 'EI':
         if not visitas_ven == 0:
             tx_ven = f'{round((conv_ven/visitas_ven)*100, 2)}%'
             st.metric('Taxa de conversão', tx_ven)
+            
+        with st.expander("🔍 Detalhes (Diagnóstico)"):
+            st.markdown(f"**Intervalo de Datas:** {start_date_ven} até {end_date_ven}")
+            st.markdown("**Visitas (Páginas Detectadas):**")
+            df_visitas_ven_debug = get_conversion_data(slug = '/euinvestidor', start_date = start_date_ven, end_date = end_date_ven)
+            st.dataframe(df_visitas_ven_debug, use_container_width=True, hide_index=True)
+            
+            st.markdown("**Conversões (Páginas Detectadas):**")
+            st.dataframe(df, use_container_width=True, hide_index=True)
 
     metrics_cols = st.columns([2,3])
 
@@ -363,6 +392,15 @@ if PRODUTO == 'SC':
         if visitas_cap != 0:
             tx_cap = f'{round((conv_cap/visitas_cap)*100, 2)}%'
             st.metric('Taxa de conversão', tx_cap)
+            
+        with st.expander("🔍 Detalhes (Diagnóstico)"):
+            st.markdown(f"**Intervalo de Datas:** {start_date_captura} até {end_date_captura}")
+            st.markdown("**Visitas (Páginas Detectadas):**")
+            df_visitas_sc_debug = get_conversion_data(slug = 'promocao|bf-', start_date = start_date_captura, end_date = end_date_captura)
+            st.dataframe(df_visitas_sc_debug, use_container_width=True, hide_index=True)
+            
+            st.markdown("**Conversões (Páginas Detectadas):**")
+            st.dataframe(df, use_container_width=True, hide_index=True)
 
     with pag_cols[1]:
         st.subheader('Página de Vendas')
@@ -395,3 +433,12 @@ if PRODUTO == 'SC':
         if not visitas_ven == 0:
             tx_ven = f'{round((conv_ven/visitas_ven)*100, 2)}%'
             st.metric('Taxa de conversão', tx_ven)
+            
+        with st.expander("🔍 Detalhes (Diagnóstico)"):
+            st.markdown(f"**Intervalo de Datas:** {start_date_ven} até {end_date_ven}")
+            st.markdown("**Visitas (Páginas Detectadas):**")
+            df_visitas_ven_sc_debug = get_conversion_data(slug = 'especial|blackfriday', start_date = start_date_ven, end_date = end_date_ven)
+            st.dataframe(df_visitas_ven_sc_debug, use_container_width=True, hide_index=True)
+            
+            st.markdown("**Conversões (Páginas Detectadas):**")
+            st.dataframe(df, use_container_width=True, hide_index=True)

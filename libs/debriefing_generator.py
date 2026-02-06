@@ -10,7 +10,7 @@ from io import BytesIO
 import re
 from sklearn.feature_extraction.text import CountVectorizer
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
-from google.analytics.data_v1beta.types import DateRange, Metric, Dimension, RunReportRequest, Filter, FilterExpression
+from google.analytics.data_v1beta.types import DateRange, Metric, Dimension, RunReportRequest, Filter, FilterExpression, FilterExpressionList
 from google.oauth2 import service_account
 
 PRODUTO = st.session_state["PRODUTO"]
@@ -90,8 +90,9 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
     DF_GRUPOS_WPP = get_df(PRODUTO, VERSAO_PRINCIPAL, K_GRUPOS_WPP)
 
     if PRODUTO == 'EI' and copy_available:
-        DF_PCOPY_DADOS = DF_PCOPY_DADOS.merge(DF_PTRAFEGO_DADOS[['EMAIL', 'RENDA MENSAL']], on='EMAIL', how='left')
-        DF_PCOPY_DADOS = DF_PCOPY_DADOS.merge(DF_PTRAFEGO_DADOS[['EMAIL', 'PATRIMONIO']], on='EMAIL', how='left')
+        if 'EMAIL' in DF_PCOPY_DADOS.columns and 'EMAIL' in DF_PTRAFEGO_DADOS.columns:
+            DF_PCOPY_DADOS = DF_PCOPY_DADOS.merge(DF_PTRAFEGO_DADOS[['EMAIL', 'RENDA MENSAL']], on='EMAIL', how='left')
+            DF_PCOPY_DADOS = DF_PCOPY_DADOS.merge(DF_PTRAFEGO_DADOS[['EMAIL', 'PATRIMONIO']], on='EMAIL', how='left')
 
     # ✅ Mantendo as suas métricas
     conv_traf = f"{round(DF_PTRAFEGO_DADOS.shape[0] / max(DF_CENTRAL_CAPTURA.shape[0], 1) * 100, 2)}%"
@@ -151,21 +152,22 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
                 'Proporção em relação ao total de respostas da pesquisa': proportion_na_values
             })
 
-            DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].str.lower()
-            DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].replace({
-                'união estável': 'união estável',
-                'união estavel': 'união estável',
-                'casada somente no religioso': 'casado(a)',
-                'ajuntando': 'morando juntos',
-                'amaseado': 'morando juntos',
-                'amasiado': 'morando juntos',
-                'só junto': 'morando juntos',
-                'moro junto': 'morando juntos',
-                'união estavel': 'união estável',
-                'viúva': 'viúvo(a)',
-                'viuva': 'viúvo(a)',
-                'viúvo': 'viúvo(a)'
-            })
+            if 'Qual sua situação amorosa hoje?' in DF_PCOPY_DADOS.columns:
+                DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].str.lower()
+                DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'] = DF_PCOPY_DADOS['Qual sua situação amorosa hoje?'].replace({
+                    'união estável': 'união estável',
+                    'união estavel': 'união estável',
+                    'casada somente no religioso': 'casado(a)',
+                    'ajuntando': 'morando juntos',
+                    'amaseado': 'morando juntos',
+                    'amasiado': 'morando juntos',
+                    'só junto': 'morando juntos',
+                    'moro junto': 'morando juntos',
+                    'união estavel': 'união estável',
+                    'viúva': 'viúvo(a)',
+                    'viuva': 'viúvo(a)',
+                    'viúvo': 'viúvo(a)'
+                })
 
         # Normalização opcional da coluna de experiência — só quando houver Copy
         if copy_available and data is not None and 'Se você pudesse classificar seu nível de experiência com investimentos, qual seria?' in data.columns:
@@ -178,8 +180,17 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
 
         def graf_barras(var):
+            if var not in data.columns:
+                return None
+
             cor = 'green'
-            titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
+            
+            # Verificar se a variável existe no resumo de dados faltantes antes de acessar
+            if var in missing_data_summary["Variável"].values:
+                fill_rate = round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)
+                titulo = f'{var} \n({fill_rate}% de preenchimento)'
+            else:
+                titulo = f'{var}'
 
             if var == 'Qual seu sexo?':
                 classes_order = ['Masculino',
@@ -254,14 +265,27 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
         if PRODUTO == 'EI' and VERSAO_PRINCIPAL >= 21:
             def graf_idade():
-                data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
                 var = 'Qual sua idade?'
-                titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
+                if var not in data.columns:
+                    return None
+
+                data[var] = pd.to_numeric(data[var], errors='coerce')
                 
-                # Removendo valores NaN
-                idade_data = data['Qual sua idade?'].dropna()
+                if var in missing_data_summary["Variável"].values:
+                    fill_rate = round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)
+                    titulo = f'{var} \n({fill_rate}% de preenchimento)'
+                else:
+                    titulo = f'{var}'
+                
+                # Removendo valores NaN e filtrando idades absurdas (0 a 120 anos)
+                idade_data = data[var].dropna()
+                idade_data = idade_data[(idade_data >= 0) & (idade_data <= 120)]
+                
+                if idade_data.empty:
+                    return None
+
                 # Definindo o intervalo de idades e criando os bins que começam em 0 com intervalos de 5 anos
-                idade_max = data['Qual sua idade?'].max()
+                idade_max = idade_data.max()
                 bins = np.arange(0, idade_max + 5, 5)
 
                 # Calculando o total de respostas
@@ -272,15 +296,15 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
                 else:
                     warning = ''
 
-                # Calculando média e desvio-padrão
-                media_idade = data['Qual sua idade?'].mean()
-                desvio_padrao = data['Qual sua idade?'].std()
+                # Calculando média e desvio-padrão dos dados filtrados
+                media_idade = idade_data.mean()
+                desvio_padrao = idade_data.std()
 
                 # Criando a figura e o eixo
                 fig, ax = plt.subplots(figsize=(15, 6))
 
                 # Criando o histograma
-                counts, edges, _ = ax.hist(data['Qual sua idade?'], bins=bins, color='green', edgecolor='black')
+                counts, edges, _ = ax.hist(idade_data, bins=bins, color='green', edgecolor='black')
 
                 # Adicionando o valor de cada bin no topo de cada barra
                 for i in range(len(counts)):
@@ -415,19 +439,26 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
             # Retornando a figura para ser salva no PDF
             return fig
         def graf_invest():
+            var = 'Você já investe seu dinheiro atualmente?'
+            if var not in data.columns:
+                return None
+
             # Access the specified column and transform it into a single string
-            investment_column_string = ' '.join(data['Você já investe seu dinheiro atualmente?'].dropna().astype(str))
+            investment_column_string = ' '.join(data[var].dropna().astype(str))
             from collections import Counter
 
-            total_respostas = data['Você já investe seu dinheiro atualmente?'].dropna().shape[0]
+            total_respostas = data[var].dropna().shape[0]
 
             if total_respostas <= 101:
                 warning = '⚠️ POUCAS RESPOSTAS'
             else:
                 warning = ''
 
-            var = 'Você já investe seu dinheiro atualmente?'
-            titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
+            if var in missing_data_summary["Variável"].values:
+                fill_rate = round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)
+                titulo = f'{var} \n({fill_rate}% de preenchimento)'
+            else:
+                titulo = f'{var}'
 
             # Define the list of investment categories to count in the string
             investment_classes = [
@@ -586,6 +617,9 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
         'algumas', 'algum', 'alguma'
         ]
         def plot_top_bigrams_by_column(data, column, top_n=10):
+            if column not in data.columns:
+                return None
+
             # Limpar o texto: remover pontuação e converter para minúsculas
             column_text = data[column].fillna('').str.cat(sep=' ')
             column_text = re.sub(r'[^\w\s]', '', column_text.lower())
@@ -649,7 +683,14 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
 
 
         # Criando uma lista para armazenar os gráficos
-        disc_grafs = [plot_top_bigrams_by_column(data, column) for column in open_ended_columns] if copy_available else []
+        if copy_available:
+            disc_grafs = []
+            for column in open_ended_columns:
+                fig = plot_top_bigrams_by_column(data, column)
+                if fig is not None:
+                    disc_grafs.append(fig)
+        else:
+            disc_grafs = []
 
     if PRODUTO == 'SC':
         def graf_renda():
@@ -851,12 +892,27 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
         metrics=[Metric(name="totalUsers")],
         date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
         dimension_filter=FilterExpression(
-            filter=Filter(
-                field_name="pagePath",
-                string_filter=Filter.StringFilter(
-                    match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
-                    value=conversion_slug
-                )
+            and_group=FilterExpressionList(
+                expressions=[
+                    FilterExpression(
+                        filter=Filter(
+                            field_name="pagePath",
+                            string_filter=Filter.StringFilter(
+                                match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
+                                value=conversion_slug
+                            )
+                        )
+                    ),
+                    FilterExpression(
+                        filter=Filter(
+                            field_name="country",
+                            string_filter=Filter.StringFilter(
+                                match_type=Filter.StringFilter.MatchType.EXACT,
+                                value="Brazil",
+                            )
+                        )
+                    )
+                ]
             )
         )
     )
@@ -871,12 +927,27 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
         metrics=[Metric(name="totalUsers")],
         date_ranges=[DateRange(start_date=_normalize_ga_date(start_date), end_date=_normalize_ga_date(end_date))],
         dimension_filter=FilterExpression(
-            filter=Filter(
-                field_name="pagePath",
-                string_filter=Filter.StringFilter(
-                    match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
-                    value='/cursogratuito'
-                )
+            and_group=FilterExpressionList(
+                expressions=[
+                    FilterExpression(
+                        filter=Filter(
+                            field_name="pagePath",
+                            string_filter=Filter.StringFilter(
+                                match_type=Filter.StringFilter.MatchType.PARTIAL_REGEXP,
+                                value='/cursogratuito'
+                            )
+                        )
+                    ),
+                    FilterExpression(
+                        filter=Filter(
+                            field_name="country",
+                            string_filter=Filter.StringFilter(
+                                match_type=Filter.StringFilter.MatchType.EXACT,
+                                value="Brazil",
+                            )
+                        )
+                    )
+                ]
             )
         )
     )
