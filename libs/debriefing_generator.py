@@ -13,9 +13,9 @@ from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import DateRange, Metric, Dimension, RunReportRequest, Filter, FilterExpression, FilterExpressionList
 from google.oauth2 import service_account
 
-PRODUTO = st.session_state["PRODUTO"]
-VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
-LANÇAMENTO = st.session_state["LANÇAMENTO"]
+PRODUTO = None
+VERSAO_PRINCIPAL = None
+LANÇAMENTO = None
 
 # Utilitário: normaliza datas para o formato aceito pelo GA (YYYY-MM-DD, today, yesterday, NdaysAgo)
 def _normalize_ga_date(date_value):
@@ -76,9 +76,6 @@ def generate_debriefing2(PRODUTO, VERSAO_PRINCIPAL):
         K_CENTRAL_CAPTURA, K_CENTRAL_VENDAS, K_GRUPOS_WPP, K_PCOPY_DADOS, 
         K_PTRAFEGO_DADOS, K_CLICKS_WPP, K_CENTRAL_PRE_MATRICULA, get_df
     )
-
-    PRODUTO = st.session_state["PRODUTO"]
-    VERSAO_PRINCIPAL = st.session_state["VERSAO_PRINCIPAL"]
 
     DF_CENTRAL_CAPTURA = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_CAPTURA)
     DF_CENTRAL_VENDAS = get_df(PRODUTO, VERSAO_PRINCIPAL, K_CENTRAL_VENDAS)
@@ -823,8 +820,10 @@ def get_page_metrics(slug, start_date, end_date):
         st.secrets["analytics_credentials"]
     )
 
+    PRODUTO = st.session_state["PRODUTO"]
+
     if PRODUTO == 'EI':
-        PROPERTY_ID = "266766007"  # Coloca aqui o número da propriedade GA4
+        PROPERTY_ID = "266766007"
     elif PRODUTO == 'SC':
         PROPERTY_ID = "273168895"
     
@@ -874,6 +873,8 @@ def get_conversions_by_campaign(conversion_slug="/cg/inscricao-pendente", start_
     credentials = service_account.Credentials.from_service_account_info(
         st.secrets["analytics_credentials"]
     )
+
+    PRODUTO = st.session_state["PRODUTO"]
 
     if PRODUTO == 'EI':
         PROPERTY_ID = "266766007"
