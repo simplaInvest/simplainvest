@@ -175,7 +175,7 @@ if not DF_CENTRAL_VENDAS.empty:
                 dataframe[coluna_renda] = pd.Categorical(dataframe[coluna_renda], categories=ordem_renda, ordered=True)
                 
                 # Calculando a taxa de conversão
-                conversion_rate = dataframe.groupby(coluna_renda)[coluna_vendas].mean().reset_index()
+                conversion_rate = dataframe.groupby(coluna_renda, observed=False)[coluna_vendas].mean().reset_index()
                 conversion_rate.rename(columns={coluna_vendas: 'Taxa de Conversão'}, inplace=True)
                 conversion_rate['Taxa de Conversão (%)'] = conversion_rate['Taxa de Conversão'] * 100
 
@@ -250,7 +250,7 @@ if not DF_CENTRAL_VENDAS.empty:
                 dataframe[coluna_categoria] = pd.Categorical(dataframe[coluna_categoria], categories=ordem_categoria, ordered=True)
                 
                 # Calculando a taxa de conversão
-                conversion_rate = dataframe.groupby(coluna_categoria)[coluna_vendas].mean().reset_index()
+                conversion_rate = dataframe.groupby(coluna_categoria, observed=False)[coluna_vendas].mean().reset_index()
                 conversion_rate.rename(columns={coluna_vendas: 'Taxa de Conversão'}, inplace=True)
                 conversion_rate['Taxa de Conversão (%)'] = conversion_rate['Taxa de Conversão'] * 100
 
