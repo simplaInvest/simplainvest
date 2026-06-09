@@ -12,8 +12,11 @@ def mostrar_analise_captacao(DF_CENTRAL_CAPTURA, DF_CENTRAL_PREMATRICULA, DF_CEN
     cols_anun = st.columns(2)
 
     with cols_anun[0]:
-        # ➤ 0. Filtrar apenas anúncios pagos
-        df_captura_filtrado = DF_CENTRAL_CAPTURA[DF_CENTRAL_CAPTURA['UTM_MEDIUM'] == 'pago'].copy()
+        # ➤ 0. Filtrar apenas anúncios pagos de ig ou fb
+        df_captura_filtrado = DF_CENTRAL_CAPTURA[
+            (DF_CENTRAL_CAPTURA['UTM_MEDIUM'] == 'pago') &
+            (DF_CENTRAL_CAPTURA['UTM_SOURCE'].isin(['ig', 'fb']))
+        ].copy()
 
         # 1. Métricas da Captação
         df_captura = df_captura_filtrado.groupby('UTM_TERM').agg(CAPTURA_Leads=('EMAIL', 'nunique'))
@@ -164,10 +167,12 @@ def mostrar_analise_captacao(DF_CENTRAL_CAPTURA, DF_CENTRAL_PREMATRICULA, DF_CEN
 
 def mostrar_analise_pm(DF_CENTRAL_PREMATRICULA, DF_CENTRAL_VENDAS):
     st.subheader("🧪 Análise de Pré-Matrícula")
-    # 0. Filtrar apenas anúncios pagos
+    # 0. Filtrar apenas anúncios pagos de ig ou fb, considerando somente UTM_TERM que começam com "AD"
     DF_PM_FILTRADO = DF_CENTRAL_PREMATRICULA[
         (DF_CENTRAL_PREMATRICULA['UTM_MEDIUM'] == 'pago') &
-        (DF_CENTRAL_PREMATRICULA['UTM_CAMPAIGN'].str.contains('PreMatricula', case=False, na=False))
+        (DF_CENTRAL_PREMATRICULA['UTM_SOURCE'].isin(['ig', 'fb'])) &
+        (DF_CENTRAL_PREMATRICULA['UTM_CAMPAIGN'].str.contains('PreMatricula', case=False, na=False)) &
+        (DF_CENTRAL_PREMATRICULA['UTM_TERM'].str.startswith('AD', na=False))
     ].copy()
 
     # 1. Métricas da Pré-Matrícula:
@@ -283,9 +288,10 @@ def mostrar_analise_pm(DF_CENTRAL_PREMATRICULA, DF_CENTRAL_VENDAS):
 
 def mostrar_analise_vendas(DF_CENTRAL_VENDAS):
     st.subheader("💰 Análise de Vendas")
-    # 0. Filtrar apenas anúncios pagos
+    # 0. Filtrar apenas anúncios pagos de ig ou fb
     DF_VENDAS_FILTRADO = DF_CENTRAL_VENDAS[
         (DF_CENTRAL_VENDAS['UTM_MEDIUM'] == 'pago') &
+        (DF_CENTRAL_VENDAS['UTM_SOURCE'].isin(['ig', 'fb'])) &
         (DF_CENTRAL_VENDAS['UTM_CAMPAIGN'].str.contains('Vendas', case=False, na=False))
     ].copy()
 

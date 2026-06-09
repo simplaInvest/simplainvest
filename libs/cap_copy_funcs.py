@@ -19,15 +19,24 @@ def plot_bar_chart(data, var_name, classes_order, missing_data_summary, color='g
     - rename_dict: Dicionário opcional para renomear valores da coluna.
     """
 
+    # Coluna pode não existir em todos os lançamentos (formato da pesquisa muda entre versões)
+    if var_name not in data.columns:
+        st.info(f"ℹ️ A pergunta '{var_name}' não está disponível neste lançamento.")
+        return
+
     # Renomeia valores, se necessário
     if rename_dict:
         data[var_name] = data[var_name].replace(rename_dict)
 
     # Título com % de preenchimento
-    preenchimento = 100 - missing_data_summary.loc[
+    preenchimento_lookup = missing_data_summary.loc[
         missing_data_summary["Variável"] == var_name,
         "Proporção em relação ao total de respostas da pesquisa"
-    ].values[0]
+    ].values
+    if len(preenchimento_lookup) == 0:
+        st.info(f"ℹ️ A pergunta '{var_name}' não está disponível neste lançamento.")
+        return
+    preenchimento = 100 - preenchimento_lookup[0]
     titulo = f'{var_name} \n({round(preenchimento, 2)}% de preenchimento)'
 
     # Contagem
@@ -57,6 +66,9 @@ def plot_bar_chart(data, var_name, classes_order, missing_data_summary, color='g
 def graf_idade(data, missing_data_summary):
         # Convertendo para valores numéricos, substituindo não numéricos por NaN
         data['Qual sua idade?'] = pd.to_numeric(data['Qual sua idade?'], errors='coerce')
+        # Descarta idades implausíveis (ex.: datas de nascimento digitadas no lugar da idade),
+        # que inflam o range dos bins e causam estouro de memória no np.arange
+        data.loc[(data['Qual sua idade?'] < 0) | (data['Qual sua idade?'] > 120), 'Qual sua idade?'] = np.nan
         var = 'Qual sua idade?'
         titulo = f'{var} \n({round(100 - missing_data_summary.loc[missing_data_summary["Variável"] == f"{var}", "Proporção em relação ao total de respostas da pesquisa"].values[0], 2)}% de preenchimento)'
         

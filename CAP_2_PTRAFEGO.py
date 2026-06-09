@@ -256,6 +256,18 @@ else:
     with cols_resumo[0]:
         with st.container(border=True):
             st.markdown("**Filtro por Data de Captura**")
+            # #region agent log
+            _log_path = "debug-fadf22.log"
+            _has_dc = 'DATA DE CAPTURA' in filtered_DF_PTRAFEGO_DADOS.columns
+            _valid_dates_series = filtered_DF_PTRAFEGO_DADOS['DATA DE CAPTURA'].dropna() if _has_dc else pd.Series(dtype=object)
+            _sample_vals = filtered_DF_PTRAFEGO_DADOS['DATA DE CAPTURA'].head(5).astype(str).tolist() if _has_dc else []
+            try:
+                import json
+                with open(_log_path, "a", encoding="utf-8") as _f:
+                    _f.write(json.dumps({"sessionId": "fadf22", "hypothesisId": "B,C,D,E", "location": "CAP_2_PTRAFEGO.py:filtro data captura", "message": "filtered_DF before valid_dates", "data": {"has_DATA_DE_CAPTURA": _has_dc, "filtered_shape": list(filtered_DF_PTRAFEGO_DADOS.shape), "valid_dates_count": len(_valid_dates_series), "sample_values": _sample_vals, "LANÇAMENTO": LANÇAMENTO}, "timestamp": __import__("time").time() * 1000}) + "\n")
+            except Exception:
+                pass
+            # #endregion
             valid_dates = filtered_DF_PTRAFEGO_DADOS['DATA DE CAPTURA'].dropna()
             if not valid_dates.empty:
                 cap_inicio = pd.to_datetime(

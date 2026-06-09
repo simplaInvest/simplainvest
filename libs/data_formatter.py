@@ -50,11 +50,34 @@ def format_ptrafego_dados(df_ptrafego_dados):
     if df_ptrafego_dados.empty:
         return df_ptrafego_dados
     else:
+        # #region agent log
+        _log_path = "debug-fadf22.log"
+        _has_col = "DATA DE CAPTURA" in df_ptrafego_dados.columns
+        _raw_sample = []
+        if _has_col:
+            _raw = df_ptrafego_dados["DATA DE CAPTURA"].astype(str).head(5).tolist()
+            _raw_sample = _raw
+        try:
+            import json
+            with open(_log_path, "a", encoding="utf-8") as _f:
+                _f.write(json.dumps({"sessionId": "fadf22", "hypothesisId": "A", "location": "data_formatter.py:format_ptrafego_dados", "message": "DATA DE CAPTURA before parse", "data": {"has_column": _has_col, "columns_list": list(df_ptrafego_dados.columns), "raw_sample": _raw_sample, "total_rows": len(df_ptrafego_dados)}, "timestamp": __import__("time").time() * 1000}) + "\n")
+        except Exception:
+            pass
+        # #endregion
         # converter a coluna 'DATA DE CAPTURA' para datetime no formato correto, se existir
         if 'DATA DE CAPTURA' in df_ptrafego_dados.columns:
             df_ptrafego_dados["DATA DE CAPTURA"] = pd.to_datetime(
                 df_ptrafego_dados["DATA DE CAPTURA"], format="%d/%m/%Y %H:%M", errors="coerce"
             )
+            # #region agent log
+            _nat_count = df_ptrafego_dados["DATA DE CAPTURA"].isna().sum()
+            try:
+                import json
+                with open(_log_path, "a", encoding="utf-8") as _f:
+                    _f.write(json.dumps({"sessionId": "fadf22", "hypothesisId": "A", "location": "data_formatter.py:after to_datetime", "message": "DATA DE CAPTURA after parse", "data": {"nat_count": int(_nat_count), "valid_count": int(len(df_ptrafego_dados) - _nat_count), "dtype": str(df_ptrafego_dados["DATA DE CAPTURA"].dtype)}, "timestamp": __import__("time").time() * 1000}) + "\n")
+            except Exception:
+                pass
+            # #endregion
         # Verifica colunas duplicadas
         if df_ptrafego_dados.columns.duplicated().any():
             st.warning("Colunas duplicadas foram encontradas e excluídas.")

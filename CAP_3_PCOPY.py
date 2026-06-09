@@ -72,6 +72,11 @@ if 'Qual sua situação amorosa hoje?' in DF_PCOPY_DADOS:
 
 if VERSAO_PRINCIPAL >= 20:
     DF_PCOPY_DADOS['Qual sua idade?'] = pd.to_numeric(DF_PCOPY_DADOS['Qual sua idade?'], errors='coerce')
+    # Respostas com datas de nascimento/números inválidos inflam o range e estouram a memória nos gráficos
+    DF_PCOPY_DADOS.loc[
+        (DF_PCOPY_DADOS['Qual sua idade?'] < 0) | (DF_PCOPY_DADOS['Qual sua idade?'] > 120),
+        'Qual sua idade?'
+    ] = np.nan
 
 gender_options = ['TODOS'] + ['Masculino', 'Feminino', 'Outro']
 children_options = ['TODOS'] + list(DF_PCOPY_DADOS['Você tem filhos?'].dropna().unique())
